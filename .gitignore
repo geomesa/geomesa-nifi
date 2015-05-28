@@ -1,0 +1,8 @@
+*.iws
+*.ipr
+*.iml
+*.idea/
+.idea/**
+target
+atlassian*
+dependency-reduced-pom.xml
