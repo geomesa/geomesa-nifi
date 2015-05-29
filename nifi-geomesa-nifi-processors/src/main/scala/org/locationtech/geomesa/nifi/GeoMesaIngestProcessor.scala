@@ -58,25 +58,33 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     ds.createSchema(sft)
 
     val converter = getConverter(sft, context)
-    val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
-
     try {
-      session.read(flowFile, new InputStreamCallback {
-        override def process(in: InputStream): Unit = {
-          converter.processInput(Source.fromInputStream(in).getLines()).foreach { sf =>
-            val toWrite = fw.next()
-            toWrite.setAttributes(sf.getAttributes)
-            toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
-            toWrite.getUserData.putAll(sf.getUserData)
-            fw.write()
+      val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
+      try {
+        session.read(flowFile, new InputStreamCallback {
+          override def process(in: InputStream): Unit = {
+            converter.processInput(
+              Source.fromInputStream(in)
+                .getLines()
+                .filterNot(s => "^\\s*$".r.findFirstIn(s).size > 0)
+            ).foreach { sf =>
+              val toWrite = fw.next()
+              toWrite.setAttributes(sf.getAttributes)
+              toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
+              toWrite.getUserData.putAll(sf.getUserData)
+              fw.write()
+            }
           }
-        }
-      })
-      fw.close()
+        })
+      } finally {
+        fw.close()
+      }
       session.transfer(flowFile, SuccessRelationship)
     } catch {
       case e: Exception =>
         session.transfer(flowFile, FailureRelationship)
+    } finally {
+      converter.close()
     }
   }
 
