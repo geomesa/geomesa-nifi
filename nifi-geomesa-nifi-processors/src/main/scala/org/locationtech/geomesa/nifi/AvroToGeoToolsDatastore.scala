@@ -10,7 +10,9 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStoreFinder, Transaction}
+import org.geotools.data.simple.SimpleFeatureStore
+import org.geotools.data.{DataUtilities, DataStoreFinder, Transaction}
+import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader}
 import org.locationtech.geomesa.nifi.AvroToGeoToolsDatastore._
@@ -59,19 +61,33 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
     try {
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
-          val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
-          try {
-            val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
-            dfs.iterator().foreach { sf =>
-              val toWrite = fw.next()
-              toWrite.setAttributes(sf.getAttributes)
-              toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
-              toWrite.getUserData.putAll(sf.getUserData)
-              fw.write()
-            }
-          } finally {
-            fw.close()
-          }
+//          val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
+//          try {
+//            val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
+//            getLogger.info("0")
+//            dfs.iterator().toList.foreach { sf =>
+//              getLogger.info("1")
+//              fw.hasNext
+//              val toWrite = fw.next()
+//              getLogger.info("2")
+//              toWrite.setAttributes(sf.getAttributes)
+//              getLogger.info("3")
+//              toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
+//              getLogger.info("4")
+//              toWrite.getUserData.putAll(sf.getUserData)
+//              getLogger.info("5")
+//              fw.write()
+//              getLogger.info("6")
+//              session.adjustCounter("featuresWritten", 1L, false)
+//            }
+//          } finally {
+//            fw.close()
+//          }
+          val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
+          val fs = ds.getFeatureSource(sft.getTypeName).asInstanceOf[SimpleFeatureStore]
+          val c = new DefaultFeatureCollection()
+          c.addAll(dfs.iterator().toList)
+          fs.addFeatures(c)
         }
       })
       session.transfer(flowFile, SuccessRelationship)
