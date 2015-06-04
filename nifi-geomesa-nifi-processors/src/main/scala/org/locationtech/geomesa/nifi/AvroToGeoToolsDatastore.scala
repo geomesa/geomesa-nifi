@@ -29,8 +29,6 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
 
-  private var sft: SimpleFeatureType = null
-
   protected override def init(context: ProcessorInitializationContext): Unit = {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
     descriptors = List(DataStoreName, SftConfig).asJava
@@ -61,28 +59,6 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
     try {
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
-//          val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
-//          try {
-//            val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
-//            getLogger.info("0")
-//            dfs.iterator().toList.foreach { sf =>
-//              getLogger.info("1")
-//              fw.hasNext
-//              val toWrite = fw.next()
-//              getLogger.info("2")
-//              toWrite.setAttributes(sf.getAttributes)
-//              getLogger.info("3")
-//              toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
-//              getLogger.info("4")
-//              toWrite.getUserData.putAll(sf.getUserData)
-//              getLogger.info("5")
-//              fw.write()
-//              getLogger.info("6")
-//              session.adjustCounter("featuresWritten", 1L, false)
-//            }
-//          } finally {
-//            fw.close()
-//          }
           val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
           val fs = ds.getFeatureSource(sft.getTypeName).asInstanceOf[SimpleFeatureStore]
           val c = new DefaultFeatureCollection()
@@ -146,8 +122,7 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
 
 object AvroToGeoToolsDatastore {
 
-  private def listDataStores() =
-    DataStoreFinder.getAvailableDataStores
+  private def listDataStores() = DataStoreFinder.getAvailableDataStores
 
   val DataStoreName = new PropertyDescriptor.Builder()
     .name("DataStoreName")
