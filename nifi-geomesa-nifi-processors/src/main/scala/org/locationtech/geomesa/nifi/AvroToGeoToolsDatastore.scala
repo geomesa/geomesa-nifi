@@ -29,6 +29,9 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
 
+  //
+  // Initialize the processor, relationships, static descriptors
+  //
   protected override def init(context: ProcessorInitializationContext): Unit = {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
     descriptors = List(DataStoreName, SftConfig).asJava
@@ -37,17 +40,23 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
   override def getRelationships = relationships
   override def getSupportedPropertyDescriptors = descriptors
 
+  //
+  // Allow dynamic properties for datastores
+  //
   override def getSupportedDynamicPropertyDescriptor(propertyDescriptorName: String): PropertyDescriptor = {
     return new PropertyDescriptor.Builder()
     .description("Sets the value on the datastore")
     .name(propertyDescriptorName)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .sensitive(sensitiveProps.contains(propertyDescriptorName))
+    .sensitive(sensitiveProps().contains(propertyDescriptorName))
     .dynamic(true)
     .expressionLanguageSupported(false)
     .build()
   }
 
+  //
+  // Look for a flow file and process it if there is one
+  //
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
     Option(session.get()).map(doWork(context, session, _))
 
@@ -74,7 +83,7 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
     }
   }
 
-  val sensitiveProps = listDataStores().map(_.getParametersInfo.filter(_.isPassword).map(_.getName)).flatten
+  def sensitiveProps() = listDataStores().map(_.getParametersInfo.filter(_.isPassword).map(_.getName)).flatten
 
   private def getDataStore(context: ProcessContext) = {
     val dsProps = context.getProperties.filter(_._1.getName != DataStoreName.getName).map { case (a, b) => a.getName -> b }
@@ -82,6 +91,9 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
     DataStoreFinder.getDataStore(dsProps)
   }
 
+  //
+  // Custom validate properties based on the specific datastore
+  //
   override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
     val validationResults = scala.collection.mutable.ListBuffer.empty[ValidationResult]
     val dsOpt = Option(validationContext.getProperty(DataStoreName).getValue)
@@ -124,6 +136,9 @@ object AvroToGeoToolsDatastore {
 
   private def listDataStores() = DataStoreFinder.getAvailableDataStores
 
+  //
+  // Define Properties
+  //
   val DataStoreName = new PropertyDescriptor.Builder()
     .name("DataStoreName")
     .description("DataStoreName")
@@ -139,6 +154,9 @@ object AvroToGeoToolsDatastore {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
+  //
+  // Define relationships
+  //
   final val SuccessRelationship = new Relationship.Builder().name("success").description("Success").build
   final val FailureRelationship = new Relationship.Builder().name("failure").description("Failure").build
 }
