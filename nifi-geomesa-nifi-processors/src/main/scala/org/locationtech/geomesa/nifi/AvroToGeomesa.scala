@@ -3,6 +3,7 @@ package org.locationtech.geomesa.nifi
 import java.io.InputStream
 
 import com.typesafe.config.ConfigFactory
+import org.apache.avro.file.DataFileStream
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
@@ -11,18 +12,17 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
-import org.locationtech.geomesa.convert.SimpleFeatureConverters
-import org.locationtech.geomesa.nifi.GeoMesaIngestProcessor._
+import org.locationtech.geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader}
+import org.locationtech.geomesa.nifi.AvroToGeomesa._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
-import scala.io.Source
 
 @Tags(Array("geomesa", "geo", "ingest"))
-@CapabilityDescription("Ingest Data into GeoMesa")
-class GeoMesaIngestProcessor extends AbstractProcessor {
+@CapabilityDescription("store avro files into geomesa")
+class AvroToGeomesa extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
@@ -36,9 +36,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       User,
       Password,
       Catalog,
-      FeatureName,
-      SftSpec,
-      TextSpec).asJava
+      SftConfig).asJava
 
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
@@ -50,44 +48,38 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     Option(session.get()).map(doWork(context, session, _))
 
   private def doWork(context: ProcessContext, session: ProcessSession, flowFile: FlowFile): Unit = {
-    val name = context.getProperty(FeatureName).getValue
-    val spec = context.getProperty(SftSpec).getValue
-    val sft = SimpleFeatureTypes.createType(name, spec)
-
+    val sft = getSft(context)
     val ds = getDataStore(context)
     ds.createSchema(sft)
 
-    val converter = getConverter(sft, context)
     try {
-      val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
-      try {
-        session.read(flowFile, new InputStreamCallback {
-          override def process(in: InputStream): Unit = {
-            converter.processIterator(
-              Source.fromInputStream(in)
-                .getLines()
-                .filterNot(s => "^\\s*$".r.findFirstIn(s).size > 0)
-            ).foreach { sf =>
+      session.read(flowFile, new InputStreamCallback {
+        override def process(in: InputStream): Unit = {
+          val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
+          try {
+            val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
+            dfs.iterator().foreach { sf =>
               val toWrite = fw.next()
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
               fw.write()
             }
+          } finally {
+            fw.close()
           }
-        })
-      } finally {
-        fw.close()
-      }
+        }
+      })
       session.transfer(flowFile, SuccessRelationship)
     } catch {
       case e: Exception =>
         getLogger.error("error", e)
         session.transfer(flowFile, FailureRelationship)
-    } finally {
-      converter.close()
     }
   }
+
+  private def getSft(context: ProcessContext) =
+    SimpleFeatureTypes.createType(ConfigFactory.parseString(context.getProperty(SftConfig).getValue))
 
   private def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
     "zookeepers" -> context.getProperty(Zookeepers).getValue,
@@ -97,14 +89,9 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     "password"   -> context.getProperty(Password).getValue
   ))
 
-  private def getConverter(sft: SimpleFeatureType, context: ProcessContext) = {
-    val conf = ConfigFactory.parseString(context.getProperty(TextSpec).getValue)
-    SimpleFeatureConverters.build[String](sft, conf)
-  }
-
 }
 
-object GeoMesaIngestProcessor {
+object AvroToGeomesa {
   val Zookeepers = new PropertyDescriptor.Builder()
     .name("Zookeepers")
     .description("Zookeepers host(:port) pairs, comma separated")
@@ -141,23 +128,9 @@ object GeoMesaIngestProcessor {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
-  val FeatureName = new PropertyDescriptor.Builder()
-    .name("FeatureName")
-    .description("GeoMesa Feature Name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val SftSpec = new PropertyDescriptor.Builder()
-    .name("SftSpec")
-    .description("SimpleFeatureType (SFT) spec string")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val TextSpec = new PropertyDescriptor.Builder()
-    .name("TextSpec")
-    .description("Converter Spec")
+  val SftConfig = new PropertyDescriptor.Builder()
+    .name("SftConfig")
+    .description("SimpleFeatureType (SFT) config")
     .required(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build

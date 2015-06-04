@@ -29,7 +29,6 @@
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>nifi-geomesa-nifi-processors</artifactId>
-            <version>rc.5-1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

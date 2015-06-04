@@ -40,6 +40,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>nifi-geomesa-nifi-processors</artifactId>
+                <version>${pom.version}</version>
+            </dependency>
             <!-- GeoMesa -->
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
