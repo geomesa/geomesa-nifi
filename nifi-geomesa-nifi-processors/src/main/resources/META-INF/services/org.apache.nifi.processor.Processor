@@ -15,3 +15,4 @@
 org.locationtech.geomesa.nifi.GeoMesaIngestProcessor
 org.locationtech.geomesa.nifi.AvroToGeomesa
 org.locationtech.geomesa.nifi.SimpleFeatureToAvro
+org.locationtech.geomesa.nifi.AvroToGeoToolsDatastore
