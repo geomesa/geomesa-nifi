@@ -22,8 +22,7 @@ import scala.collection.JavaConverters._
 
 @Tags(Array("geomesa", "geo", "ingest"))
 @CapabilityDescription("store avro files into geomesa")
-class
-AvroToGeomesa extends AbstractProcessor {
+class AvroToGeomesa extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null

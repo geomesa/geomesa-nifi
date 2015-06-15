@@ -4,6 +4,7 @@ import java.io.InputStream
 
 import com.typesafe.config.ConfigFactory
 import org.apache.avro.file.DataFileStream
+import org.apache.nifi.annotation.behavior.WritesAttribute
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.flowfile.FlowFile
@@ -14,15 +15,15 @@ import org.geotools.data.DataStoreFinder
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.feature.DefaultFeatureCollection
 import org.locationtech.geomesa.features.avro.{AvroSimpleFeature, FeatureSpecificReader}
-import org.locationtech.geomesa.nifi.AvroToGeoToolsDatastore._
+import org.locationtech.geomesa.nifi.SimpleFeaturesToDataStore._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-@Tags(Array("geomesa", "geo", "ingest"))
+@Tags(Array("geomesa", "geo", "ingest", "geotools", "datastore", "features", "simple feature"))
 @CapabilityDescription("store avro files into geomesa")
-class AvroToGeoToolsDatastore extends AbstractProcessor {
+class SimpleFeaturesToDataStore extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
@@ -130,7 +131,7 @@ class AvroToGeoToolsDatastore extends AbstractProcessor {
 
 }
 
-object AvroToGeoToolsDatastore {
+object SimpleFeaturesToDataStore {
 
   private def listDataStores() = DataStoreFinder.getAvailableDataStores
 
