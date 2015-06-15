@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.locationtech.geomesa</groupId>
         <artifactId>geomesa-nifi</artifactId>
-        <version>rc.7-1.0.0-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-geomesa-nifi-nar</artifactId>

@@ -10,14 +10,12 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
+import org.geotools.data.DataStoreFinder
 import org.geotools.data.simple.SimpleFeatureStore
-import org.geotools.data.{DataUtilities, DataStoreFinder, Transaction}
 import org.geotools.feature.DefaultFeatureCollection
-import org.geotools.filter.identity.FeatureIdImpl
-import org.locationtech.geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader}
+import org.locationtech.geomesa.features.avro.{AvroSimpleFeature, FeatureSpecificReader}
 import org.locationtech.geomesa.nifi.AvroToGeoToolsDatastore._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._

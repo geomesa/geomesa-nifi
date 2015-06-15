@@ -12,7 +12,7 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
-import org.locationtech.geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader}
+import org.locationtech.geomesa.features.avro.{AvroSimpleFeature, FeatureSpecificReader}
 import org.locationtech.geomesa.nifi.AvroToGeomesa._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.SimpleFeatureType
@@ -22,7 +22,8 @@ import scala.collection.JavaConverters._
 
 @Tags(Array("geomesa", "geo", "ingest"))
 @CapabilityDescription("store avro files into geomesa")
-class AvroToGeomesa extends AbstractProcessor {
+class
+AvroToGeomesa extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null

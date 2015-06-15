@@ -3,7 +3,7 @@ package org.locationtech.geomesa.nifi
 import java.io.{InputStream, OutputStream}
 
 import com.typesafe.config.ConfigFactory
-import org.apache.avro.file.{CodecFactory, DataFileWriter}
+import org.apache.avro.file.DataFileWriter
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
@@ -11,7 +11,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.locationtech.geomesa.convert.SimpleFeatureConverters
-import org.locationtech.geomesa.feature.{AvroSimpleFeatureUtils, AvroSimpleFeatureWriter}
+import org.locationtech.geomesa.features.avro.{AvroSimpleFeatureUtils, AvroSimpleFeatureWriter}
 import org.locationtech.geomesa.nifi.SimpleFeatureToAvro._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -42,11 +42,12 @@ class SimpleFeatureToAvro extends AbstractProcessor {
       val converter = getConverter(sft, context)
       try {
         val schema = AvroSimpleFeatureUtils.generateSchema(sft)
+        val ff2 = session.create()
         val newff = session.write(flowFile, new StreamCallback {
           override def process(in: InputStream, out: OutputStream): Unit = {
             val dfw = new DataFileWriter[SimpleFeature](new AvroSimpleFeatureWriter(sft))
             dfw.create(schema, out)
-            converter.processIterator(
+            converter.processInput(
               Source.fromInputStream(in)
                 .getLines()
                 .toList

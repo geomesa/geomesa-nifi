@@ -63,9 +63,11 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       try {
         session.read(flowFile, new InputStreamCallback {
           override def process(in: InputStream): Unit = {
-            converter.processIterator(
+            converter.processInput(
               Source.fromInputStream(in)
                 .getLines()
+                .toList
+                .iterator
                 .filterNot(s => "^\\s*$".r.findFirstIn(s).size > 0)
             ).foreach { sf =>
               val toWrite = fw.next()
