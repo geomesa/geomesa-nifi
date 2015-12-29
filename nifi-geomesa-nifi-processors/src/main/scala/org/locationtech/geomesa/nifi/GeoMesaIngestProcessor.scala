@@ -21,7 +21,7 @@ import scala.collection.JavaConverters._
 import scala.io.Source
 
 @Tags(Array("geomesa", "geo", "ingest"))
-@CapabilityDescription("Ingest Data into GeoMesa")
+@CapabilityDescription("Ingest Data directly into GeoMesa")
 class GeoMesaIngestProcessor extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null

@@ -21,7 +21,7 @@ import scala.collection.JavaConverters._
 import scala.io.Source
 
 @Tags(Array("OGC", "geo", "convert", "converter", "simple feature", "geotools"))
-@CapabilityDescription("Convert incoming files into OGC SimpleFeature format")
+@CapabilityDescription("Convert incoming files into OGC SimpleFeature data files")
 @WritesAttribute(attribute = "mime.type", description = "the mime type of the outgoing format")
 class SimpleFeatureConverter extends AbstractProcessor {
 
@@ -37,7 +37,7 @@ class SimpleFeatureConverter extends AbstractProcessor {
     override def getSupportedPropertyDescriptors = descriptors
 
     override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
-      Option(session.get()).map(doWork(context, session, _))
+      Option(session.get()).foreach(doWork(context, session, _))
 
     private def doWork(context: ProcessContext, session: ProcessSession, flowFile: FlowFile): Unit = {
       val sft = getSft(context)
@@ -53,7 +53,7 @@ class SimpleFeatureConverter extends AbstractProcessor {
                 .getLines()
                 .toList
                 .iterator
-                .filterNot(s => "^\\s*$".r.findFirstIn(s).size > 0)  // csv converter requires this currently
+                .filterNot(s => "^\\s*$".r.findFirstIn(s).isDefined)  // csv converter requires this currently
             ).foreach(dfw.append)
             dfw.close()
           }
