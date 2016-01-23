@@ -28,8 +28,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <scala.version>2.10.5</scala.version>
-        <geomesa.version>1.1.0-rc.7</geomesa.version>
+        <scala.version>2.11.7</scala.version>
+        <geomesa.version>1.2.0-SNAPSHOT</geomesa.version>
         <accumulo.version>1.6.2</accumulo.version>
         <nifi.version>${project.parent.version}</nifi.version>
     </properties>
