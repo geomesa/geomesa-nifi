@@ -14,11 +14,13 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction}
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.SimpleFeatureConverters
 import org.locationtech.geomesa.nifi.GeoMesaIngestProcessor._
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.tools.{ConverterConfigParser, SftArgParser}
+import org.locationtech.geomesa.utils.geotools.{SimpleFeatureTypeLoader, SimpleFeatureTypes}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
@@ -41,8 +43,6 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       User,
       Password,
       Catalog,
-      SftName,
-      ConverterName,
       FeatureName,
       SftSpec,
       ConverterSpec
@@ -69,7 +69,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 
     converter = getConverter(sft, context)
     featureWriter = createFeatureWriter(sft, context)
-    getLogger.info("Initialized GeoMesaIngestProcessor datastore, fw, converter")
+    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
   }
 
   @OnStopped
@@ -118,9 +118,9 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   ))
 
   private def getSft(context: ProcessContext): SimpleFeatureType = {
-    val conf = ConfigFactory.parseString(context.getProperty(SftSpec).getValue)
-    val typeName = Option(context.getProperty(SftName).getValue)
-    SimpleFeatureTypes.createType(conf, typeName)
+    val sftArg = context.getProperty(SftSpec).getValue
+    val typeName = context.getProperty(FeatureName).getValue
+    SftArgParser.getSft(sftArg, typeName)
   }
 
   private def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
@@ -128,7 +128,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   }
 
   private def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
-    val conf = ConfigFactory.parseString(context.getProperty(ConverterSpec).getValue)
+    val conf = ConverterConfigParser.getConfig(context.getProperty(ConverterSpec).getValue)
     SimpleFeatureConverters.build(sft, conf)
   }
 
@@ -168,20 +168,6 @@ object GeoMesaIngestProcessor {
     .name("Catalog")
     .description("GeoMesa catalog table name")
     .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val SftName = new PropertyDescriptor.Builder()
-    .name("SftName")
-    .description("Use a pre-registered SimpleFeatureType loaded from the classpath")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val ConverterName = new PropertyDescriptor.Builder()
-    .name("ConverterName")
-    .description("Use a pre-registered Converter loaded from the classpath")
-    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
