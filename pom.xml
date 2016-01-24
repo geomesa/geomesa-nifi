@@ -35,15 +35,16 @@
     </properties>
 
     <modules>
-        <module>nifi-geomesa-nifi-processors</module>
-        <module>nifi-geomesa-nifi-nar</module>
+        <module>geomesa-nifi-processors</module>
+        <module>geomesa-nifi-nar</module>
+        <module>geomesa-nifi-resources</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>nifi-geomesa-nifi-processors</artifactId>
+                <artifactId>geomesa-nifi-processors</artifactId>
                 <version>${pom.version}</version>
             </dependency>
             <!-- GeoMesa -->

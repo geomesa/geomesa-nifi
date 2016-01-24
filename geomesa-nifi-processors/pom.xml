@@ -22,7 +22,7 @@
         <version>0.0.2-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-geomesa-nifi-processors</artifactId>
+    <artifactId>geomesa-nifi-processors</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
