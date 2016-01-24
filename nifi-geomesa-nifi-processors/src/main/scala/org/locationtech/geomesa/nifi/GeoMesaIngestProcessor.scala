@@ -3,31 +3,36 @@ package org.locationtech.geomesa.nifi
 import java.io.InputStream
 
 import com.typesafe.config.ConfigFactory
+import org.apache.commons.io.IOUtils
+import org.apache.nifi.annotation.behavior.InputRequirement
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.annotation.lifecycle.{OnScheduled, OnStopped}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, DataStoreFinder, Transaction}
+import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
+import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.SimpleFeatureConverters
 import org.locationtech.geomesa.nifi.GeoMesaIngestProcessor._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
-import scala.io.Source
 
-@Tags(Array("geomesa", "geo", "ingest"))
-@CapabilityDescription("Ingest Data directly into GeoMesa")
+@Tags(Array("geomesa", "geo", "ingest", "convert"))
+@CapabilityDescription("Convert and ingest data files into GeoMesa")
+@InputRequirement(Requirement.INPUT_REQUIRED)
 class GeoMesaIngestProcessor extends AbstractProcessor {
+
+  type SFW = FeatureWriter[SimpleFeatureType, SimpleFeature]
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
-
-  private var sft: SimpleFeatureType = null
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
@@ -36,58 +41,71 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       User,
       Password,
       Catalog,
+      SftName,
+      ConverterName,
       FeatureName,
       SftSpec,
-      TextSpec).asJava
+      ConverterSpec
+     ).asJava
 
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
+  }
+
+  @volatile
+  private var featureWriter: SFW = null
+
+  @volatile
+  private var dataStore: DataStore = null
+
+  @volatile
+  private var converter: convert.SimpleFeatureConverter[_] = null
+
+
+  @OnScheduled
+  def initialize(context: ProcessContext): Unit = {
+    dataStore = getDataStore(context)
+    val sft = getSft(context)
+    dataStore.createSchema(sft)
+
+    converter = getConverter(sft, context)
+    featureWriter = createFeatureWriter(sft, context)
+    getLogger.info("Initialized GeoMesaIngestProcessor datastore, fw, converter")
+  }
+
+  @OnStopped
+  def cleanup(): Unit = {
+    IOUtils.closeQuietly(featureWriter)
+    featureWriter = null
+    dataStore = null
+    getLogger.info("Shut down geomesa processor")
   }
 
   override def getRelationships = relationships
   override def getSupportedPropertyDescriptors = descriptors
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
-    Option(session.get()).map(doWork(context, session, _))
+    Option(session.get()).foreach(doWork(context, session, _))
 
   private def doWork(context: ProcessContext, session: ProcessSession, flowFile: FlowFile): Unit = {
-    val name = context.getProperty(FeatureName).getValue
-    val spec = context.getProperty(SftSpec).getValue
-    val sft = SimpleFeatureTypes.createType(name, spec)
-
-    val ds = getDataStore(context)
-    ds.createSchema(sft)
-
-    val converter = getConverter(sft, context)
     try {
-      val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
-      try {
-        session.read(flowFile, new InputStreamCallback {
-          override def process(in: InputStream): Unit = {
-            converter.processInput(
-              Source.fromInputStream(in)
-                .getLines()
-                .toList
-                .iterator
-                .filterNot(s => "^\\s*$".r.findFirstIn(s).size > 0)
-            ).foreach { sf =>
-              val toWrite = fw.next()
+      session.read(flowFile, new InputStreamCallback {
+        override def process(in: InputStream): Unit = {
+          converter
+            .process(in)
+            .foreach { sf =>
+              val toWrite = featureWriter.next()
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
-              fw.write()
+              featureWriter.write()
             }
-          }
-        })
-      } finally {
-        fw.close()
-      }
+        }
+      })
       session.transfer(flowFile, SuccessRelationship)
     } catch {
       case e: Exception =>
         getLogger.error("error", e)
         session.transfer(flowFile, FailureRelationship)
-    } finally {
-      converter.close()
     }
   }
 
@@ -99,9 +117,19 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     "password"   -> context.getProperty(Password).getValue
   ))
 
-  private def getConverter(sft: SimpleFeatureType, context: ProcessContext) = {
-    val conf = ConfigFactory.parseString(context.getProperty(TextSpec).getValue)
-    SimpleFeatureConverters.build[String](sft, conf)
+  private def getSft(context: ProcessContext): SimpleFeatureType = {
+    val conf = ConfigFactory.parseString(context.getProperty(SftSpec).getValue)
+    val typeName = Option(context.getProperty(SftName).getValue)
+    SimpleFeatureTypes.createType(conf, typeName)
+  }
+
+  private def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
+    dataStore.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
+  }
+
+  private def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
+    val conf = ConfigFactory.parseString(context.getProperty(ConverterSpec).getValue)
+    SimpleFeatureConverters.build(sft, conf)
   }
 
 }
@@ -143,24 +171,38 @@ object GeoMesaIngestProcessor {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
+  val SftName = new PropertyDescriptor.Builder()
+    .name("SftName")
+    .description("Use a pre-registered SimpleFeatureType loaded from the classpath")
+    .required(false)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .build
+
+  val ConverterName = new PropertyDescriptor.Builder()
+    .name("ConverterName")
+    .description("Use a pre-registered Converter loaded from the classpath")
+    .required(false)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .build
+
   val FeatureName = new PropertyDescriptor.Builder()
-    .name("FeatureName")
-    .description("GeoMesa Feature Name")
-    .required(true)
+    .name("FeatureNameOverride")
+    .description("Override the Simple Feature Type name from the SFT Spec")
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
   val SftSpec = new PropertyDescriptor.Builder()
     .name("SftSpec")
-    .description("SimpleFeatureType (SFT) spec string")
-    .required(true)
+    .description("Manually define a SimpleFeatureType (SFT) config spec")
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
-  val TextSpec = new PropertyDescriptor.Builder()
-    .name("TextSpec")
-    .description("Converter Spec")
-    .required(true)
+  val ConverterSpec = new PropertyDescriptor.Builder()
+    .name("ConverterSpec")
+    .description("Manually define a converter using typesafe config")
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
