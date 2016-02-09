@@ -2,7 +2,6 @@ package org.locationtech.geomesa.nifi
 
 import java.io.InputStream
 
-import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.IOUtils
 import org.apache.nifi.annotation.behavior.InputRequirement
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
@@ -14,13 +13,11 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction}
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
-import org.locationtech.geomesa.convert.SimpleFeatureConverters
+import org.locationtech.geomesa.convert.{ConverterConfigResolver, ConverterConfigLoader, SimpleFeatureConverters}
 import org.locationtech.geomesa.nifi.GeoMesaIngestProcessor._
-import org.locationtech.geomesa.tools.{ConverterConfigParser, SftArgParser}
-import org.locationtech.geomesa.utils.geotools.{SimpleFeatureTypeLoader, SimpleFeatureTypes}
+import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
@@ -43,6 +40,8 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       User,
       Password,
       Catalog,
+      SftName,
+      ConverterName,
       FeatureName,
       SftSpec,
       ConverterSpec
@@ -118,9 +117,12 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   ))
 
   private def getSft(context: ProcessContext): SimpleFeatureType = {
-    val sftArg = context.getProperty(SftSpec).getValue
+    val sftArg = Option(context.getProperty(SftName).getValue)
+      .orElse(Option(context.getProperty(SftSpec).getValue))
+      .getOrElse(throw new IllegalArgumentException("could not parse spec config"))
+        context.getProperty(SftName).getValue
     val typeName = context.getProperty(FeatureName).getValue
-    SftArgParser.getSft(sftArg, typeName)
+    SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException("could not parse sft config"))
   }
 
   private def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
@@ -128,8 +130,11 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   }
 
   private def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
-    val conf = ConverterConfigParser.getConfig(context.getProperty(ConverterSpec).getValue)
-    SimpleFeatureConverters.build(sft, conf)
+    val convertArg = Option(context.getProperty(ConverterName).getValue)
+      .orElse(Option(context.getProperty(ConverterSpec).getValue))
+      .getOrElse(throw new IllegalArgumentException("could not parse converter config"))
+    val config = ConverterConfigResolver.getConfig(convertArg).get
+    SimpleFeatureConverters.build(sft, config)
   }
 
 }
@@ -171,11 +176,27 @@ object GeoMesaIngestProcessor {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
+  val SftName = new PropertyDescriptor.Builder()
+    .name("SftName")
+    .description("Choose an SFT defined by a GeoMesa SFT Provider (preferred)")
+    .required(false)
+    .allowableValues(SimpleFeatureTypeLoader.listTypeNames.toArray: _*)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .build
+
+  val ConverterName = new PropertyDescriptor.Builder()
+    .name("ConverterName")
+    .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
+    .required(false)
+    .allowableValues(ConverterConfigLoader.listConverterNames.toArray: _*)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)   // TODO validate
+    .build
+
   val FeatureName = new PropertyDescriptor.Builder()
     .name("FeatureNameOverride")
     .description("Override the Simple Feature Type name from the SFT Spec")
     .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)  // TODO validate
     .build
 
   val SftSpec = new PropertyDescriptor.Builder()

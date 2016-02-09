@@ -12,6 +12,8 @@ Copy the nar file (niagara files archive) geomesa-nifi/geomesa-nifi-nar/target/g
 
 Copy a sample resources bundle (providing sfts and config on the command line) geomesa-nifi/geomesa-nifi-resources/target/geomesa-nifi-resources-0.0.2-SNAPSHOT.jar into the $NIFI_HOME/lib directory as well. Add any types you would like to the application.conf file there. This works exactly like the geomesa-tools runtime SFTs and Converter configs.
 
+For better GEOMESA types copy the gm-data-all resource bundle from the [geomesa/gm-data](https://github.com/geomesa/gm-data) project. It contains converters and SFT specs for common types such as twitter, geolife, osm-gpx, etc.
+
 start up nifi
 cd $NIFI_HOME
 bin/nifi.sh start
