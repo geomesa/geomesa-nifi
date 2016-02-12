@@ -89,8 +89,10 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     try {
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
+          val ec = converter.createEvaluationContext(Map("inputFilePath" ->
+            (flowFile.getAttribute("path") + flowFile.getAttribute("filename"))))
           converter
-            .process(in)
+            .process(in, ec)
             .foreach { sf =>
               val toWrite = featureWriter.next()
               toWrite.setAttributes(sf.getAttributes)
