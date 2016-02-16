@@ -89,8 +89,9 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     try {
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
-          val ec = converter.createEvaluationContext(Map("inputFilePath" ->
-            (flowFile.getAttribute("path") + flowFile.getAttribute("filename"))))
+          val fullFlowFileName = flowFile.getAttribute("path") + flowFile.getAttribute("filename")
+          getLogger.info(s"Converting path $fullFlowFileName")
+          val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
           converter
             .process(in, ec)
             .foreach { sf =>
@@ -121,10 +122,9 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   private def getSft(context: ProcessContext): SimpleFeatureType = {
     val sftArg = Option(context.getProperty(SftName).getValue)
       .orElse(Option(context.getProperty(SftSpec).getValue))
-      .getOrElse(throw new IllegalArgumentException("could not parse spec config"))
-        context.getProperty(SftName).getValue
+      .getOrElse(throw new IllegalArgumentException(s"Must provide either ${SftName.getName} or ${SftSpec.getName} property"))
     val typeName = context.getProperty(FeatureName).getValue
-    SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException("could not parse sft config"))
+    SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException(s"Could not resolve sft from config value $sftArg and typename $typeName"))
   }
 
   private def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
@@ -134,7 +134,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   private def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
     val convertArg = Option(context.getProperty(ConverterName).getValue)
       .orElse(Option(context.getProperty(ConverterSpec).getValue))
-      .getOrElse(throw new IllegalArgumentException("could not parse converter config"))
+      .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
     val config = ConverterConfigResolver.getConfig(convertArg).get
     SimpleFeatureConverters.build(sft, config)
   }

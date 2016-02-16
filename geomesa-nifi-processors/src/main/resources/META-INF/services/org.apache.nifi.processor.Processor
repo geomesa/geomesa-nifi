@@ -14,5 +14,5 @@
 # limitations under the License.
 org.locationtech.geomesa.nifi.GeoMesaIngestProcessor
 org.locationtech.geomesa.nifi.AvroToGeomesa
-org.locationtech.geomesa.nifi.SimpleFeatureConverter
+org.locationtech.geomesa.nifi.SimpleFeaturesToAvro
 org.locationtech.geomesa.nifi.SimpleFeaturesToDataStore

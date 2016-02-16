@@ -2,9 +2,8 @@ package org.locationtech.geomesa.nifi
 
 import java.io.InputStream
 
-import com.typesafe.config.ConfigFactory
-import org.apache.avro.file.DataFileStream
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -12,10 +11,8 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
-import org.locationtech.geomesa.features.avro.{AvroSimpleFeature, FeatureSpecificReader}
+import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.nifi.AvroToGeomesa._
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -27,8 +24,6 @@ class AvroToGeomesa extends AbstractProcessor {
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
 
-  private var sft: SimpleFeatureType = null
-
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
       Zookeepers,
@@ -36,7 +31,7 @@ class AvroToGeomesa extends AbstractProcessor {
       User,
       Password,
       Catalog,
-      SftConfig).asJava
+      FeatureNameOverride).asJava
 
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
@@ -44,29 +39,39 @@ class AvroToGeomesa extends AbstractProcessor {
   override def getRelationships = relationships
   override def getSupportedPropertyDescriptors = descriptors
 
+  @volatile
+  private var dataStore: DataStore = null
+
+  @OnScheduled
+  def initialize(context: ProcessContext): Unit = {
+    dataStore = getDataStore(context)
+    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore")
+  }
+
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
-    Option(session.get()).map(doWork(context, session, _))
+    Option(session.get()).foreach(doWork(context, session, _))
 
   private def doWork(context: ProcessContext, session: ProcessSession, flowFile: FlowFile): Unit = {
-    val sft = getSft(context)
-    val ds = getDataStore(context)
-    ds.createSchema(sft)
-
     try {
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
-          val fw = ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
+          val reader = new AvroDataFileReader(in)
           try {
-            val dfs = new DataFileStream[AvroSimpleFeature](in, new FeatureSpecificReader(sft))
-            dfs.iterator().foreach { sf =>
-              val toWrite = fw.next()
-              toWrite.setAttributes(sf.getAttributes)
-              toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
-              toWrite.getUserData.putAll(sf.getUserData)
-              fw.write()
+            dataStore.createSchema(reader.getSft)
+            val fw = dataStore.getFeatureWriterAppend(reader.getSft.getTypeName, Transaction.AUTO_COMMIT)
+            try {
+              reader.foreach { sf =>
+                val toWrite = fw.next()
+                toWrite.setAttributes(sf.getAttributes)
+                toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
+                toWrite.getUserData.putAll(sf.getUserData)
+                fw.write()
+              }
+            } finally {
+              fw.close()
             }
           } finally {
-            fw.close()
+            reader.close()
           }
         }
       })
@@ -77,9 +82,6 @@ class AvroToGeomesa extends AbstractProcessor {
         session.transfer(flowFile, FailureRelationship)
     }
   }
-
-  private def getSft(context: ProcessContext) =
-    SimpleFeatureTypes.createType(ConfigFactory.parseString(context.getProperty(SftConfig).getValue))
 
   private def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
     "zookeepers" -> context.getProperty(Zookeepers).getValue,
@@ -128,11 +130,11 @@ object AvroToGeomesa {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
-  val SftConfig = new PropertyDescriptor.Builder()
-    .name("SftConfig")
-    .description("SimpleFeatureType (SFT) config")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+  val FeatureNameOverride = new PropertyDescriptor.Builder()
+    .name("FeatureNameOverride")
+    .description("Override the Simple Feature Type name from the SFT Spec")
+    .required(false)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)  // TODO validate
     .build
 
   final val SuccessRelationship = new Relationship.Builder().name("success").description("Success").build
