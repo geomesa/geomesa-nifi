@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.4.1</version>
+        <version>0.5.0</version>
     </parent>
 
     <groupId>org.locationtech.geomesa</groupId>
@@ -29,7 +29,7 @@
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.0-SNAPSHOT</geomesa.version>
+        <geomesa.version>1.2.1-SNAPSHOT</geomesa.version>
         <accumulo.version>1.6.2</accumulo.version>
         <nifi.version>${project.parent.version}</nifi.version>
     </properties>
