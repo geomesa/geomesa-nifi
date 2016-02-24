@@ -16,28 +16,21 @@
  */
 package org.locationtech.geomesa.nifi;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.geotools.data.DataStore;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
-// refactor these out?
-
-//user
-//password
-//catalog
-
+import static org.geotools.data.DataStoreFinder.getDataStore;
 
 /**
  * Implementation of GeomesaConfigProviderService interface
@@ -45,100 +38,100 @@ import java.util.List;
  * @see GeomesaConfigProviderService
  */
 @CapabilityDescription("Defines credentials for Amazon Web Services processors.")
+@SeeAlso(classNames = {
+        "org.locationtech.geomesa.nifi.GeoMesaIngest",
+        "org.locationtech.geomesa.nifi.AvroToGeomesa"})
 @Tags({ "aws", "credentials","provider" })
-public class GeomesaConfigControllerService extends AbstractControllerService implements GeomesaConfigProviderService {
+public class GeomesaConfigControllerService extends AbstractControllerService  {
 
-    /**
-     * AWS Role Arn used for cross account access
-     *
-     * @see <a href="http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-arns">AWS ARN</a>
-     */
-    public static final PropertyDescriptor ASSUME_ROLE_ARN = new PropertyDescriptor.Builder().name("Assume Role ARN")
-            .expressionLanguageSupported(false).required(false).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(false).description("The AWS Role ARN for cross account access. This is used in conjunction with role name and session timeout").build();
-
-    /**
-     * The role name while creating aws role
-     */
-    public static final PropertyDescriptor ASSUME_ROLE_NAME = new PropertyDescriptor.Builder().name("Assume Role Session Name")
-            .expressionLanguageSupported(false).required(false).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(false).description("The aws role name for cross account access. This is used in conjunction with role arn and session time out").build();
-
-    /**
-     * Max session time for role based credentials. The range is between 900 and 3600 seconds.
-     */
-    public static final PropertyDescriptor MAX_SESSION_TIME = new PropertyDescriptor.Builder()
-            .name("Session Time")
-            .description("Session time for role based session (between 900 and 3600 seconds). This is used in conjunction with role arn and name")
-            .defaultValue("3600")
-            .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .sensitive(false)
+    public static final PropertyDescriptor Zookeepers = new PropertyDescriptor.Builder()
+            .name("Zookeepers")
+            .description("Zookeepers host(:port) pairs, comma separated")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor InstanceName = new PropertyDescriptor.Builder()
+            .name("Instance")
+            .description("Accumulo instance name")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor User = new PropertyDescriptor.Builder()
+            .name("User")
+            .description("Accumulo user name")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor Password = new PropertyDescriptor.Builder()
+            .name("Password")
+            .description("Accumulo password")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor Catalog = new PropertyDescriptor.Builder()
+            .name("Catalog")
+            .description("GeoMesa catalog table name")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
 
     private static final List<PropertyDescriptor> properties;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(ASSUME_ROLE_ARN);
-        props.add(ASSUME_ROLE_NAME);
-        props.add(MAX_SESSION_TIME);
+        props.add(Zookeepers);
+        props.add(InstanceName);
+        props.add(User);
+        props.add(Password);
+        props.add(Catalog);
 
         properties = Collections.unmodifiableList(props);
     }
 
-    private volatile String credentialsProvider;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
 
-    @Override
-    public String getCredentialsProvider() throws ProcessException {
-        return credentialsProvider;
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-
-        final boolean assumeRoleArnIsSet = validationContext.getProperty(ASSUME_ROLE_ARN).isSet();
-        final boolean assumeRoleNameIsSet = validationContext.getProperty(ASSUME_ROLE_NAME).isSet();
-        final Integer maxSessionTime = validationContext.getProperty(MAX_SESSION_TIME).asInteger();
-
-
-        final Collection<ValidationResult> validationFailureResults = new ArrayList<>();
-
-
-
-        // Both role and arn name are req if present
-        if (assumeRoleArnIsSet ^ assumeRoleNameIsSet ) {
-            validationFailureResults.add(new ValidationResult.Builder().input("Assume Role Arn and Name")
-                    .valid(false).explanation("Assume role requires both arn and name to be set").build());
-        }
-
-        // Session time only b/w 900 to 3600 sec (see sts session class)
-        if ( maxSessionTime < 900 || maxSessionTime > 3600 )
-            validationFailureResults.add(new ValidationResult.Builder().valid(false).input(maxSessionTime + "")
-                    .subject(MAX_SESSION_TIME.getDisplayName() +
-                            " can have value only between 900 and 3600 seconds").build());
-
-        return validationFailureResults;
-    }
+    public DataStore dataStore;
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
-        final String assumeRoleArn = context.getProperty(ASSUME_ROLE_ARN).getValue();
-        final Integer maxSessionTime = context.getProperty(MAX_SESSION_TIME).asInteger();
-        final String assumeRoleName = context.getProperty(ASSUME_ROLE_NAME).getValue();
+
+        final Map paramMap = new HashMap<>();
+        paramMap.put("zookeepers", context.getProperty(Zookeepers).getValue());
+        paramMap.put("instanceId", context.getProperty(InstanceName).getValue());
+        paramMap.put("tableName", context.getProperty(Catalog).getValue());
+        paramMap.put("user", context.getProperty(User).getValue());
+        paramMap.put("password", context.getProperty(Password).getValue());
 
 
+        try {
+            dataStore = getDataStore(paramMap);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
+    }
+
+    @OnDisabled
+    public void cleanup() {
+        if(dataStore!=null){
+            dataStore = null;
+        }
     }
 
     @Override
     public String toString() {
         return "GeomesaConfigControllerService[id=" + getIdentifier() + "]";
     }
+
 }

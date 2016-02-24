@@ -16,6 +16,7 @@ import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigResolver, ConverterConfigLoader, SimpleFeatureConverters}
+import org.locationtech.geomesa.nifi.AbstractGeoMesa._
 import org.locationtech.geomesa.nifi.GeoMesaIngest._
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -47,12 +48,20 @@ class GeoMesaIngest extends AbstractGeoMesa {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
 
+
   @volatile
   private var featureWriter: SFW = null
 
   @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
+  protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
+    "zookeepers" -> context.getProperty(Zookeepers).getValue,
+    "instanceId" -> context.getProperty(InstanceName).getValue,
+    "tableName"  -> context.getProperty(Catalog).getValue,
+    "user"       -> context.getProperty(User).getValue,
+    "password"   -> context.getProperty(Password).getValue
+  ))
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {

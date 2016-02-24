@@ -1,6 +1,7 @@
 package org.locationtech.geomesa.nifi
 
 import java.io.InputStream
+import javafx.scene.input.ZoomEvent
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.OnScheduled
@@ -13,6 +14,7 @@ import org.geotools.data.{DataStore, DataStoreFinder, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.nifi.AvroToGeomesa._
+import org.locationtech.geomesa.nifi.AbstractGeoMesa._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -32,6 +34,14 @@ class AvroToGeomesa extends AbstractGeoMesa {
 
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
+
+  protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
+    "zookeepers" -> context.getProperty(Zookeepers).getValue,
+    "instanceId" -> context.getProperty(InstanceName).getValue,
+    "tableName"  -> context.getProperty(Catalog).getValue,
+    "user"       -> context.getProperty(User).getValue,
+    "password"   -> context.getProperty(Password).getValue
+  ))
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
@@ -77,41 +87,6 @@ class AvroToGeomesa extends AbstractGeoMesa {
 }
 
 object AvroToGeomesa {
-  val Zookeepers = new PropertyDescriptor.Builder()
-    .name("Zookeepers")
-    .description("Zookeepers host(:port) pairs, comma separated")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val InstanceName = new PropertyDescriptor.Builder()
-    .name("Instance")
-    .description("Accumulo instance name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val User = new PropertyDescriptor.Builder()
-    .name("User")
-    .description("Accumulo user name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val Password = new PropertyDescriptor.Builder()
-    .name("Password")
-    .description("Accumulo password")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .sensitive(true)
-    .build
-
-  val Catalog = new PropertyDescriptor.Builder()
-    .name("Catalog")
-    .description("GeoMesa catalog table name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
 
   val FeatureNameOverride = new PropertyDescriptor.Builder()
     .name("FeatureNameOverride")
@@ -120,6 +95,4 @@ object AvroToGeomesa {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)  // TODO validate
     .build
 
-  final val SuccessRelationship = new Relationship.Builder().name("success").description("Success").build
-  final val FailureRelationship = new Relationship.Builder().name("failure").description("Failure").build
 }

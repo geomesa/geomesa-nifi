@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.locationtech.geomesa.nifi.GeoMesaIngestProcessor
+org.locationtech.geomesa.nifi.GeoMesaIngest
 org.locationtech.geomesa.nifi.AvroToGeomesa
 org.locationtech.geomesa.nifi.SimpleFeaturesToAvro
 org.locationtech.geomesa.nifi.SimpleFeaturesToDataStore
