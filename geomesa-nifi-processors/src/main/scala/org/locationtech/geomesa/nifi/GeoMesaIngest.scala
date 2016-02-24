@@ -26,12 +26,9 @@ import scala.collection.JavaConverters._
 @Tags(Array("geomesa", "geo", "ingest", "convert"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-class GeoMesaIngest extends AbstractProcessor {
+class GeoMesaIngest extends AbstractGeoMesa {
 
   type SFW = FeatureWriter[SimpleFeatureType, SimpleFeature]
-
-  private var descriptors: java.util.List[PropertyDescriptor] = null
-  private var relationships: java.util.Set[Relationship] = null
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
@@ -54,9 +51,6 @@ class GeoMesaIngest extends AbstractProcessor {
   private var featureWriter: SFW = null
 
   @volatile
-  private var dataStore: DataStore = null
-
-  @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
 
@@ -76,11 +70,8 @@ class GeoMesaIngest extends AbstractProcessor {
     IOUtils.closeQuietly(featureWriter)
     featureWriter = null
     dataStore = null
-    getLogger.info("Shut down geomesa processor")
+    getLogger.info("Shut down GeoMesaIngest processor")
   }
-
-  override def getRelationships = relationships
-  override def getSupportedPropertyDescriptors = descriptors
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
     Option(session.get()).foreach(doWork(context, session, _))
@@ -111,14 +102,6 @@ class GeoMesaIngest extends AbstractProcessor {
     }
   }
 
-  private def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
-    "zookeepers" -> context.getProperty(Zookeepers).getValue,
-    "instanceId" -> context.getProperty(InstanceName).getValue,
-    "tableName"  -> context.getProperty(Catalog).getValue,
-    "user"       -> context.getProperty(User).getValue,
-    "password"   -> context.getProperty(Password).getValue
-  ))
-
   private def getSft(context: ProcessContext): SimpleFeatureType = {
     val sftArg = Option(context.getProperty(SftName).getValue)
       .orElse(Option(context.getProperty(SftSpec).getValue))
@@ -142,42 +125,6 @@ class GeoMesaIngest extends AbstractProcessor {
 }
 
 object GeoMesaIngest {
-  val Zookeepers = new PropertyDescriptor.Builder()
-    .name("Zookeepers")
-    .description("Zookeepers host(:port) pairs, comma separated")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val InstanceName = new PropertyDescriptor.Builder()
-    .name("Instance")
-    .description("Accumulo instance name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val User = new PropertyDescriptor.Builder()
-    .name("User")
-    .description("Accumulo user name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val Password = new PropertyDescriptor.Builder()
-    .name("Password")
-    .description("Accumulo password")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .sensitive(true)
-    .build
-
-  val Catalog = new PropertyDescriptor.Builder()
-    .name("Catalog")
-    .description("GeoMesa catalog table name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
   val SftName = new PropertyDescriptor.Builder()
     .name("SftName")
     .description("Choose an SFT defined by a GeoMesa SFT Provider (preferred)")
@@ -215,6 +162,4 @@ object GeoMesaIngest {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
-  final val SuccessRelationship = new Relationship.Builder().name("success").description("Success").build
-  final val FailureRelationship = new Relationship.Builder().name("failure").description("Failure").build
 }
