@@ -58,17 +58,17 @@ class AvroToGeomesa extends AbstractProcessor {
           val reader = new AvroDataFileReader(in)
           try {
             dataStore.createSchema(reader.getSft)
-            val fw = dataStore.getFeatureWriterAppend(reader.getSft.getTypeName, Transaction.AUTO_COMMIT)
+            val featureWriter = dataStore.getFeatureWriterAppend(reader.getSft.getTypeName, Transaction.AUTO_COMMIT)
             try {
               reader.foreach { sf =>
-                val toWrite = fw.next()
+                val toWrite = featureWriter.next()
                 toWrite.setAttributes(sf.getAttributes)
                 toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
                 toWrite.getUserData.putAll(sf.getUserData)
-                fw.write()
+                featureWriter.write()
               }
             } finally {
-              fw.close()
+              featureWriter.close()
             }
           } finally {
             reader.close()
