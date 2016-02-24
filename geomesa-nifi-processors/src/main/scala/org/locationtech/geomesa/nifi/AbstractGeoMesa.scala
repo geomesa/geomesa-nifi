@@ -4,12 +4,14 @@ package org.locationtech.geomesa.nifi
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.components.PropertyDescriptor.Builder
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStoreFinder, DataStore}
 import org.locationtech.geomesa.convert.ConverterConfigLoader
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypeLoader
-//import org.locationtech.geomesa.nifi.AbstractGeoMesa._
+import org.locationtech.geomesa.nifi.GeoMesaIngest._
+import org.locationtech.geomesa.nifi.GeomesaConfigControllerService
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -26,6 +28,7 @@ abstract class AbstractGeoMesa extends AbstractProcessor {
   override def getRelationships = relationships
   override def getSupportedPropertyDescriptors = descriptors
 
+  /*
   protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
     "zookeepers" -> context.getProperty(Zookeepers).getValue,
     "instanceId" -> context.getProperty(InstanceName).getValue,
@@ -33,42 +36,50 @@ abstract class AbstractGeoMesa extends AbstractProcessor {
     "user"       -> context.getProperty(User).getValue,
     "password"   -> context.getProperty(Password).getValue
   ))
+  */
 
-//}
-//object AbstractGeoMesa {
+}
+object AbstractGeoMesa {
+    val GeoMesaConfigController = new PropertyDescriptor.Builder()
+    .name("GeoMesa Configuration Controller Service")
+    .description("The controller service used to connect to Accumulo")
+    .required(false)
+    .identifiesControllerService(classOf[GeomesaConfigControllerService])
+    .build
+
   val Zookeepers = new PropertyDescriptor.Builder()
     .name("Zookeepers")
     .description("Zookeepers host(:port) pairs, comma separated")
-    .required(true)
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
   val InstanceName = new PropertyDescriptor.Builder()
     .name("Instance")
     .description("Accumulo instance name")
-    .required(true)
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
   val User = new PropertyDescriptor.Builder()
     .name("User")
     .description("Accumulo user name")
-    .required(true)
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
   val Password = new PropertyDescriptor.Builder()
     .name("Password")
     .description("Accumulo password")
-    .required(true)
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .sensitive(true)
     .build
 
-  val Catalog = new PropertyDescriptor.Builder()
+  final val Catalog = new PropertyDescriptor.Builder()
     .name("Catalog")
     .description("GeoMesa catalog table name")
-    .required(true)
+    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
