@@ -9,7 +9,7 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStoreFinder, DataStore}
 import org.locationtech.geomesa.convert.ConverterConfigLoader
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypeLoader
-import org.locationtech.geomesa.nifi.AbstractGeoMesa._
+//import org.locationtech.geomesa.nifi.AbstractGeoMesa._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -18,9 +18,15 @@ import scala.collection.JavaConverters._
 abstract class AbstractGeoMesa extends AbstractProcessor {
 
   @volatile
-  private var dataStore: DataStore = null
+  protected var dataStore: DataStore = null
 
-  private def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
+  protected var descriptors: java.util.List[PropertyDescriptor] = null
+  protected var relationships: java.util.Set[Relationship] = null
+
+  override def getRelationships = relationships
+  override def getSupportedPropertyDescriptors = descriptors
+
+  protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
     "zookeepers" -> context.getProperty(Zookeepers).getValue,
     "instanceId" -> context.getProperty(InstanceName).getValue,
     "tableName"  -> context.getProperty(Catalog).getValue,
@@ -28,8 +34,8 @@ abstract class AbstractGeoMesa extends AbstractProcessor {
     "password"   -> context.getProperty(Password).getValue
   ))
 
-}
-object AbstractGeoMesa {
+//}
+//object AbstractGeoMesa {
   val Zookeepers = new PropertyDescriptor.Builder()
     .name("Zookeepers")
     .description("Zookeepers host(:port) pairs, comma separated")
@@ -63,20 +69,6 @@ object AbstractGeoMesa {
     .name("Catalog")
     .description("GeoMesa catalog table name")
     .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val FeatureNameOverride = new PropertyDescriptor.Builder()
-    .name("FeatureNameOverride")
-    .description("Override the Simple Feature Type name from the SFT Spec")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)  // TODO validate
-    .build
-
-  val SftSpec = new PropertyDescriptor.Builder()
-    .name("SftSpec")
-    .description("Manually define a SimpleFeatureType (SFT) config spec")
-    .required(false)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 

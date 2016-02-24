@@ -19,10 +19,7 @@ import scala.collection.JavaConverters._
 
 @Tags(Array("geomesa", "geo", "ingest"))
 @CapabilityDescription("store avro files into geomesa")
-class AvroToGeomesa extends AbstractProcessor {
-
-  private var descriptors: java.util.List[PropertyDescriptor] = null
-  private var relationships: java.util.Set[Relationship] = null
+class AvroToGeomesa extends AbstractGeoMesa {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
@@ -36,16 +33,10 @@ class AvroToGeomesa extends AbstractProcessor {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
 
-  override def getRelationships = relationships
-  override def getSupportedPropertyDescriptors = descriptors
-
-  @volatile
-  private var dataStore: DataStore = null
-
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
     dataStore = getDataStore(context)
-    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore")
+    getLogger.info(s"Initialized Avro GeoMesa datastore")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
@@ -82,14 +73,6 @@ class AvroToGeomesa extends AbstractProcessor {
         session.transfer(flowFile, FailureRelationship)
     }
   }
-
-  private def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
-    "zookeepers" -> context.getProperty(Zookeepers).getValue,
-    "instanceId" -> context.getProperty(InstanceName).getValue,
-    "tableName"  -> context.getProperty(Catalog).getValue,
-    "user"       -> context.getProperty(User).getValue,
-    "password"   -> context.getProperty(Password).getValue
-  ))
 
 }
 
