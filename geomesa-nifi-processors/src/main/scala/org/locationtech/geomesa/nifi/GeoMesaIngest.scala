@@ -16,7 +16,7 @@ import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigResolver, ConverterConfigLoader, SimpleFeatureConverters}
-import org.locationtech.geomesa.nifi.GeoMesaIngestProcessor._
+import org.locationtech.geomesa.nifi.GeoMesaIngest._
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
@@ -26,7 +26,7 @@ import scala.collection.JavaConverters._
 @Tags(Array("geomesa", "geo", "ingest", "convert"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-class GeoMesaIngestProcessor extends AbstractProcessor {
+class GeoMesaIngest extends AbstractProcessor {
 
   type SFW = FeatureWriter[SimpleFeatureType, SimpleFeature]
 
@@ -42,7 +42,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       Catalog,
       SftName,
       ConverterName,
-      FeatureName,
+      FeatureNameOverride,
       SftSpec,
       ConverterSpec
      ).asJava
@@ -68,7 +68,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 
     converter = getConverter(sft, context)
     featureWriter = createFeatureWriter(sft, context)
-    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
+    getLogger.info(s"Initialized GeoMesaIngest datastore, fw, converter for type ${sft.getTypeName}")
   }
 
   @OnStopped
@@ -123,7 +123,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     val sftArg = Option(context.getProperty(SftName).getValue)
       .orElse(Option(context.getProperty(SftSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${SftName.getName} or ${SftSpec.getName} property"))
-    val typeName = context.getProperty(FeatureName).getValue
+    val typeName = context.getProperty(FeatureNameOverride).getValue
     SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException(s"Could not resolve sft from config value $sftArg and typename $typeName"))
   }
 
@@ -141,7 +141,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 
 }
 
-object GeoMesaIngestProcessor {
+object GeoMesaIngest {
   val Zookeepers = new PropertyDescriptor.Builder()
     .name("Zookeepers")
     .description("Zookeepers host(:port) pairs, comma separated")
@@ -194,7 +194,7 @@ object GeoMesaIngestProcessor {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)   // TODO validate
     .build
 
-  val FeatureName = new PropertyDescriptor.Builder()
+  val FeatureNameOverride = new PropertyDescriptor.Builder()
     .name("FeatureNameOverride")
     .description("Override the Simple Feature Type name from the SFT Spec")
     .required(false)

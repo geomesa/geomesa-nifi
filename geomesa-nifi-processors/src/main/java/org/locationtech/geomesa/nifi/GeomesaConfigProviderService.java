@@ -22,14 +22,14 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 
 /**
- * AWSCredentialsProviderService interface to support getting AWSCredentialsProvider used for instantiating
+ * GeomesaConfigProviderService interface to support getting AWSCredentialsProvider used for instantiating
  * aws clients
  *
  * @see <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
  */
 @Tags({"aws", "security", "credentials", "provider", "session"})
 @CapabilityDescription("Provides AWSCredentialsProvider.")
-public interface AWSCredentialsProviderService extends ControllerService {
+public interface GeomesaConfigProviderService extends ControllerService {
 
     /**
      * Get credentials provider
@@ -38,5 +38,5 @@ public interface AWSCredentialsProviderService extends ControllerService {
      *
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
-    public AWSCredentialsProvider getCredentialsProvider() throws ProcessException;
+    public String getCredentialsProvider() throws ProcessException;
 }
