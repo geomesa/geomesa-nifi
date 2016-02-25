@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.locationtech.geomesa.nifi;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -30,19 +31,16 @@ import org.geotools.data.DataStore;
 import java.io.IOException;
 import java.util.*;
 
-import static org.geotools.data.DataStoreFinder.getDataStore;
 
-/**
- * Implementation of GeomesaConfigProviderService interface
- *
- * @see GeomesaConfigProviderService
- */
+
 @CapabilityDescription("Defines credentials for Amazon Web Services processors.")
 @SeeAlso(classNames = {
         "org.locationtech.geomesa.nifi.GeoMesaIngest",
         "org.locationtech.geomesa.nifi.AvroToGeomesa"})
 @Tags({ "aws", "credentials","provider" })
-public class GeomesaConfigControllerService extends AbstractControllerService  {
+public class GeomesaConfigControllerService
+        extends AbstractControllerService
+        implements GeomesaConfigService {
 
     public static final PropertyDescriptor Zookeepers = new PropertyDescriptor.Builder()
             .name("Zookeepers")
@@ -95,10 +93,6 @@ public class GeomesaConfigControllerService extends AbstractControllerService  {
     }
 
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
-    }
 
     public DataStore dataStore;
 
@@ -115,7 +109,7 @@ public class GeomesaConfigControllerService extends AbstractControllerService  {
 
 
         try {
-            dataStore = getDataStore(paramMap);
+            dataStore = org.geotools.data.DataStoreFinder.getDataStore(paramMap);//getDataStore(paramMap);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -132,6 +126,16 @@ public class GeomesaConfigControllerService extends AbstractControllerService  {
     @Override
     public String toString() {
         return "GeomesaConfigControllerService[id=" + getIdentifier() + "]";
+    }
+
+    @Override
+    public DataStore getDataStore() {
+        return dataStore;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
     }
 
 }
