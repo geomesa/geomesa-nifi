@@ -9,6 +9,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStoreFinder, DataStore}
 import org.locationtech.geomesa.convert.ConverterConfigLoader
+import org.locationtech.geomesa.nifi.AbstractGeoMesa._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypeLoader
 import org.locationtech.geomesa.nifi.GeoMesaIngest._
 import org.locationtech.geomesa.nifi.GeomesaConfigControllerService
@@ -29,7 +30,18 @@ abstract class AbstractGeoMesa extends AbstractProcessor {
   override def getRelationships = relationships
   override def getSupportedPropertyDescriptors = descriptors
 
-  /*
+  /**
+    * Flag to be set in validation
+    */
+  @volatile
+  protected var useControllerService: Boolean = false
+
+  protected def getGeomesaControllerService(context: ProcessContext): GeomesaConfigService = {
+    //    val controller = context.getProperty(GeoMesaConfigController).asControllerService()[GeomesaConfigControllerService]
+    context.getProperty(GeoMesaConfigController).asControllerService().asInstanceOf[GeomesaConfigService]
+  }
+
+
   protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
     "zookeepers" -> context.getProperty(Zookeepers).getValue,
     "instanceId" -> context.getProperty(InstanceName).getValue,
@@ -37,12 +49,12 @@ abstract class AbstractGeoMesa extends AbstractProcessor {
     "user"       -> context.getProperty(User).getValue,
     "password"   -> context.getProperty(Password).getValue
   ))
-  */
+
 
 }
 object AbstractGeoMesa {
     val GeoMesaConfigController = new PropertyDescriptor.Builder()
-    .name("GeoMesaConfigurationControllerService")
+    .name("GeoMesa Configuration Service")
     .description("The controller service used to connect to Accumulo")
     .required(false)
     .identifiesControllerService(classOf[GeomesaConfigService])

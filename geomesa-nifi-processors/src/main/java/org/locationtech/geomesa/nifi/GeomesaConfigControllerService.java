@@ -37,7 +37,7 @@ import java.util.*;
 @SeeAlso(classNames = {
         "org.locationtech.geomesa.nifi.GeoMesaIngest",
         "org.locationtech.geomesa.nifi.AvroToGeomesa"})
-@Tags({ "aws", "credentials","provider" })
+@Tags({ "geo", "geomesa","accumulo" })
 public class GeomesaConfigControllerService
         extends AbstractControllerService
         implements GeomesaConfigService {

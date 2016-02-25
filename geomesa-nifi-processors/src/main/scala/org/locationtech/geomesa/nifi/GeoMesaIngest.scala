@@ -1,18 +1,19 @@
 package org.locationtech.geomesa.nifi
 
 import java.io.InputStream
+import java.util
 
 import org.apache.commons.io.IOUtils
 import org.apache.nifi.annotation.behavior.InputRequirement
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.{OnScheduled, OnStopped}
-import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.components.{ValidationResult, ValidationContext, PropertyDescriptor}
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction}
+import org.geotools.data.{FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigResolver, ConverterConfigLoader, SimpleFeatureConverters}
@@ -21,10 +22,9 @@ import org.locationtech.geomesa.nifi.GeoMesaIngest._
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-@Tags(Array("geomesa", "geo", "ingest", "convert"))
+@Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 class GeoMesaIngest extends AbstractGeoMesa {
@@ -33,6 +33,7 @@ class GeoMesaIngest extends AbstractGeoMesa {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
+      GeoMesaConfigController,
       Zookeepers,
       InstanceName,
       User,
@@ -55,22 +56,15 @@ class GeoMesaIngest extends AbstractGeoMesa {
   @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
-  @volatile
-  private var controller:GeomesaConfigControllerService = null
-
-
-  protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
-    "zookeepers" -> context.getProperty(Zookeepers).getValue,
-    "instanceId" -> context.getProperty(InstanceName).getValue,
-    "tableName"  -> context.getProperty(Catalog).getValue,
-    "user"       -> context.getProperty(User).getValue,
-    "password"   -> context.getProperty(Password).getValue
-  ))
-
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
-    //dataStore = getDataStore(context)
-    getGeomesaControllerService(context).dataStore
+    if (useControllerService){
+       dataStore = getGeomesaControllerService(context).getDataStore()
+    }
+    else {
+      dataStore = getDataStore(context)
+    }
+
     val sft = getSft(context)
     dataStore.createSchema(sft)
 
@@ -84,7 +78,7 @@ class GeoMesaIngest extends AbstractGeoMesa {
     IOUtils.closeQuietly(featureWriter)
     featureWriter = null
     dataStore = null
-    getLogger.info("Shut down GeoMesaIngest processor")
+    getLogger.info("Shut down GeoMesaIngest processor " + getIdentifier)
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
@@ -116,11 +110,6 @@ class GeoMesaIngest extends AbstractGeoMesa {
     }
   }
 
-  private def getGeomesaControllerService(context: ProcessContext): GeomesaConfigControllerService = {
-//    val controller = context.getProperty(GeoMesaConfigController).asControllerService()[GeomesaConfigControllerService]
-    context.getProperty(GeoMesaConfigController).asControllerService().asInstanceOf[GeomesaConfigControllerService]
-  }
-
   private def getSft(context: ProcessContext): SimpleFeatureType = {
     val sftArg = Option(context.getProperty(SftName).getValue)
       .orElse(Option(context.getProperty(SftSpec).getValue))
@@ -141,12 +130,51 @@ class GeoMesaIngest extends AbstractGeoMesa {
     SimpleFeatureConverters.build(sft, config)
   }
 
+ override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
+
+   val validationFailures: java.util.Collection[ValidationResult] = new util.ArrayList[ValidationResult]()
+
+   val controllerSet:Boolean =  validationContext.getProperty(GeoMesaConfigController).isSet
+   useControllerService = controllerSet
+
+   val zooSet:Boolean =         validationContext.getProperty(Zookeepers).isSet
+   val instanceSet: Boolean =   validationContext.getProperty(InstanceName).isSet
+   val userSet: Boolean =       validationContext.getProperty(User).isSet
+   val passSet: Boolean =       validationContext.getProperty(Password).isSet
+   val catalogSet: Boolean =    validationContext.getProperty(Catalog).isSet
+
+   // require either controller-service or all of {zoo,instance,user,pw,catalog}
+   if(!controllerSet && !(zooSet && instanceSet && userSet && passSet && catalogSet))
+     validationFailures.add(new ValidationResult.Builder()
+       .input("Use either GeoMesa Configuration Service, or specify accumulo connection parameters.")
+       .build)
+
+   // make sure either a sft is named or written
+   val sftNameSet: Boolean = validationContext.getProperty(SftName).isSet
+   val sftSpecSet: Boolean = validationContext.getProperty(SftSpec).isSet
+   if(!sftNameSet && !sftSpecSet)
+     validationFailures.add(new ValidationResult.Builder()
+     .input("Specify a simple feature type by name or spec")
+     .build)
+
+   // make sure either a converter is named or written
+   val convNameSet: Boolean = validationContext.getProperty(ConverterName).isSet
+   val convSpecSet: Boolean = validationContext.getProperty(ConverterSpec).isSet
+   if(!convNameSet && !convSpecSet)
+     validationFailures.add(new ValidationResult.Builder()
+        .input("Specify a converter by name or spec")
+        .build
+     )
+
+   validationFailures
+  }
+
 }
 
 object GeoMesaIngest {
   val SftName = new PropertyDescriptor.Builder()
     .name("SftName")
-    .description("Choose an SFT defined by a GeoMesa SFT Provider (preferred)")
+    .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
     .required(false)
     .allowableValues(SimpleFeatureTypeLoader.listTypeNames.toArray: _*)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
