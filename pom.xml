@@ -29,7 +29,7 @@
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.0-SNAPSHOT</geomesa.version>
+        <geomesa.version>1.2.0</geomesa.version>
         <accumulo.version>1.6.2</accumulo.version>
         <nifi.version>${project.parent.version}</nifi.version>
     </properties>
@@ -45,7 +45,7 @@
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-nifi-processors</artifactId>
-                <version>${pom.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <!-- GeoMesa -->
             <dependency>
