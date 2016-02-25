@@ -1,30 +1,32 @@
 package org.locationtech.geomesa.nifi
 
 import java.io.InputStream
-import javafx.scene.input.ZoomEvent
+import java.util
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.apache.nifi.annotation.lifecycle.OnScheduled
-import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.annotation.behavior.InputRequirement
+import org.apache.nifi.annotation.lifecycle.{OnStopped, OnScheduled}
+import org.apache.nifi.components.{ValidationResult, ValidationContext, PropertyDescriptor}
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, DataStoreFinder, Transaction}
+import org.geotools.data.{Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.nifi.AvroToGeomesa._
 import org.locationtech.geomesa.nifi.AbstractGeoMesa._
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-@Tags(Array("avro", "geomesa", "geo", "ingest"))
+@Tags(Array("avro", "geomesa", "geo", "ingest", "accumulo"))
 @CapabilityDescription("store avro files into geomesa")
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 class AvroToGeomesa extends AbstractGeoMesa {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
+      GeoMesaConfigController,
       Zookeepers,
       InstanceName,
       User,
@@ -35,16 +37,12 @@ class AvroToGeomesa extends AbstractGeoMesa {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
 
-  protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
-    "zookeepers" -> context.getProperty(Zookeepers).getValue,
-    "instanceId" -> context.getProperty(InstanceName).getValue,
-    "tableName"  -> context.getProperty(Catalog).getValue,
-    "user"       -> context.getProperty(User).getValue,
-    "password"   -> context.getProperty(Password).getValue
-  ))
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
+    if(useControllerService){
+      dataStore = getGeomesaControllerService(context).getDataStore()
+    }
     dataStore = getDataStore(context)
     getLogger.info(s"Initialized Avro GeoMesa datastore")
   }
@@ -84,6 +82,33 @@ class AvroToGeomesa extends AbstractGeoMesa {
     }
   }
 
+  @OnStopped
+  def cleanup(): Unit = {
+    dataStore = null
+    getLogger.info("Shut down AvroToGeomesa processor " + getIdentifier)
+  }
+
+  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
+
+    val validationFailures: java.util.Collection[ValidationResult] = new util.ArrayList[ValidationResult]()
+
+    val controllerSet:Boolean =  validationContext.getProperty(GeoMesaConfigController).isSet
+    useControllerService = controllerSet
+
+    val zooSet:Boolean =         validationContext.getProperty(Zookeepers).isSet
+    val instanceSet: Boolean =   validationContext.getProperty(InstanceName).isSet
+    val userSet: Boolean =       validationContext.getProperty(User).isSet
+    val passSet: Boolean =       validationContext.getProperty(Password).isSet
+    val catalogSet: Boolean =    validationContext.getProperty(Catalog).isSet
+
+    // require either controller-service or all of {zoo,instance,user,pw,catalog}
+    if(!controllerSet && !(zooSet && instanceSet && userSet && passSet && catalogSet))
+      validationFailures.add(new ValidationResult.Builder()
+        .input("Use either GeoMesa Configuration Service, or specify accumulo connection parameters.")
+        .build)
+
+    validationFailures
+  }
 }
 
 object AvroToGeomesa {
