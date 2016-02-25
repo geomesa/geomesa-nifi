@@ -1,9 +1,17 @@
+#!/bin/bash
+
+if [ -z $NIFI_HOME ]; then
+  echo "Set NIFI_HOME..."
+  exit
+fi  
+
 MVN_BIN="$(command -v mvn)"
 
 ${MVN_BIN}  "$@"
 
-cp ~/src/geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-0.0.2-SNAPSHOT.nar ~/cloud-local/nifi-0.5.0/lib/
+cp geomesa-nifi-nar/target/geomesa-nifi-nar-0.0.2-SNAPSHOT.nar ${NIFI_HOME}/lib/
+cp geomesa-nifi-resources/target/geomesa-nifi-resources-0.0.2-SNAPSHOT.jar ${NIFI_HOME}/lib/
 
-~/cloud-local/nifi-0.5.0/bin/nifi.sh restart
+${NIFI_HOME}/bin/nifi.sh restart
 
-tail -f ~/cloud-local/nifi-0.5.0/logs/nifi-app.log
+tail -f ${NIFI_HOME}/logs/nifi-app.log
