@@ -55,6 +55,10 @@ class GeoMesaIngest extends AbstractGeoMesa {
   @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
+  @volatile
+  private var controller:GeomesaConfigControllerService = null
+
+
   protected def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
     "zookeepers" -> context.getProperty(Zookeepers).getValue,
     "instanceId" -> context.getProperty(InstanceName).getValue,
@@ -65,7 +69,8 @@ class GeoMesaIngest extends AbstractGeoMesa {
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
-    dataStore = getDataStore(context)
+    //dataStore = getDataStore(context)
+    getGeomesaControllerService(context).dataStore
     val sft = getSft(context)
     dataStore.createSchema(sft)
 
@@ -109,6 +114,11 @@ class GeoMesaIngest extends AbstractGeoMesa {
         getLogger.error("error", e)
         session.transfer(flowFile, FailureRelationship)
     }
+  }
+
+  private def getGeomesaControllerService(context: ProcessContext): GeomesaConfigControllerService = {
+//    val controller = context.getProperty(GeoMesaConfigController).asControllerService()[GeomesaConfigControllerService]
+    context.getProperty(GeoMesaConfigController).asControllerService().asInstanceOf[GeomesaConfigControllerService]
   }
 
   private def getSft(context: ProcessContext): SimpleFeatureType = {

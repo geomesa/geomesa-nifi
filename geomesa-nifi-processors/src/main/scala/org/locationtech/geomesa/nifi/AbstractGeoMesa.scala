@@ -16,6 +16,7 @@ import org.locationtech.geomesa.nifi.GeomesaConfigControllerService
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
+
 @Tags(Array("geomesa", "geo", "ingest"))
 abstract class AbstractGeoMesa extends AbstractProcessor {
 
@@ -41,10 +42,10 @@ abstract class AbstractGeoMesa extends AbstractProcessor {
 }
 object AbstractGeoMesa {
     val GeoMesaConfigController = new PropertyDescriptor.Builder()
-    .name("GeoMesa Configuration Controller Service")
+    .name("GeoMesaConfigurationControllerService")
     .description("The controller service used to connect to Accumulo")
     .required(false)
-    .identifiesControllerService(classOf[GeomesaConfigControllerService])
+    .identifiesControllerService(classOf[GeomesaConfigService])
     .build
 
   val Zookeepers = new PropertyDescriptor.Builder()
@@ -76,7 +77,7 @@ object AbstractGeoMesa {
     .sensitive(true)
     .build
 
-  final val Catalog = new PropertyDescriptor.Builder()
+  val Catalog = new PropertyDescriptor.Builder()
     .name("Catalog")
     .description("GeoMesa catalog table name")
     .required(false)

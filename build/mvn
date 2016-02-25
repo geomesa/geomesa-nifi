@@ -1,0 +1,7 @@
+MVN_BIN="$(command -v mvn)"
+
+${MVN_BIN}  "$@"
+
+cp ~/src/geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-0.0.2-SNAPSHOT.nar ~/cloud-local/nifi-0.5.0/lib/
+
+~/cloud-local/nifi-0.5.0/bin/nifi.sh restart

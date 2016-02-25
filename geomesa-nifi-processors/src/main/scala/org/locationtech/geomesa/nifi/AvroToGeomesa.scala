@@ -19,7 +19,7 @@ import org.locationtech.geomesa.nifi.AbstractGeoMesa._
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-@Tags(Array("geomesa", "geo", "ingest"))
+@Tags(Array("avro", "geomesa", "geo", "ingest"))
 @CapabilityDescription("store avro files into geomesa")
 class AvroToGeomesa extends AbstractGeoMesa {
 
