@@ -65,7 +65,8 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     
     val zookeepers = context.getProperty(Zookeepers).getValue
     val nc_host = "nc " + zookeepers.replace(':', ' ')
-    if ret == "imok"
+    ret = "imok"
+    if (ret == "imok")
       dataStore = getDataStore(context)
       val sft = getSft(context)
       dataStore.createSchema(sft)
