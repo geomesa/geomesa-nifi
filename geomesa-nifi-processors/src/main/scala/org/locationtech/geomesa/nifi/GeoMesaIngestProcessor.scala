@@ -22,6 +22,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.sys.process._
 
 @Tags(Array("geomesa", "geo", "ingest", "convert"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
@@ -59,16 +60,23 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
-
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
-    dataStore = getDataStore(context)
-    val sft = getSft(context)
-    dataStore.createSchema(sft)
+    
+    val zookeepers = context.getProperty(Zookeepers).getValue
+    val nc_host = "nc " + zookeepers.replace(':', ' ')
+    val ret = "echo ruok" #| nc_host !!
+    if (ret == "imok") {
+      dataStore = getDataStore(context)
+      val sft = getSft(context)
+      dataStore.createSchema(sft)
 
-    converter = getConverter(sft, context)
-    featureWriter = createFeatureWriter(sft, context)
-    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
+      converter = getConverter(sft, context)
+      featureWriter = createFeatureWriter(sft, context)
+      getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
+    } else {
+      getLogger.info("The Zookeepers in the GeoMesaIngestProcessor configuration are not running.")
+    }
   }
 
   @OnStopped
