@@ -63,6 +63,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
 
+//Added Try and ruok error-checking here
     try {    
       val zookeepers = context.getProperty(Zookeepers).getValue
       val nc_host = "nc " + zookeepers.replace(':', ' ')
