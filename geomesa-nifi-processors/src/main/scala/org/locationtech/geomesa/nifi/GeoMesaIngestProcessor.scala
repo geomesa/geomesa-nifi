@@ -65,10 +65,10 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 
 //Added Try and ruok error-checking here
     try {    
-      val zookeepers = context.getProperty(Zookeepers).getValue
-      val nc_host = "nc " + zookeepers.replace(':', ' ')
-      val ret = ("echo ruok" #| nc_host)!!
-      val zoo_run = if (ret == "imok") {
+//      val zookeepers = context.getProperty(Zookeepers).getValue
+//      val nc_host = "nc " + zookeepers.replace(':', ' ')
+//      val ret = ("echo ruok" #| nc_host)!!
+//      val zoo_run = if (ret == "imok") {
       dataStore = getDataStore(context)
       val sft = getSft(context)
       dataStore.createSchema(sft)
@@ -76,9 +76,9 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       converter = getConverter(sft, context)
       featureWriter = createFeatureWriter(sft, context)
       getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
-      } else {
-        getLogger.info("The Zookeepers in the GeoMesaIngestProcessor configuration are not running.")
-      }
+//      } else {
+//        getLogger.info("The Zookeepers in the GeoMesaIngestProcessor configuration are not running.")
+//      }
     } catch {
       case e: Exception =>
         getLogger.info("There is a configuration error with the ProcessContext.")
