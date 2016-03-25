@@ -87,10 +87,15 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 
   @OnStopped
   def cleanup(): Unit = {
-    IOUtils.closeQuietly(featureWriter)
-    featureWriter = null
-    dataStore = null
-    getLogger.info("Shut down geomesa processor")
+    try {
+      IOUtils.closeQuietly(featureWriter)
+      featureWriter = null
+      dataStore = null
+      getLogger.info("Shut down geomesa processor")
+    } catch {
+      case e: Exception =>
+        getLogger.info("There is a configuration error with the ProcessContext.")
+    }
   }
 
   override def getRelationships = relationships
