@@ -88,13 +88,15 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   @OnStopped
   def cleanup(): Unit = {
     try {
+      featureWriter.close()
+    } catch {
+      case e: Exception =>
+        getLogger.info("There was an error trying to STOP the processor and close the feature.  This may mean the associated zookeepers could not be connected to.")
+    } finally {
       IOUtils.closeQuietly(featureWriter)
       featureWriter = null
       dataStore = null
       getLogger.info("Shut down geomesa processor")
-    } catch {
-      case e: Exception =>
-        getLogger.info("There is a configuration error with the ProcessContext.")
     }
   }
 
