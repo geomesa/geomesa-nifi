@@ -22,6 +22,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.sys.process._
 
 @Tags(Array("geomesa", "geo", "ingest", "convert"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
@@ -59,24 +60,45 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
-
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
-    dataStore = getDataStore(context)
-    val sft = getSft(context)
-    dataStore.createSchema(sft)
 
-    converter = getConverter(sft, context)
-    featureWriter = createFeatureWriter(sft, context)
-    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
+//Added Try and ruok error-checking here
+    try {    
+//      val zookeepers = context.getProperty(Zookeepers).getValue
+//      val nc_host = "nc " + zookeepers.replace(':', ' ')
+//      val ret = ("echo ruok" #| nc_host)!!
+//      val zoo_run = if (ret == "imok") {
+      dataStore = getDataStore(context)
+      val sft = getSft(context)
+      dataStore.createSchema(sft)
+
+      converter = getConverter(sft, context)
+      featureWriter = createFeatureWriter(sft, context)
+      getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
+//      } else {
+//        getLogger.info("The Zookeepers in the GeoMesaIngestProcessor configuration are not running.")
+//      }
+    } catch {
+      case e: Exception =>
+        featureWriter = null
+        getLogger.info("There is a configuration error with the ProcessContext.")
+    }
   }
 
   @OnStopped
   def cleanup(): Unit = {
-    IOUtils.closeQuietly(featureWriter)
-    featureWriter = null
-    dataStore = null
-    getLogger.info("Shut down geomesa processor")
+    try {
+      featureWriter.close()
+    } catch {
+      case e: Exception =>
+        getLogger.info("There was an error trying to STOP the processor and close the feature.  This may mean the associated zookeepers could not be connected to.")
+    } finally {
+      IOUtils.closeQuietly(featureWriter)
+      featureWriter = null
+      dataStore = null
+      getLogger.info("Shut down geomesa processor")
+    }
   }
 
   override def getRelationships = relationships
