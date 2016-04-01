@@ -81,7 +81,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 //      }
     } catch {
       case e: Exception =>
-        featureWriter: SFW = null
+        featureWriter = null
         getLogger.info("There is a configuration error with the ProcessContext.")
     }
   }
