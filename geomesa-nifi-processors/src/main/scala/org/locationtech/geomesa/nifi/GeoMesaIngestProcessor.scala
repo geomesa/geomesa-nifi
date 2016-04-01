@@ -92,6 +92,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       featureWriter.close()
     } catch {
       case e: Exception =>
+        featureWriter = null
         getLogger.info("There was an error trying to STOP the processor and close the feature.  This may mean the associated zookeepers could not be connected to.")
     } finally {
       IOUtils.closeQuietly(featureWriter)
