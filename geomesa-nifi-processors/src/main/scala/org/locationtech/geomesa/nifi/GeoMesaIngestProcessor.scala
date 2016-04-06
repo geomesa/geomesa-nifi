@@ -63,33 +63,28 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
 
-//Added Try and ruok error-checking here
     try {    
-//      val zookeepers = context.getProperty(Zookeepers).getValue
-//      val nc_host = "nc " + zookeepers.replace(':', ' ')
-//      val ret = ("echo ruok" #| nc_host)!!
-//      val zoo_run = if (ret == "imok") {
+      val zookeepers = context.getProperty(Zookeepers).getValue
+      val nc_host = "nc " + zookeepers.replace(':', ' ')
+      val ret = ("echo ruok" #| nc_host)!!
+
       dataStore = getDataStore(context)
       val sft = getSft(context)
       dataStore.createSchema(sft)
-
       converter = getConverter(sft, context)
       featureWriter = createFeatureWriter(sft, context)
-      getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
-//      } else {
-//        getLogger.info("The Zookeepers in the GeoMesaIngestProcessor configuration are not running.")
-//      }
+      getLogger.info(s"@hangfix Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
     } catch {
       case e: Exception =>
         featureWriter = null
-        getLogger.info("There is a configuration error with the ProcessContext.")
+        getLogger.info(s"@hangfix Error: the context is not availalbe, zookeepers may not be running, dataStore equals ${dataStore}")
     }
   }
 
   @OnStopped
   def cleanup(): Unit = {
     try {
-      featureWriter.close()
+	featureWriter = null
     } catch {
       case e: Exception =>
         featureWriter = null
