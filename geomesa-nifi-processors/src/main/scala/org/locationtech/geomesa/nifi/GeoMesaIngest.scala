@@ -1,40 +1,39 @@
 package org.locationtech.geomesa.nifi
 
 import java.io.InputStream
+import java.util
 
 import org.apache.commons.io.IOUtils
 import org.apache.nifi.annotation.behavior.InputRequirement
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.{OnScheduled, OnStopped}
-import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.components.{ValidationResult, ValidationContext, PropertyDescriptor}
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, DataStoreFinder, FeatureWriter, Transaction}
+import org.geotools.data.{FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigResolver, ConverterConfigLoader, SimpleFeatureConverters}
-import org.locationtech.geomesa.nifi.GeoMesaIngestProcessor._
+import org.locationtech.geomesa.nifi.AbstractGeoMesa._
+import org.locationtech.geomesa.nifi.GeoMesaIngest._
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-@Tags(Array("geomesa", "geo", "ingest", "convert"))
+@Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-class GeoMesaIngestProcessor extends AbstractProcessor {
+class GeoMesaIngest extends AbstractGeoMesa {
 
   type SFW = FeatureWriter[SimpleFeatureType, SimpleFeature]
 
-  private var descriptors: java.util.List[PropertyDescriptor] = null
-  private var relationships: java.util.Set[Relationship] = null
-
   protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
+      GeoMesaConfigController,
       Zookeepers,
       InstanceName,
       User,
@@ -42,7 +41,7 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
       Catalog,
       SftName,
       ConverterName,
-      FeatureName,
+      FeatureNameOverride,
       SftSpec,
       ConverterSpec
      ).asJava
@@ -50,25 +49,28 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
   }
 
+
   @volatile
   private var featureWriter: SFW = null
 
   @volatile
-  private var dataStore: DataStore = null
-
-  @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
-
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
-    dataStore = getDataStore(context)
+    if (useControllerService){
+       dataStore = getGeomesaControllerService(context).getDataStore()
+    }
+    else {
+      dataStore = getDataStore(context)
+    }
+
     val sft = getSft(context)
     dataStore.createSchema(sft)
 
     converter = getConverter(sft, context)
     featureWriter = createFeatureWriter(sft, context)
-    getLogger.info(s"Initialized GeoMesaIngestProcessor datastore, fw, converter for type ${sft.getTypeName}")
+    getLogger.info(s"Initialized GeoMesaIngest datastore, fw, converter for type ${sft.getTypeName}")
   }
 
   @OnStopped
@@ -76,11 +78,8 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     IOUtils.closeQuietly(featureWriter)
     featureWriter = null
     dataStore = null
-    getLogger.info("Shut down geomesa processor")
+    getLogger.info("Shut down GeoMesaIngest processor " + getIdentifier)
   }
-
-  override def getRelationships = relationships
-  override def getSupportedPropertyDescriptors = descriptors
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
     Option(session.get()).foreach(doWork(context, session, _))
@@ -111,19 +110,11 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     }
   }
 
-  private def getDataStore(context: ProcessContext): DataStore = DataStoreFinder.getDataStore(Map(
-    "zookeepers" -> context.getProperty(Zookeepers).getValue,
-    "instanceId" -> context.getProperty(InstanceName).getValue,
-    "tableName"  -> context.getProperty(Catalog).getValue,
-    "user"       -> context.getProperty(User).getValue,
-    "password"   -> context.getProperty(Password).getValue
-  ))
-
   private def getSft(context: ProcessContext): SimpleFeatureType = {
     val sftArg = Option(context.getProperty(SftName).getValue)
       .orElse(Option(context.getProperty(SftSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${SftName.getName} or ${SftSpec.getName} property"))
-    val typeName = context.getProperty(FeatureName).getValue
+    val typeName = context.getProperty(FeatureNameOverride).getValue
     SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException(s"Could not resolve sft from config value $sftArg and typename $typeName"))
   }
 
@@ -139,48 +130,51 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
     SimpleFeatureConverters.build(sft, config)
   }
 
+ override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
+
+   val validationFailures: java.util.Collection[ValidationResult] = new util.ArrayList[ValidationResult]()
+
+   val controllerSet:Boolean =  validationContext.getProperty(GeoMesaConfigController).isSet
+   useControllerService = controllerSet
+
+   val zooSet:Boolean =         validationContext.getProperty(Zookeepers).isSet
+   val instanceSet: Boolean =   validationContext.getProperty(InstanceName).isSet
+   val userSet: Boolean =       validationContext.getProperty(User).isSet
+   val passSet: Boolean =       validationContext.getProperty(Password).isSet
+   val catalogSet: Boolean =    validationContext.getProperty(Catalog).isSet
+
+   // require either controller-service or all of {zoo,instance,user,pw,catalog}
+   if(!controllerSet && !(zooSet && instanceSet && userSet && passSet && catalogSet))
+     validationFailures.add(new ValidationResult.Builder()
+       .input("Use either GeoMesa Configuration Service, or specify accumulo connection parameters.")
+       .build)
+
+   // make sure either a sft is named or written
+   val sftNameSet: Boolean = validationContext.getProperty(SftName).isSet
+   val sftSpecSet: Boolean = validationContext.getProperty(SftSpec).isSet
+   if(!sftNameSet && !sftSpecSet)
+     validationFailures.add(new ValidationResult.Builder()
+     .input("Specify a simple feature type by name or spec")
+     .build)
+
+   // make sure either a converter is named or written
+   val convNameSet: Boolean = validationContext.getProperty(ConverterName).isSet
+   val convSpecSet: Boolean = validationContext.getProperty(ConverterSpec).isSet
+   if(!convNameSet && !convSpecSet)
+     validationFailures.add(new ValidationResult.Builder()
+        .input("Specify a converter by name or spec")
+        .build
+     )
+
+   validationFailures
+  }
+
 }
 
-object GeoMesaIngestProcessor {
-  val Zookeepers = new PropertyDescriptor.Builder()
-    .name("Zookeepers")
-    .description("Zookeepers host(:port) pairs, comma separated")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val InstanceName = new PropertyDescriptor.Builder()
-    .name("Instance")
-    .description("Accumulo instance name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val User = new PropertyDescriptor.Builder()
-    .name("User")
-    .description("Accumulo user name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val Password = new PropertyDescriptor.Builder()
-    .name("Password")
-    .description("Accumulo password")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .sensitive(true)
-    .build
-
-  val Catalog = new PropertyDescriptor.Builder()
-    .name("Catalog")
-    .description("GeoMesa catalog table name")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
+object GeoMesaIngest {
   val SftName = new PropertyDescriptor.Builder()
     .name("SftName")
-    .description("Choose an SFT defined by a GeoMesa SFT Provider (preferred)")
+    .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
     .required(false)
     .allowableValues(SimpleFeatureTypeLoader.listTypeNames.toArray: _*)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -194,7 +188,7 @@ object GeoMesaIngestProcessor {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)   // TODO validate
     .build
 
-  val FeatureName = new PropertyDescriptor.Builder()
+  val FeatureNameOverride = new PropertyDescriptor.Builder()
     .name("FeatureNameOverride")
     .description("Override the Simple Feature Type name from the SFT Spec")
     .required(false)
@@ -215,6 +209,4 @@ object GeoMesaIngestProcessor {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build
 
-  final val SuccessRelationship = new Relationship.Builder().name("success").description("Success").build
-  final val FailureRelationship = new Relationship.Builder().name("failure").description("Failure").build
 }
