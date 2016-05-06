@@ -22,6 +22,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.sys.process._
 
 @Tags(Array("geomesa", "geo", "ingest", "convert"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
@@ -59,7 +60,6 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
   @volatile
   private var converter: convert.SimpleFeatureConverter[_] = null
 
-
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
     dataStore = getDataStore(context)
@@ -73,10 +73,18 @@ class GeoMesaIngestProcessor extends AbstractProcessor {
 
   @OnStopped
   def cleanup(): Unit = {
-    IOUtils.closeQuietly(featureWriter)
-    featureWriter = null
-    dataStore = null
-    getLogger.info("Shut down geomesa processor")
+    try {
+	featureWriter.close()
+    } catch {
+      case e: Exception =>
+        featureWriter = null
+        getLogger.info("There was an error trying to STOP the processor and close the feature.  This may mean the associated zookeepers could not be connected to.")
+    } finally {
+      IOUtils.closeQuietly(featureWriter)
+      featureWriter = null
+      dataStore = null
+      getLogger.info("Shut down geomesa processor")
+    }
   }
 
   override def getRelationships = relationships
