@@ -28,7 +28,7 @@ public class MyProcessorTest {
 
     @Before
     public void init() {
-        testRunner = TestRunners.newTestRunner(GeoMesaIngestProcessor.class);
+        testRunner = TestRunners.newTestRunner(GeoMesaIngest.class);
     }
 
     @Test
