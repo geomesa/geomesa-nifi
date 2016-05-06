@@ -24,20 +24,20 @@
 
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa-nifi</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.0</geomesa.version>
-        <accumulo.version>1.6.2</accumulo.version>
+        <geomesa.version>1.2.1</geomesa.version>
+        <accumulo.version>1.6.5</accumulo.version>
         <nifi.version>${project.parent.version}</nifi.version>
     </properties>
 
     <modules>
         <module>geomesa-nifi-processors</module>
         <module>geomesa-nifi-nar</module>
-        <module>geomesa-nifi-resources</module>
+        <module>geomesa-nifi-examples</module>
     </modules>
 
     <dependencyManagement>
@@ -161,7 +161,7 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <id>scala-compile-first</id>
