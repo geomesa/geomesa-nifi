@@ -1,4 +1,4 @@
-package org.locationtech.geomesa.nifi
+package org.jah.nifi.geo
 
 import java.io.{InputStream, OutputStream}
 
@@ -10,10 +10,10 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processor.util.StandardValidators
+import org.jah.nifi.geo.ConvertToGeoAvro._
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
-import org.locationtech.geomesa.nifi.SimpleFeaturesToAvro._
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.SimpleFeatureType
 
@@ -22,7 +22,7 @@ import scala.collection.JavaConverters._
 @Tags(Array("OGC", "geo", "convert", "converter", "simple feature", "geotools", "geomesa"))
 @CapabilityDescription("Convert incoming files into OGC SimpleFeature avro data files using GeoMesa Converters")
 @WritesAttribute(attribute = "mime.type", description = "the mime type of the outgoing format")
-class SimpleFeaturesToAvro extends AbstractProcessor {
+class ConvertToGeoAvro extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
@@ -96,7 +96,7 @@ class SimpleFeaturesToAvro extends AbstractProcessor {
   }
 }
 
-object SimpleFeaturesToAvro {
+object ConvertToGeoAvro {
 
   val SftName = new PropertyDescriptor.Builder()
     .name("SftName")

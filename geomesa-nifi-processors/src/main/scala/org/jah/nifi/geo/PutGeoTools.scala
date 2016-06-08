@@ -1,10 +1,9 @@
-package org.locationtech.geomesa.nifi
+package org.jah.nifi.geo
 
 import java.io.InputStream
 
 import com.typesafe.config.ConfigFactory
 import org.apache.avro.file.DataFileStream
-import org.apache.nifi.annotation.behavior.WritesAttribute
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.flowfile.FlowFile
@@ -14,8 +13,8 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.DataStoreFinder
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.feature.DefaultFeatureCollection
+import org.jah.nifi.geo.PutGeoTools._
 import org.locationtech.geomesa.features.avro.{AvroSimpleFeature, FeatureSpecificReader}
-import org.locationtech.geomesa.nifi.SimpleFeaturesToDataStore._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 
 import scala.collection.JavaConversions._
@@ -23,7 +22,7 @@ import scala.collection.JavaConverters._
 
 @Tags(Array("geomesa", "geo", "ingest", "geotools", "datastore", "features", "simple feature"))
 @CapabilityDescription("store avro files into geomesa")
-class SimpleFeaturesToDataStore extends AbstractProcessor {
+class PutGeoTools extends AbstractProcessor {
 
   private var descriptors: java.util.List[PropertyDescriptor] = null
   private var relationships: java.util.Set[Relationship] = null
@@ -42,22 +41,21 @@ class SimpleFeaturesToDataStore extends AbstractProcessor {
   //
   // Allow dynamic properties for datastores
   //
-  override def getSupportedDynamicPropertyDescriptor(propertyDescriptorName: String): PropertyDescriptor = {
-    return new PropertyDescriptor.Builder()
-    .description("Sets the value on the datastore")
-    .name(propertyDescriptorName)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .sensitive(sensitiveProps().contains(propertyDescriptorName))
-    .dynamic(true)
-    .expressionLanguageSupported(false)
-    .build()
-  }
+  override def getSupportedDynamicPropertyDescriptor(propertyDescriptorName: String): PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+      .description("Sets the value on the datastore")
+      .name(propertyDescriptorName)
+      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+      .sensitive(sensitiveProps().contains(propertyDescriptorName))
+      .dynamic(true)
+      .expressionLanguageSupported(false)
+      .build()
 
   //
   // Look for a flow file and process it if there is one
   //
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
-    Option(session.get()).map(doWork(context, session, _))
+    Option(session.get()).foreach(doWork(context, session, _))
 
   private def doWork(context: ProcessContext, session: ProcessSession, flowFile: FlowFile): Unit = {
     val sft = getSft(context)
@@ -131,7 +129,7 @@ class SimpleFeaturesToDataStore extends AbstractProcessor {
 
 }
 
-object SimpleFeaturesToDataStore {
+object PutGeoTools {
 
   private def listDataStores() = DataStoreFinder.getAvailableDataStores
 
