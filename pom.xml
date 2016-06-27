@@ -39,6 +39,13 @@
         <module>geomesa-nifi-nar</module>
     </modules>
 
+    <scm>
+        <connection>scm:git:git@github.com:jahhulbert-ccri/geomesa-nifi.git</connection>
+        <developerConnection>scm:git:git@github.com:jahhulbert-ccri/geomesa-nifi.git</developerConnection>
+        <url>https://github.com/jahhulbert-ccri/geomesa-nifi</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
