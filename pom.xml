@@ -16,12 +16,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.4.1</version>
-    </parent>
-
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa-nifi</artifactId>
     <version>0.4.0-SNAPSHOT</version>
@@ -31,7 +25,8 @@
         <scala.version>2.11.7</scala.version>
         <geomesa.version>1.2.2</geomesa.version>
         <accumulo.version>1.6.5</accumulo.version>
-        <nifi.version>${project.parent.version}</nifi.version>
+        <nifi.version>0.4.1</nifi.version>
+        <hadoop.version>2.2.0</hadoop.version>
     </properties>
 
     <modules>
@@ -48,11 +43,35 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Nifi Dependencies -->
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-api</artifactId>
+                <version>${nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-utils</artifactId>
+                <version>${nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-processor-utils</artifactId>
+                <version>${nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-mock</artifactId>
+                <version>${nifi.version}</version>
+            </dependency>
+
+            <!-- Managed submodules -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>geomesa-nifi-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <!-- GeoMesa -->
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
@@ -181,12 +200,16 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>2.4</version>
-                    <inherited>false</inherited>
+                    <version>2.5.3</version>
                     <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-nar-maven-plugin</artifactId>
+                </plugin>
+
             </plugins>
         </pluginManagement>
 
@@ -218,12 +241,15 @@
                         <jvmArg>-Xmx8G</jvmArg>
                         <jvmArg>-Duser.timezone=UTC</jvmArg>
                         <jvmArg>-XX:MaxPermSize=1024m</jvmArg>
+                        <jvmArg>-Djava.awt.headless=true</jvmArg>
                     </jvmArgs>
                     <args>
                         <arg>-nowarn</arg>
                         <arg>-unchecked</arg>
                         <arg>-deprecation</arg>
                     </args>
+                    <source>1.7</source>
+                    <target>1.7</target>
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>
             </plugin>
