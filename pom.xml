@@ -23,10 +23,11 @@
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.2</geomesa.version>
+        <geomesa.version>1.2.3</geomesa.version>
         <accumulo.version>1.6.5</accumulo.version>
         <nifi.version>0.4.1</nifi.version>
-        <hadoop.version>2.2.0</hadoop.version>
+        <hadoop.version>2.6.0</hadoop.version>
+        <kafka.09.version>0.9.0.1</kafka.09.version>
     </properties>
 
     <modules>
@@ -76,6 +77,21 @@
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-accumulo-datastore</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-kafka</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_2.11</artifactId>
+                <version>${kafka.09.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-kafka-09-datastore</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
