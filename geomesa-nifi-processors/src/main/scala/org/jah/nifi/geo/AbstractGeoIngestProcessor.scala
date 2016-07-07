@@ -61,7 +61,9 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   protected def initialize(context: ProcessContext): Unit = {
     sft = getSft(context)
     dataStore = getDataStore(context)
-    if (dataStore.getSchema(sft.getName) == null) {
+
+    if (!dataStore.getTypeNames.contains(sft.getName)) {
+      getLogger.info(s"Creating schema ${sft.getTypeName}")
       dataStore.createSchema(sft)
     }
 

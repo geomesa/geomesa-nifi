@@ -27,6 +27,7 @@
         <accumulo.version>1.6.5</accumulo.version>
         <nifi.version>0.4.1</nifi.version>
         <hadoop.version>2.6.0</hadoop.version>
+        <kafka.09.version>0.9.0.1</kafka.09.version>
     </properties>
 
     <modules>
@@ -82,6 +83,11 @@
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-kafka</artifactId>
                 <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_2.11</artifactId>
+                <version>${kafka.09.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
