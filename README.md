@@ -28,3 +28,16 @@ Go to http://localhost:8080/nifi
 Drag a GeoMesaIngestProcessor down...fill out the accumulo instance, etc...for sft and converter try "example-csv" and 
 copy an example csv from the geomesa-tools/examples/ingest/csv folder into a temp dir...use the getfile processor to 
 pick it up and route it to the PutGeoMesa...
+
+## GeoMesa Kafka Processor
+
+The GeoMesa kafka processor allows for live layers. To use it you'll need a kafka broker set up...for localhost
+testing just download it and do this:
+   
+   tar xvf kafka_2.11-0.9.0.1.tgz
+   cd kafka_2.11-0.9.0.1/
+   bin/zookeeper-server-start.sh config/zookeeper.properties &
+   bin/kafka-server-start.sh config/server.properties &
+   
+Then you can use ```localhost:9092``` and ```localhost:2181``` as your brokers and zookeeper config string, respectively
+in your kafka nifi ingest processor.
