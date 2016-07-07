@@ -59,11 +59,14 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
   @OnScheduled
   protected def initialize(context: ProcessContext): Unit = {
-    sft = getSft(context)
+    // Data store comes first...then getSft because
+    // oddly enough sometimes you want to modify the sft
     dataStore = getDataStore(context)
+    sft = getSft(context)
 
-    if (!dataStore.getTypeNames.contains(sft.getName)) {
-      getLogger.info(s"Creating schema ${sft.getTypeName}")
+    val existingTypes = dataStore.getTypeNames
+    if (!existingTypes.contains(sft.getTypeName)) {
+      getLogger.info(s"Creating schema ${sft.getTypeName} ... existing types are ${existingTypes.mkString(", ")}")
       dataStore.createSchema(sft)
     }
 
@@ -72,7 +75,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       converter = getConverter(sft, context)
     }
 
-    getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode ${mode}")
+    getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $mode")
   }
 
   @OnRemoved

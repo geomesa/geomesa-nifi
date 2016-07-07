@@ -53,6 +53,7 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
     // Kafka producer vs consumer prep
     val isProducer = context.getProperty(KDSP.IS_PRODUCER_PARAM.getName).asBoolean()
     if (isProducer) {
+      getLogger.info(s"Creating streaming sft for type ${sft.getTypeName}")
       val zkPath = context.getProperty(KDSP.ZK_PATH.getName).toString
       KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
     } else {
