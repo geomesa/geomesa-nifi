@@ -13,5 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.jah.nifi.geo.PutGeoMesa
+org.jah.nifi.geo.PutGeoMesaKafka
 org.jah.nifi.geo.PutGeoTools
 org.jah.nifi.geo.ConvertToGeoAvro
