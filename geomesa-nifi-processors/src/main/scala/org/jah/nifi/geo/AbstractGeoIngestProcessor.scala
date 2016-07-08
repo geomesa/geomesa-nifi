@@ -214,6 +214,7 @@ object AbstractGeoIngestProcessor {
     val SftSpec = new PropertyDescriptor.Builder()
       .name("SftSpec")
       .description("Manually define a SimpleFeatureType (SFT) config spec")
+      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .required(false)
       .build
 
@@ -221,6 +222,7 @@ object AbstractGeoIngestProcessor {
     val ConverterSpec = new PropertyDescriptor.Builder()
       .name("ConverterSpec")
       .description("Manually define a converter using typesafe config")
+      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .required(false)
       .build
 

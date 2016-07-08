@@ -50,15 +50,9 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
   override protected def getSft(context: ProcessContext): SimpleFeatureType = {
     val sft = super.getSft(context)
 
-    // Kafka producer vs consumer prep
-    val isProducer = context.getProperty(KDSP.IS_PRODUCER_PARAM.getName).asBoolean()
-    if (isProducer) {
-      getLogger.info(s"Creating streaming sft for type ${sft.getTypeName}")
-      val zkPath = context.getProperty(KDSP.ZK_PATH.getName).toString
-      KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
-    } else {
-      sft
-    }
+    getLogger.info(s"Creating live sft for type ${sft.getTypeName}")
+    val zkPath = context.getProperty(KDSP.ZK_PATH.getName).toString
+    KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
   }
 
   override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
