@@ -11,6 +11,7 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder}
 import org.jah.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.jah.nifi.geo.PutGeoMesa._
+import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreParams => ADSP}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -22,14 +23,7 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     super.init(context)
-    descriptors = (getPropertyDescriptors ++ List(
-      GeoMesaConfigController,
-      Zookeepers,
-      InstanceName,
-      User,
-      Password,
-      Catalog
-     )).asJava
+    descriptors = (getPropertyDescriptors ++ AdsNifiProps).asJava
     getLogger.info(s"Props are ${descriptors.mkString(", ")}")
     getLogger.info(s"Relationships are ${relationships.mkString(", ")}")
   }
@@ -45,13 +39,19 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
   }
 
   protected def getDataStoreFromParams(context: ProcessContext): DataStore =
-    DataStoreFinder.getDataStore(Map(
-      "zookeepers" -> context.getProperty(Zookeepers).getValue,
-      "instanceId" -> context.getProperty(InstanceName).getValue,
-      "tableName"  -> context.getProperty(Catalog).getValue,
-      "user"       -> context.getProperty(User).getValue,
-      "password"   -> context.getProperty(Password).getValue
-    ))
+    DataStoreFinder.getDataStore(AdsNifiProps.map { p =>
+      p.getName -> context.getProperty(p.getName).getValue
+    }.filter(_._2 != null).map { case (p, v) =>
+      getLogger.trace(s"ds prop: $p => $v")
+      p -> {
+        AdsProps.find(_.getName == p).head.getType match {
+          case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
+          case x if x.isAssignableFrom(classOf[java.lang.Long])    => v.toLong
+          case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => v.toBoolean
+          case _                                                   => v
+        }
+      }
+    }.toMap.asJava)
 
   // Abstract
   override protected def getDataStore(context: ProcessContext): DataStore = {
@@ -67,7 +67,13 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
     val validationFailures = new util.ArrayList[ValidationResult]()
 
     useControllerService = validationContext.getProperty(GeoMesaConfigController).isSet
-    val paramsSet = Seq(Zookeepers, InstanceName, User, Password, Catalog).forall(validationContext.getProperty(_).isSet)
+    val minimumParams = Seq(
+      ADSP.instanceIdParam,
+      ADSP.zookeepersParam,
+      ADSP.userParam,
+      ADSP.passwordParam,
+      ADSP.tableNameParam).map(_.getName)
+    val paramsSet = AdsNifiProps.filter(minimumParams.contains).forall(validationContext.getProperty(_).isSet)
 
     // require either controller-service or all of {zoo,instance,user,pw,catalog}
     if (!useControllerService && !paramsSet)
@@ -102,6 +108,18 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
 
 object PutGeoMesa {
 
+  val AdsProps = List(
+    ADSP.instanceIdParam,
+    ADSP.zookeepersParam,
+    ADSP.userParam,
+    ADSP.passwordParam,
+    ADSP.visibilityParam,
+    ADSP.tableNameParam,
+    ADSP.writeThreadsParam,
+    ADSP.generateStatsParam,
+    ADSP.mockParam
+  )
+
   val GeoMesaConfigController = new PropertyDescriptor.Builder()
     .name("GeoMesa Configuration Service")
     .description("The controller service used to connect to Accumulo")
@@ -109,41 +127,20 @@ object PutGeoMesa {
     .identifiesControllerService(classOf[GeomesaConfigService])
     .build
 
-  val Zookeepers = new PropertyDescriptor.Builder()
-    .name("Zookeepers")
-    .description("Zookeepers host(:port) pairs, comma separated")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val InstanceName = new PropertyDescriptor.Builder()
-    .name("Instance")
-    .description("Accumulo instance name")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val User = new PropertyDescriptor.Builder()
-    .name("User")
-    .description("Accumulo user name")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
-  val Password = new PropertyDescriptor.Builder()
-    .name("Password")
-    .description("Accumulo password")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .sensitive(true)
-    .build
-
-  val Catalog = new PropertyDescriptor.Builder()
-    .name("Catalog")
-    .description("GeoMesa catalog table name")
-    .required(false)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build
-
+  // Don't require any properties because we are using the controller service...
+  val AdsNifiProps = AdsProps.map { p =>
+    new PropertyDescriptor.Builder()
+      .name(p.getName)
+      .description(p.getDescription.toString)
+      .defaultValue(if (p.getDefaultValue != null) p.getDefaultValue.toString else null)
+      .addValidator(p.getType match {
+        case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
+        case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
+        case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
+        case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
+        case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
+      })
+      .build()
+  } ++ List(GeoMesaConfigController)
 
 }
