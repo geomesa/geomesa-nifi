@@ -23,7 +23,7 @@
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.3</geomesa.version>
+        <geomesa.version>1.2.5</geomesa.version>
         <accumulo.version>1.6.5</accumulo.version>
         <nifi.version>0.4.1</nifi.version>
         <hadoop.version>2.6.0</hadoop.version>
