@@ -1,11 +1,11 @@
-package org.jah.nifi.geo
+package org.geomesa.nifi.geo
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.DataStoreFinder
-import org.jah.nifi.geo.PutGeoTools._
+import org.geomesa.nifi.geo.PutGeoTools._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._

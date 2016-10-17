@@ -1,4 +1,4 @@
-package org.jah.nifi.geo;
+package org.geomesa.nifi.geo;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.*;
 
 @CapabilityDescription("Defines credentials for GeoMesa processors.")
-@SeeAlso(classNames = { "org.jah.nifi.geo.PutGeoMesa" })
+@SeeAlso(classNames = { "org.geomesa.nifi.geo.PutGeoMesa" })
 @Tags({ "geo", "geomesa","accumulo" })
 public class GeomesaConfigControllerService
         extends AbstractControllerService

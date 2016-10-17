@@ -272,4 +272,28 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>locationtech-releases</id>
+            <url>https://repo.locationtech.org/content/groups/releases</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>locationtech-snapshots</id>
+            <url>https://repo.locationtech.org/content/groups/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>boundlessgeo</id>
+            <url>http://repo.boundlessgeo.com/main</url>
+        </repository>
+    </repositories>
+
 </project>

@@ -1,4 +1,4 @@
-package org.jah.nifi.geo
+package org.geomesa.nifi.geo
 
 object IngestMode {
   val Converter    = "Converter"

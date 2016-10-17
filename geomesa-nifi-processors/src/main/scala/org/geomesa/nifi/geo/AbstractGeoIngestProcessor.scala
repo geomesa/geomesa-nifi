@@ -1,4 +1,4 @@
-package org.jah.nifi.geo
+package org.geomesa.nifi.geo
 
 import java.io.InputStream
 
@@ -10,8 +10,8 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
-import org.jah.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import org.jah.nifi.geo.AbstractGeoIngestProcessor.Relationships._
+import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
+import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
@@ -134,7 +134,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   }
 
   protected def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
-    dataStore.getFeatureWriter(sft.getTypeName, Transaction.AUTO_COMMIT)
+    dataStore.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
   }
 
   protected def avroIngester(fw: SFW): ProcessFn =

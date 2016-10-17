@@ -1,4 +1,4 @@
-package org.jah.nifi.geo
+package org.geomesa.nifi.geo
 
 import java.io.{InputStream, OutputStream}
 
@@ -10,7 +10,7 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.jah.nifi.geo.ConvertToGeoAvro._
+import org.geomesa.nifi.geo.ConvertToGeoAvro._
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
