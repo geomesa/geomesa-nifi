@@ -18,14 +18,14 @@
 
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa-nifi</artifactId>
-    <version>0.4.2-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.5</geomesa.version>
-        <accumulo.version>1.6.5</accumulo.version>
-        <nifi.version>0.4.1</nifi.version>
+        <geomesa.version>1.2.6</geomesa.version>
+        <accumulo.version>1.6.6</accumulo.version>
+        <nifi.version>0.7.0</nifi.version>
         <hadoop.version>2.6.0</hadoop.version>
         <kafka.09.version>0.9.0.1</kafka.09.version>
     </properties>
