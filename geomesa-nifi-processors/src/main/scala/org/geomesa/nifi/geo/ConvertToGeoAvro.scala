@@ -12,9 +12,9 @@ import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.ConvertToGeoAvro._
 import org.locationtech.geomesa.convert
-import org.locationtech.geomesa.convert.{ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
+import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
-import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
+import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConverters._
@@ -31,7 +31,7 @@ class ConvertToGeoAvro extends AbstractProcessor {
     descriptors = List(
       SftName,
       ConverterName,
-      FeatureName,
+      FeatureNameOverride,
       SftSpec,
       ConverterSpec,
       OutputFormat).asJava
@@ -78,20 +78,25 @@ class ConvertToGeoAvro extends AbstractProcessor {
     }
   }
 
-  private def getSft(context: ProcessContext): SimpleFeatureType = {
+  protected def getSft(context: ProcessContext): SimpleFeatureType = {
     val sftArg = Option(context.getProperty(SftName).getValue)
       .orElse(Option(context.getProperty(SftSpec).getValue))
-      .getOrElse(throw new IllegalArgumentException("could not parse spec config"))
-    context.getProperty(SftName).getValue
-    val typeName = context.getProperty(FeatureName).getValue
-    SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException("could not parse sft config"))
+      .getOrElse(throw new IllegalArgumentException(s"Must provide either ${SftName.getName} or ${SftSpec.getName} property"))
+    val typeName = context.getProperty(FeatureNameOverride).getValue
+    SftArgResolver.getArg(SftArgs(sftArg, typeName)) match {
+      case Left(e) => throw e
+      case Right(sftype) => sftype
+    }
   }
 
-  private def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
+  protected def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
     val convertArg = Option(context.getProperty(ConverterName).getValue)
       .orElse(Option(context.getProperty(ConverterSpec).getValue))
-      .getOrElse(throw new IllegalArgumentException("could not parse converter config"))
-    val config = ConverterConfigResolver.getConfig(convertArg).get
+      .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
+    val config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
+      case Left(e) => throw e
+      case Right(conf) => conf
+    }
     SimpleFeatureConverters.build(sft, config)
   }
 }
@@ -114,7 +119,7 @@ object ConvertToGeoAvro {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)   // TODO validate
     .build
 
-  val FeatureName = new PropertyDescriptor.Builder()
+  val FeatureNameOverride = new PropertyDescriptor.Builder()
     .name("FeatureNameOverride")
     .description("Override the Simple Feature Type name from the SFT Spec")
     .required(false)

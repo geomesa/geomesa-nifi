@@ -11,7 +11,8 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.PutGeoMesaKafka._
-import org.locationtech.geomesa.kafka.{KafkaDataStoreFactoryParams => KDSP, KafkaDataStoreHelper}
+import org.locationtech.geomesa.kafka09.{KafkaDataStoreFactoryParams => KDSP}
+import org.locationtech.geomesa.kafka.KafkaDataStoreHelper
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._

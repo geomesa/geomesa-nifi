@@ -23,8 +23,8 @@
 
     <properties>
         <scala.version>2.11.7</scala.version>
-        <geomesa.version>1.2.7.2</geomesa.version>
-        <accumulo.version>1.6.6</accumulo.version>
+        <geomesa.version>1.3.0</geomesa.version>
+        <accumulo.version>1.7.2</accumulo.version>
         <nifi.version>0.7.1</nifi.version>
         <hadoop.version>2.6.0</hadoop.version>
         <kafka.09.version>0.9.0.1</kafka.09.version>
@@ -76,12 +76,12 @@
             <!-- GeoMesa -->
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-accumulo-datastore</artifactId>
+                <artifactId>geomesa-accumulo-datastore_2.11</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-kafka</artifactId>
+                <artifactId>geomesa-kafka_2.11</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
@@ -91,12 +91,12 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-kafka-09-datastore</artifactId>
+                <artifactId>geomesa-kafka-09-datastore_2.11</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-convert-all</artifactId>
+                <artifactId>geomesa-convert-all_2.11</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
