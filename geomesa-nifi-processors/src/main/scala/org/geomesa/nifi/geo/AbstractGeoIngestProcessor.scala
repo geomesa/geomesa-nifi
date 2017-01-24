@@ -13,9 +13,9 @@ import org.geotools.filter.identity.FeatureIdImpl
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
 import org.locationtech.geomesa.convert
-import org.locationtech.geomesa.convert.{ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
+import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
-import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SimpleFeatureTypeLoader}
+import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConverters._
@@ -24,7 +24,8 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
   type ProcessFn = (ProcessContext, ProcessSession, FlowFile) => Unit
   type SFW = FeatureWriter[SimpleFeatureType, SimpleFeature]
-  type ToStream = (String, InputStream) => Iterator[SimpleFeature] with AutoCloseable
+  type ToStream = (String,
+    InputStream) => Iterator[SimpleFeature] with AutoCloseable
 
   protected var descriptors: java.util.List[PropertyDescriptor] = null
   protected var relationships: java.util.Set[Relationship] = null
@@ -122,14 +123,20 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       .orElse(Option(context.getProperty(SftSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${SftName.getName} or ${SftSpec.getName} property"))
     val typeName = context.getProperty(FeatureNameOverride).getValue
-    SftArgResolver.getSft(sftArg, typeName).getOrElse(throw new IllegalArgumentException(s"Could not resolve sft from config value $sftArg and typename $typeName"))
+    SftArgResolver.getArg(SftArgs(sftArg, typeName)) match {
+      case Left(e) => throw e
+      case Right(sftype) => sftype
+    }
   }
 
   protected def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
     val convertArg = Option(context.getProperty(ConverterName).getValue)
       .orElse(Option(context.getProperty(ConverterSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
-    val config = ConverterConfigResolver.getConfig(convertArg).get
+    val config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
+      case Left(e) => throw e
+      case Right(conf) => conf
+    }
     SimpleFeatureConverters.build(sft, config)
   }
 
