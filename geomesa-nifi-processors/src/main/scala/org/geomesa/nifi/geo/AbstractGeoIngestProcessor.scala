@@ -8,7 +8,7 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, FeatureWriter, Transaction}
+import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
@@ -156,7 +156,12 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
-              fw.write()
+              try{
+                fw.write()
+              } catch {
+                case e: Exception =>
+                  getLogger.warn(s"ERROR writing feature to DataStore '${DataUtilities.encodeFeature(toWrite)}'", e)
+              }
             }
           } finally {
             reader.close()
@@ -181,7 +186,12 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
-              fw.write()
+              try{
+                fw.write()
+              } catch {
+                case e: Exception =>
+                  getLogger.warn(s"ERROR writing feature to DataStore '${DataUtilities.encodeFeature(toWrite)}'", e)
+              }
             }
         }
       })
