@@ -24,7 +24,6 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     super.init(context)
-
     descriptors = (getPropertyDescriptors ++ KdsNifiProps).asJava
     getLogger.info(s"Props are ${descriptors.mkString(", ")}")
     getLogger.info(s"Relationships are ${relationships.mkString(", ")}")

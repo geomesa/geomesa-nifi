@@ -134,7 +134,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   }
 
   protected def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
-    dataStore.getFeatureWriter(sft.getTypeName, Transaction.AUTO_COMMIT)
+    dataStore.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
   }
 
   protected def avroIngester(fw: SFW): ProcessFn =
