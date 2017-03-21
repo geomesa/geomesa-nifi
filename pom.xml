@@ -1,25 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements. See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License. You may obtain a copy of the License at
-  http://www.apache.org/licenses/LICENSE-2.0
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
+<!--********************************************************************
+* Copyright (c) 2015-2017 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0 which
+* accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*********************************************************************-->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <name>GeoMesa-NiFi</name>
+    <inceptionYear>2015</inceptionYear>
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi</artifactId>
     <version>0.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <modules>
+        <module>geomesa-nifi-processors</module>
+        <module>geomesa-nifi-nar</module>
+    </modules>
 
     <properties>
         <scala.version>2.11.7</scala.version>
@@ -31,15 +32,10 @@
         <kafka.09.version>0.9.0.1</kafka.09.version>
     </properties>
 
-    <modules>
-        <module>geomesa-nifi-processors</module>
-        <module>geomesa-nifi-nar</module>
-    </modules>
-
     <scm>
-        <connection>scm:git:git@github.com:jahhulbert-ccri/geomesa-nifi.git</connection>
-        <developerConnection>scm:git:git@github.com:jahhulbert-ccri/geomesa-nifi.git</developerConnection>
-        <url>https://github.com/jahhulbert-ccri/geomesa-nifi</url>
+        <connection>scm:git:git@github.com:geomesa/geomesa-nifi.git</connection>
+        <developerConnection>scm:git:git@github.com:geomesa/geomesa-nifi.git</developerConnection>
+        <url>https://github.com/geomesa/geomesa-nifi</url>
         <tag>HEAD</tag>
     </scm>
 
@@ -225,8 +221,53 @@
                 <plugin>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-nar-maven-plugin</artifactId>
+                    <version>1.2.0</version>
                 </plugin>
-
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>2.11</version>
+                    <configuration>
+                        <header>build/copyright/ccri.txt</header>
+                        <validHeaders>
+                            <validHeader>build/copyright/ccri.txt</validHeader>
+                        </validHeaders>
+                        <properties>
+                            <year>2017</year>
+                            <owner>Commonwealth Computer Research, Inc.</owner>
+                        </properties>
+                        <headerDefinitions>
+                            <definitions>build/copyright/geomesa-header.xml</definitions>
+                        </headerDefinitions>
+                        <mapping>
+                            <java>GEOMESA_JAVA</java>
+                            <scala>GEOMESA_JAVA</scala>
+                        </mapping>
+                        <includes>
+                            <include>src/main/java/**</include>
+                            <include>src/main/scala/**</include>
+                            <include>src/test/java/**</include>
+                            <include>src/test/scala/**</include>
+                        </includes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>2.17</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-jdk14</artifactId>
+                            <version>1.7.5</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>jcl-over-slf4j</artifactId>
+                            <version>1.7.5</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -269,6 +310,33 @@
                     <target>1.7</target>
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>verify-services-newlines</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <failOnError>true</failOnError>
+                            <checkstyleRules>
+                                <module name="Checker">
+                                    <module name="NewlineAtEndOfFile"/>
+                                </module>
+                            </checkstyleRules>
+                            <excludes>**/*</excludes>
+                            <resourceIncludes>META-INF/services/*</resourceIncludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
