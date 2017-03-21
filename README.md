@@ -1,5 +1,5 @@
-GeoMesa NiFi Plugins
-====================
+GeoMesa NiFi Bundle
+===================
 
 NiFi manages large batches and streams of files and data.
 GeoMesa-NiFi allows you to ingest data into GeoMesa straight from NiFi by
@@ -23,13 +23,14 @@ To build, run
 $ mvn clean install
 ```
 
-To install the GoeMesa processors you will need to copy the geomesa-nifi-nar file from
+To install the GeoMesa processors you will need to copy the geomesa-nifi-nar file from
 ``geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar`` into the ``lib/`` directory of your NiFi installation.
 
 ### Install the SFTs and Converters
 
-The GeoMesa processors need access to the SFTs and converters in order to ingest data. We can provide these to the
-processors by placing the SFTs and converters in a file named ``reference.conf`` and then putting that file on the
+The GeoMesa processors need access to the SFTs and converters in order to ingest data. There are two ways of providing these
+to the processors. We can enter the SFT specification string and converter specification string directly in a processor or we can 
+provide these to the processors by placing the SFTs and converters in a file named ``reference.conf`` and then putting that file on the
 classpath. This can be achieved by wrapping this file in a JAR and placing it in the ``lib/`` directory of the NiFi
 installation. For example you can wrap the ``reference.conf`` file in a JAR with this command.
 
@@ -97,9 +98,9 @@ of the ``GeoMesa Configuration Service`` property. When a controller service is 
 
 ### PutGeoMesaKafka
 
-The ``PutGeoMesaKafka`` processor is used for ingesting data into a Kafka backed GeoMesa datastore. To use this processor
-first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
-given below:
+The ``PutGeoMesaKafka`` processor is used for ingesting data into a Kafka backed GeoMesa datastore. This processor only supports Kafka 0.9
+and newer. To use this processor first add it to the workspace and open the properties tab of its configuration. Descriptions of the 
+properties are given below:
 
 Property                    | Description
 ---                         | ---
