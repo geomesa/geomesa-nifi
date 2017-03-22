@@ -27,7 +27,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
   //
   override def getSupportedDynamicPropertyDescriptor(propertyDescriptorName: String): PropertyDescriptor =
     new PropertyDescriptor.Builder()
-      .description("Sets the value on the datastore")
+      .description("Sets the value on the DataStore")
       .name(propertyDescriptorName)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .sensitive(sensitiveProps().contains(propertyDescriptorName))
@@ -46,7 +46,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
 
   override protected def getDataStore(context: ProcessContext) = {
     val dsProps = context.getProperties.filter(_._1.getName != DataStoreName.getName).map { case (a, b) => a.getName -> b }
-    getLogger.info(s"Looking for datastore with props $dsProps")
+    getLogger.info(s"Looking for DataSore with props $dsProps")
     DataStoreFinder.getDataStore(dsProps)
   }
 
@@ -59,10 +59,10 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
 
     if (dsOpt.isDefined && dsOpt.get.nonEmpty) {
       val dsName = dsOpt.get
-      getLogger.debug(s"Attemping to validate params for datastore $dsName")
+      getLogger.debug(s"Attempting to validate params for DataSore $dsName")
       val dsParams = listDataStores().filter(_.getDisplayName == dsName).toSeq.head.getParametersInfo
       val required = dsParams.filter(_.isRequired)
-      getLogger.debug(s"Required props for datastore $dsName are ${required.mkString(", ")}")
+      getLogger.debug(s"Required props for DataSore $dsName are ${required.mkString(", ")}")
 
       val props = validationContext.getProperties.filterKeys(_ != DataStoreName.getName).map { case (a, b) => a.getName -> b }
       val propNames = props.keys
@@ -73,7 +73,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
           new ValidationResult.Builder()
             .input(mp)
             .valid(false)
-            .explanation(s"Required property $mp for datastore $dsName is missing")
+            .explanation(s"Required property $mp for DataSore $dsName is missing")
             .build()
       }
     } else {
@@ -81,7 +81,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
         new ValidationResult.Builder()
           .input(DataStoreName.getName)
           .valid(false)
-          .explanation(s"Must define available data store name first")
+          .explanation(s"Must define available DataSore name first")
           .build()
     }
     validationResults.asJavaCollection

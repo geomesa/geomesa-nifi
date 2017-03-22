@@ -51,7 +51,7 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
     DataStoreFinder.getDataStore(AdsNifiProps.map { p =>
       p.getName -> context.getProperty(p.getName).getValue
     }.filter(_._2 != null).map { case (p, v) =>
-      getLogger.trace(s"ds prop: $p => $v")
+      getLogger.trace(s"DataStore Properties: $p => $v")
       p -> {
         AdsProps.find(_.getName == p).head.getType match {
           case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
@@ -90,7 +90,7 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
         .input("Use either GeoMesa Configuration Service, or specify accumulo connection parameters.")
         .build)
 
-    // If using converters checkf or params relevant to that
+    // If using converters check for params relevant to that
     def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
     if (useConverter) {
       // make sure either a sft is named or written
