@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Copyright (c) 2015-2017 Commonwealth Computer Research, Inc.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Apache License, Version 2.0
+ * which accompanies this distribution and is available at
+ * http://www.opensource.org/licenses/apache2.0.php.
+ ***********************************************************************/
+
+
 package org.geomesa.nifi.geo
 
 import java.util
@@ -36,7 +45,7 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
     DataStoreFinder.getDataStore(KdsNifiProps.map { p =>
       p.getName -> context.getProperty(p.getName).getValue
     }.filter(_._2 != null).map { case (p, v) =>
-      getLogger.trace(s"ds prop: $p => $v")
+      getLogger.trace(s"DataStore Properties: $p => $v")
       p -> {
         KdsGTProps.find(_.getName == p).head.getType match {
           case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
@@ -51,7 +60,7 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
   override protected def getSft(context: ProcessContext): SimpleFeatureType = {
     val sft = super.getSft(context)
 
-    getLogger.info(s"Creating live sft for type ${sft.getTypeName}")
+    getLogger.info(s"Creating live SFT for type ${sft.getTypeName}")
     val zkPath = context.getProperty(KDSP.ZK_PATH.getName).toString
     KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
   }
@@ -60,7 +69,7 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 
     val validationFailures = new util.ArrayList[ValidationResult]()
 
-    // If using converters checkf or params relevant to that
+    // If using converters check for params relevant to that
     def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
     if (useConverter) {
       // make sure either a sft is named or written

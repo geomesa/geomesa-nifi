@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Copyright (c) 2015-2017 Commonwealth Computer Research, Inc.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Apache License, Version 2.0
+ * which accompanies this distribution and is available at
+ * http://www.opensource.org/licenses/apache2.0.php.
+ ***********************************************************************/
+
+
 package org.geomesa.nifi.geo
 
 import java.io.InputStream
@@ -23,9 +32,8 @@ import scala.collection.JavaConverters._
 abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
   type ProcessFn = (ProcessContext, ProcessSession, FlowFile) => Unit
-  type SFW = FeatureWriter[SimpleFeatureType, SimpleFeature]
-  type ToStream = (String,
-    InputStream) => Iterator[SimpleFeature] with AutoCloseable
+  type SFW       = FeatureWriter[SimpleFeatureType, SimpleFeature]
+  type ToStream  = (String, InputStream) => Iterator[SimpleFeature] with AutoCloseable
 
   protected var descriptors: java.util.List[PropertyDescriptor] = null
   protected var relationships: java.util.Set[Relationship] = null
@@ -179,9 +187,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           getLogger.info(s"Converting path $fullFlowFileName")
-          converter
-            .process(in, ec)
-            .foreach { sf =>
+          converter.process(in, ec).foreach { sf =>
               val toWrite = fw.next()
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
