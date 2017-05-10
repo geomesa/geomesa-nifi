@@ -164,7 +164,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
-              try{
+              try {
                 fw.write()
               } catch {
                 case e: Exception =>
@@ -192,7 +192,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
-              try{
+              try {
                 fw.write()
               } catch {
                 case e: Exception =>
