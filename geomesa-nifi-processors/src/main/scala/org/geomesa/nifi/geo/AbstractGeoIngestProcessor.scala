@@ -272,7 +272,7 @@ object AbstractGeoIngestProcessor {
       .description("Number for Nifi FlowFiles to Batch Together")
       .required(false)
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-      .defaultValue("25")
+      .defaultValue("5")
       .build
   }
 
