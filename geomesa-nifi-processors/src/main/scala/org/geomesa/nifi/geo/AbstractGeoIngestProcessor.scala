@@ -17,10 +17,10 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
-import org.geotools.filter.identity.FeatureIdImpl
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
+import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
+import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
@@ -46,7 +46,8 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       ConverterName,
       FeatureNameOverride,
       SftSpec,
-      ConverterSpec
+      ConverterSpec,
+      NifiBatchSize
     ).asJava
   }
 
@@ -97,34 +98,43 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     getLogger.info("Shut down GeoMesaIngest processor " + getIdentifier)
   }
 
-  override def onTrigger(context: ProcessContext, session: ProcessSession): Unit =
-    Option(session.get()).foreach { f =>
+  override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
+    import scala.collection.JavaConversions._
+    val batchSize: Int = context.getProperty(NifiBatchSize).asInteger()
+    val flowFiles = session.get(batchSize)
+    getLogger.info(s"Processing ${flowFiles.size()} files in batch")
+    val successes = new java.util.ArrayList[FlowFile]()
+    if (flowFiles != null && flowFiles.size > 0) {
+      val fw: SFW = createFeatureWriter(sft, context)
       try {
-        getLogger.info(s"Processing file ${fullName(f)}")
-        val fw: SFW = createFeatureWriter(sft, context)
-        try {
-          val fn: ProcessFn = mode match {
-            case IngestMode.Converter => converterIngester(fw, converter)
-            case IngestMode.AvroDataFile => avroIngester(fw)
-            case o: String =>
-              throw new IllegalStateException(s"Unknown ingest type: $o")
-          }
-          fn(context, session, f)
-        } finally {
-          fw.close()
+        val fn: ProcessFn = mode match {
+          case IngestMode.Converter => converterIngester(fw, converter)
+          case IngestMode.AvroDataFile => avroIngester(fw)
+          case o: String =>
+            throw new IllegalStateException(s"Unknown ingest type: $o")
         }
-        session.transfer(f, SuccessRelationship)
-      } catch {
-        case e: Exception =>
-          getLogger.error(s"Error: ${e.getMessage}", e)
-          session.transfer(f, FailureRelationship)
+        flowFiles.foreach { f =>
+          try {
+            getLogger.info(s"Processing file ${fullName(f)}")
+            fn(context, session, f)
+            successes.add(f)
+          } catch {
+            case e: Exception =>
+              getLogger.error(s"Error: ${e.getMessage}", e)
+              session.transfer(f, FailureRelationship)
+          }
+        }
+      } finally {
+        fw.close()
       }
+      successes.foreach(session.transfer(_, SuccessRelationship))
     }
+  }
 
   // Abstract
   protected def getDataStore(context: ProcessContext): DataStore
 
-  protected def fullName(f: FlowFile) = f.getAttribute("path") + f.getAttribute("filename")
+  protected def fullName(f: FlowFile): String = f.getAttribute("path") + f.getAttribute("filename")
 
   protected def getSft(context: ProcessContext): SimpleFeatureType = {
     val sftArg = Option(context.getProperty(SftName).getValue)
@@ -255,6 +265,14 @@ object AbstractGeoIngestProcessor {
       .required(true)
       .allowableValues(Array[String](IngestMode.Converter, IngestMode.AvroDataFile): _*)
       .defaultValue(IngestMode.Converter)
+      .build
+
+    val NifiBatchSize = new PropertyDescriptor.Builder()
+      .name("BatchSize")
+      .description("Number for Nifi FlowFiles to Batch Together")
+      .required(false)
+      .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+      .defaultValue("25")
       .build
   }
 

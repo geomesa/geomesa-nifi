@@ -27,7 +27,7 @@
         <scala.binary.version>2.11</scala.binary.version>
         <geomesa.version>1.3.2-SNAPSHOT</geomesa.version>
         <accumulo.version>1.7.2</accumulo.version>
-        <nifi.version>1.2.0</nifi.version>
+        <nifi.version>1.3.0</nifi.version>
         <hadoop.version>2.6.0</hadoop.version>
         <kafka.09.version>0.9.0.1</kafka.09.version>
     </properties>

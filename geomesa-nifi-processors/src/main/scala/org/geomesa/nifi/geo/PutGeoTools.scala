@@ -9,6 +9,8 @@
 
 package org.geomesa.nifi.geo
 
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
+import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
@@ -21,6 +23,8 @@ import scala.collection.JavaConverters._
 
 @Tags(Array("geomesa", "geo", "ingest", "geotools", "datastore", "features", "simple feature"))
 @CapabilityDescription("store avro files into geomesa")
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@SupportsBatching
 class PutGeoTools extends AbstractGeoIngestProcessor {
 
   //

@@ -11,7 +11,7 @@ package org.geomesa.nifi.geo
 
 import java.util
 
-import org.apache.nifi.annotation.behavior.InputRequirement
+import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
@@ -30,6 +30,7 @@ import scala.collection.JavaConverters._
 @Tags(Array("geomesa", "kafka", "streaming", "stream", "geo", "ingest", "convert", "geotools"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@SupportsBatching
 class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
