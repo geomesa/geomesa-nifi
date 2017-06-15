@@ -11,16 +11,15 @@ package org.geomesa.nifi.geo
 
 import java.util
 
-import org.apache.nifi.annotation.behavior.InputRequirement
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
+import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.geo.GeomesaConfigService
-import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.PutGeoMesa._
+import org.geotools.data.{DataStore, DataStoreFinder}
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreParams => ADSP}
 
 import scala.collection.JavaConversions._
@@ -29,6 +28,7 @@ import scala.collection.JavaConverters._
 @Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo", "geotools"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@SupportsBatching
 class PutGeoMesa extends AbstractGeoIngestProcessor {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
