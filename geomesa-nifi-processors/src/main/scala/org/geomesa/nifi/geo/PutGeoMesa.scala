@@ -81,15 +81,26 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
       ADSP.instanceIdParam,
       ADSP.zookeepersParam,
       ADSP.userParam,
-      ADSP.passwordParam,
       ADSP.tableNameParam).map(_.getName)
+    // TODO: the next line seems to have an empty list after filtering!
     val paramsSet = AdsNifiProps.filter(minimumParams.contains).forall(validationContext.getProperty(_).isSet)
 
-    // require either controller-service or all of {zoo,instance,user,pw,catalog}
+    // require either controller-service or all of {zoo,instance,user,catalog}
     if (!useControllerService && !paramsSet)
       validationFailures.add(new ValidationResult.Builder()
         .input("Use either GeoMesa Configuration Service, or specify accumulo connection parameters.")
         .build)
+
+    // Require precisely one of password/keytabPath
+    val securityParams = Seq(
+      ADSP.passwordParam,
+      ADSP.keytabPathParam).map(_.getName)
+    val numSecurityParams = AdsNifiProps.filter(securityParams contains).count(validationContext.getProperty(_).isSet)
+    // TODO: fix this
+    //if (!useControllerService && numSecurityParams != 1)
+    //  validationFailures.add(new ValidationResult.Builder()
+    //    .input("Precisely one of password and keytabPath must be set.")
+    //    .build)
 
     // If using converters check for params relevant to that
     def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
@@ -123,6 +134,7 @@ object PutGeoMesa {
     ADSP.zookeepersParam,
     ADSP.userParam,
     ADSP.passwordParam,
+    ADSP.keytabPathParam,
     ADSP.visibilityParam,
     ADSP.tableNameParam,
     ADSP.writeThreadsParam,
