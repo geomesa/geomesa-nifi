@@ -82,8 +82,7 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
       ADSP.zookeepersParam,
       ADSP.userParam,
       ADSP.tableNameParam).map(_.getName)
-    // TODO: the next line seems to have an empty list after filtering!
-    val paramsSet = AdsNifiProps.filter(minimumParams.contains).forall(validationContext.getProperty(_).isSet)
+    val paramsSet = AdsNifiProps.filter(minimumParams contains _.getName).forall(validationContext.getProperty(_).isSet)
 
     // require either controller-service or all of {zoo,instance,user,catalog}
     if (!useControllerService && !paramsSet)
@@ -95,12 +94,11 @@ class PutGeoMesa extends AbstractGeoIngestProcessor {
     val securityParams = Seq(
       ADSP.passwordParam,
       ADSP.keytabPathParam).map(_.getName)
-    val numSecurityParams = AdsNifiProps.filter(securityParams contains).count(validationContext.getProperty(_).isSet)
-    // TODO: fix this
-    //if (!useControllerService && numSecurityParams != 1)
-    //  validationFailures.add(new ValidationResult.Builder()
-    //    .input("Precisely one of password and keytabPath must be set.")
-    //    .build)
+    val numSecurityParams = AdsNifiProps.filter(securityParams contains _.getName).count(validationContext.getProperty(_).isSet)
+    if (!useControllerService && numSecurityParams != 1)
+      validationFailures.add(new ValidationResult.Builder()
+        .input("Precisely one of password and keytabPath must be set.")
+        .build)
 
     // If using converters check for params relevant to that
     def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
