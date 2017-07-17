@@ -9,7 +9,7 @@
 
 package org.geomesa.nifi.geo
 
-import java.io.InputStream
+import java.io.{IOException, InputStream}
 
 import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled}
 import org.apache.nifi.components.PropertyDescriptor
@@ -19,6 +19,7 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
+import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
 import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert
@@ -243,19 +244,19 @@ object AbstractGeoIngestProcessor {
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
-    // TODO create a custom validator
     val SftSpec = new PropertyDescriptor.Builder()
       .name("SftSpec")
       .description("Manually define a SimpleFeatureType (SFT) config spec")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+      .addValidator(SimpleFeatureTypeValidator())
       .required(false)
       .build
 
-    // TODO create a custom validator
     val ConverterSpec = new PropertyDescriptor.Builder()
       .name("ConverterSpec")
       .description("Manually define a converter using typesafe config")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+      .addValidator(ConverterValidator())
       .required(false)
       .build
 
