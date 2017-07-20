@@ -248,7 +248,7 @@ object AbstractGeoIngestProcessor {
       .name("SftSpec")
       .description("Manually define a SimpleFeatureType (SFT) config spec")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .addValidator(SimpleFeatureTypeValidator())
+      .addValidator(SimpleFeatureTypeValidator)
       .required(false)
       .build
 
@@ -256,7 +256,7 @@ object AbstractGeoIngestProcessor {
       .name("ConverterSpec")
       .description("Manually define a converter using typesafe config")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .addValidator(ConverterValidator())
+      .addValidator(ConverterValidator)
       .required(false)
       .build
 

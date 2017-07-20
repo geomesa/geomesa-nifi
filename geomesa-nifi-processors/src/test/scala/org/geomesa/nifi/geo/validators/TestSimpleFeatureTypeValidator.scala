@@ -21,22 +21,20 @@ class TestSimpleFeatureTypeValidator {
 
   @Test
   def validTests() : Unit = {
-    val v = SimpleFeatureTypeValidator()
     val c = mock(classOf[ValidationContext])
 
     validInputs.foreach{ s =>
-      val result = v.validate("testThing", s, c)
+      val result = SimpleFeatureTypeValidator.validate("testThing", s, c)
       assertTrue("\"" + s + "\" should have been valid" , result.isValid)
     }
   }
 
   @Test
   def invalidTests() : Unit = {
-    val v = SimpleFeatureTypeValidator()
     val c = mock(classOf[ValidationContext])
 
     invalidInputs.foreach{ s =>
-      val result = v.validate("testThing", s, c)
+      val result = SimpleFeatureTypeValidator.validate("testThing", s, c)
       assertFalse("\"" + s + "\" should have been invalid" , result.isValid)
     }
   }
