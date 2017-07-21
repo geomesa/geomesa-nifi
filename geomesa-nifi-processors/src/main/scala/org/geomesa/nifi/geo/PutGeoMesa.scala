@@ -20,7 +20,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.PutGeoMesa._
-import org.geotools.data.{DataStore, DataStoreFinder}
+import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreParams => ADSP}
 
 import scala.collection.JavaConversions._
@@ -161,6 +161,7 @@ object PutGeoMesa {
         case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
         case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
       })
+      .sensitive(p.metadata.getOrDefault(Parameter.IS_PASSWORD, java.lang.Boolean.FALSE).asInstanceOf[java.lang.Boolean] == java.lang.Boolean.TRUE)
       .build()
   } ++ List(GeoMesaConfigController)
 
