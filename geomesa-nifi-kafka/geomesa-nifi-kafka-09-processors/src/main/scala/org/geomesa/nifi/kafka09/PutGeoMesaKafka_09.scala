@@ -6,22 +6,22 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-
-package org.geomesa.nifi.geo
+package org.geomesa.nifi.kafka09
 
 import java.util
 
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
+import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import org.geomesa.nifi.geo.PutGeoMesaKafka._
-import org.locationtech.geomesa.kafka09.{KafkaDataStoreFactoryParams => KDSP}
+import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
+import org.geomesa.nifi.kafka09.PutGeoMesaKafka_09._
+import org.geotools.data.{DataStore, DataStoreFinder}
 import org.locationtech.geomesa.kafka.KafkaDataStoreHelper
+import org.locationtech.geomesa.kafka09.{KafkaDataStoreFactoryParams => KDSP}
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
@@ -31,7 +31,7 @@ import scala.collection.JavaConverters._
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
-class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
+class PutGeoMesaKafka_09 extends AbstractGeoIngestProcessor {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     super.init(context)
@@ -95,7 +95,7 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 
 }
 
-object PutGeoMesaKafka {
+object PutGeoMesaKafka_09 {
   val KdsGTProps = List(
     KDSP.KAFKA_BROKER_PARAM,
     KDSP.ZOOKEEPERS_PARAM,

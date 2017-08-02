@@ -7,7 +7,7 @@
  ***********************************************************************/
 
 
-package org.geomesa.nifi.geo;
+package org.geomesa.nifi.accumulo;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;

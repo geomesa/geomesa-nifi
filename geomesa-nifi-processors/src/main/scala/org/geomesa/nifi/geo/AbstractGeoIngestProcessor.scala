@@ -11,7 +11,7 @@ package org.geomesa.nifi.geo
 
 import java.io.{IOException, InputStream}
 
-import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled}
+import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnEnabled, OnRemoved, OnScheduled}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -73,6 +73,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     // Data store comes first...then getSft because
     // oddly enough sometimes you want to modify the sft
     dataStore = getDataStore(context)
+    require(dataStore != null, "Fatal error datastore is null")
     sft = getSft(context)
 
     val existingTypes = dataStore.getTypeNames

@@ -1,44 +1,69 @@
-GeoMesa NiFi Bundle
-===================
+# GeoMesa NiFi
 
-NiFi manages large batches and streams of files and data.
-GeoMesa-NiFi allows you to ingest data into GeoMesa straight from NiFi by
-leveraging custom processors.
+GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow framework. Currently, the following datastores are supported:
 
-Installation
-------------
+* Accumulo
+* HBase
+* Kafka 09
+* Kafka 10
 
-### Install the Processors
+# Building from Source
 
-Pick a reasonable directory on your machine, and run:
-
-```bash
-$ git clone https://github.com/geomesa/geomesa-nifi.git
-$ cd geomesa-nifi
-```
-
-To build, run
+To build, simply clone and build with maven:
 
 ```bash
-$ mvn clean install
+git clone git@github.com:geomesa/geomesa-nifi.git
+cd geomesa-nifi
+mvn clean install
 ```
 
-To install the GeoMesa processors you will need to copy the geomesa-nifi-nar file from
-``geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar`` into the ``lib/`` directory of your NiFi installation.
+# Installation
 
-### Install the SFTs and Converters
+To install the GeoMesa processors you will need to copy the appropriate nar file into the ``lib`` directory of your NiFi installation. There are
+three nar files that are built currently:
 
-The GeoMesa processors need access to the SFTs and converters in order to ingest data. There are two ways of providing these
-to the processors. We can enter the SFT specification string and converter specification string directly in a processor or we can 
-provide these to the processors by placing the SFTs and converters in a file named ``reference.conf`` and then putting that file on the
-classpath. This can be achieved by wrapping this file in a JAR and placing it in the ``lib/`` directory of the NiFi
-installation. For example you can wrap the ``reference.conf`` file in a JAR with this command.
+Nar                                | Datastores
+---                                | ---
+geomesa-nifi-nar-$VERSION.nar      | Accumulo, HBase
+geomesa-nifi-kafka-09-$VERSION.nar | Kafka 09
+geomesa-nifi-kafka-10-$VERSION.nar | Kafka 10
+
+For example, to install the Acccumulo or HBase nar after building from
+source:
 
 ```bash
-$ jar cvf data-formats.jar reference.conf
+cp geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar $NIFI_HOME/lib/
+````
+
+# SFTs and Converters
+
+GeoMesa NiFi nar files package a set of predefined SimpleFeatureType schema definitions and GeoMesa Converter definitions for popular data
+sources including:
+
+* Twitter
+* GDelt
+* OpenStreetMaps
+
+The full list of converters can be found in the GeoMesa source:
+
+https://github.com/locationtech/geomesa/tree/master/geomesa-tools/conf/sfts
+
+## Defining custom SFTs and Converters
+
+There are two ways of providing custom SFTs and converters:
+
+* Providing a ``reference.conf`` file via a jar in the ``lib`` dir
+* Providing the config definitions via the Processor configuration
+
+### SFTs and Converters on the Classpath
+
+To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it in a jar file:
+
+```bash
+jar cvf data-formats.jar reference.conf
 ```
 
-To validate everything is correct, run this command. Your results should be similar.
+You can verify your jar was building properly:
 
 ```bash
 $ jar tvf data-formats.jar
@@ -47,19 +72,26 @@ $ jar tvf data-formats.jar
  28473 Mon Mar 20 14:49:54 EDT 2017 reference.conf
 ```
 
-Processors
-----------
+### Definining SFTs and Converters via the UI
 
-This project contains four processors:
+The preferred way of providing SFTs and Converters is direction in the Processor configuration via the NiFi UI. Simply copy/paste your typesafe
+configuration into the ``SftSpec`` and ``ConverterSpec`` property 
+fields.
 
-* ``PutGeoMesa``       - Ingest data into GeoMesa Accumulo with a GeoMesa converter or from geoavro
-* ``PutGeoMesaKafka``  - Ingest data into GeoMesa Kafka with a GeoMesa converter or from geoavro
-* ``PutGeoTools``      - Ingest data into an arbitrary GeoTools Datastore based on parameters using a GeoMesa converter or avro
+# Processors
+
+This project provides the following processors:
+
+* ``PutGeoMesaAccumulo`` - Ingest data into GeoMesa Accumulo 
+* ``PutGeoMesaHBase`` - Ingest data into GeoMesa HBase
+* ``PutGeoMesaKafka_09`` - Ingest data into GeoMesa Kafka 0.9.x
+* ``PutGeoMesaKafka_10`` - Ingest data into GeoMesa Kafka 0.10.x
+* ``PutGeoTools`` - Ingest data into an arbitrary GeoTools Datastore based on parameters using a GeoMesa converter or avro
 * ``ConvertToGeoAvro`` - Use a GeoMesa converter to create geoavro
 
-### PutGeoMesa
+## PutGeoMesaAccumulo
 
-The ``PutGeoMesa`` processor is used for ingesting data into an Accumulo backed GeoMesa datastore. To use this processor
+The ``PutGeoMesaAccumulo`` processor is used for ingesting data into an Accumulo backed GeoMesa datastore. To use this processor
 first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
 given below:
 
@@ -82,7 +114,7 @@ generateStats                 | Enable stats table generation
 useMock                       | Use a mock instance of Accumulo
 GeoMesa Configuration Service | Configuration service to use. More about this feature below.
 
-#### GeoMesa Configuration Service
+### GeoMesa Configuration Service
 
 The ``PutGeoMesa`` plugin supports [NiFi Controller Services](http://docs.geoserver.org/stable/en/user/tutorials/cql/cql_tutorial.html)
 to manage common configurations. This allows the user to specify a single location to store the Accumulo connection parameters.
@@ -96,7 +128,26 @@ To use this feature, after configuring the service, select the appropriate Geome
 of the ``GeoMesa Configuration Service`` property. When a controller service is selected the ``zookeepers``, ``instanceId``,
 ``user``, ``password`` and ``tableName`` parameters are not required or used.
 
-### PutGeoMesaKafka
+## PutGeoMesaHBase
+
+The ``PutGeoMesaHBase`` processor is used for ingesting data into an HBase backed GeoMesa datastore. To use this processor
+first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
+given below:
+
+Property             | Description
+---                  | ---
+Mode                 | Converter or Avro file ingest mode switch.
+SftName              | Name of the SFT on the classpath to use. This property overrides SftSpec.
+ConverterName        | Name of converter on the classpath to use. This property overrides ConverterSpec.
+FeatureNameOverride  | Override the feature name on ingest.
+SftSpec              | SFT specification String. Overwritten by SftName if SftName is valid.
+ConverterSpec        | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
+bigtable.table.name  | The base Catalog table name for GeoMesa in HBase
+coprocessor.url      | A path to a jar file (likely the HBase distributed runtime, likely in HDFS) containing the GeoMesa HBase coprocessors
+security.enabled     | Enable HBase Security (Visibilities) 
+
+
+## PutGeoMesaKafka
 
 The ``PutGeoMesaKafka`` processor is used for ingesting data into a Kafka backed GeoMesa datastore. This processor only supports Kafka 0.9
 and newer. To use this processor first add it to the workspace and open the properties tab of its configuration. Descriptions of the 
@@ -120,7 +171,7 @@ isProducer                  | Flag to mark if this is a producer
 expirationPeriod            | Feature will be auto-dropped (expired) after this delay in milliseconds. Leave blank or use -1 to not drop features.
 cleanUpCache                | Run a thread to clean up the live feature cache if set to true. False by default. Use 'cleanUpCachePeriod' to configure the length of time between cache cleanups. Every second by default.
 
-### PutGeoTools
+## PutGeoTools
 
 The ``PutGeoTools`` processor is used for ingesting data into a GeoTools compatible datastore. To use this processor
 first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
@@ -138,7 +189,7 @@ DataStoreName               | Name of the datastore to ingest data into.
 
 This processor also accepts dynamic parameters that may be needed for the specific datastore that you're trying to access.
 
-### ConvertToGeoAvro
+## ConvertToGeoAvro
 
 The ``ConvertToGeoAvro`` processor leverages GeoMesa's internal converter framework to convert features into Avro and pass them
 along as a flow to be used by other processors in NiFi. To use this processor first add it to the workspace and open
@@ -154,13 +205,12 @@ SftSpec                     | SFT specification String. Overwritten by SftName i
 ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
 OutputFormat                | Only Avro is supported at this time.
 
-NiFi User Notes
----------------
+# NiFi User Notes
 
 NiFi allows you to ingest data into GeoMesa from every source GeoMesa supports and more. Some of these sources can be tricky to setup and configure. 
 Here we detail some of the problems we've encountered and how to resolve them. 
 
-### GetHDFS Processor with Azure Integration
+## GetHDFS Processor with Azure Integration
 
 It is possible to use the [Hadoop Azure Support](https://hadoop.apache.org/docs/current/hadoop-azure/index.html) to access Azure Blob Storage using HDFS.
 You can leverage this capability to have the GetHDFS processor pull data directly from the Azure Blob store. However, due to how the GetHDFS processor was 
