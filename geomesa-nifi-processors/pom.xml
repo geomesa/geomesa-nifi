@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.geomesa.nifi</groupId>
         <artifactId>geomesa-nifi</artifactId>
-        <version>1.3.2.0</version>
+        <version>1.3.3.0</version>
     </parent>
 
     <artifactId>geomesa-nifi-processors</artifactId>
