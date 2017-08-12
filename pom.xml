@@ -21,6 +21,7 @@
         <module>geomesa-nifi-processors</module>
         <module>geomesa-nifi-processors-accumulo</module>
         <module>geomesa-nifi-processors-hbase</module>
+        <module>geomesa-nifi-processors-fs</module>
         <module>geomesa-nifi-nar</module>
         <module>geomesa-nifi-kafka</module>
     </modules>
@@ -93,6 +94,11 @@
                 <artifactId>geomesa-nifi-processors-hbase</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-fs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
 
             <!-- GeoMesa -->
@@ -118,7 +124,22 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-fs-datastore_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-fs-tools_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
 
@@ -171,6 +192,11 @@
                         <artifactId>javax.servlet</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.1.6</version>
             </dependency>
 
             <!-- Scala -->

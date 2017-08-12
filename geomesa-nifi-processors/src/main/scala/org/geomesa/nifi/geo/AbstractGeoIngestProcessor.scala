@@ -76,11 +76,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     require(dataStore != null, "Fatal error datastore is null")
     sft = getSft(context)
 
-    val existingTypes = dataStore.getTypeNames
-    if (!existingTypes.contains(sft.getTypeName)) {
-      getLogger.info(s"Creating schema ${sft.getTypeName} ... existing types are ${existingTypes.mkString(", ")}")
-      dataStore.createSchema(sft)
-    }
+    createTypeIfNeeded(this.dataStore, this.sft)
 
     mode = context.getProperty(IngestModeProp).getValue
     if (mode == IngestMode.Converter) {
@@ -88,6 +84,14 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     }
 
     getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $mode")
+  }
+
+  protected def createTypeIfNeeded(ds: DataStore, sft: SimpleFeatureType) = {
+    val existingTypes = ds.getTypeNames
+    if (!existingTypes.contains(sft.getTypeName)) {
+      getLogger.info(s"Creating schema ${sft.getTypeName} ... existing types are ${existingTypes.mkString(", ")}")
+      ds.createSchema(sft)
+    }
   }
 
   @OnRemoved
