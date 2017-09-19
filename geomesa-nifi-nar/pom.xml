@@ -42,6 +42,11 @@
             <classifier>data</classifier>
             <version>${geomesa.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-aws</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
