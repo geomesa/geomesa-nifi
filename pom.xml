@@ -35,6 +35,8 @@
         <kafka.version>0.9.0.1</kafka.version>
         <nifi.version>1.3.0</nifi.version>
         <hadoop.version>2.7.4</hadoop.version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <scm>
