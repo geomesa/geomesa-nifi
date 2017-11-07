@@ -6,23 +6,21 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.kafka10
+package org.geomesa.nifi.kafka
 
 import java.util
 
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
+import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
-import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import PutGeoMesaKafka_10._
-import org.locationtech.geomesa.kafka10.{KafkaDataStoreFactoryParams => KDSP}
-import org.locationtech.geomesa.kafka.KafkaDataStoreHelper
-import org.opengis.feature.simple.SimpleFeatureType
+import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
+import org.geomesa.nifi.kafka.PutGeoMesaKafka._
+import org.geotools.data.{DataStore, DataStoreFinder}
+import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.{KafkaDataStoreFactoryParams => KDSP}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -31,7 +29,7 @@ import scala.collection.JavaConverters._
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
-class PutGeoMesaKafka_10 extends AbstractGeoIngestProcessor {
+class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     super.init(context)
@@ -43,7 +41,7 @@ class PutGeoMesaKafka_10 extends AbstractGeoIngestProcessor {
 
   // Abstract
   override protected def getDataStore(context: ProcessContext): DataStore = {
-    DataStoreFinder.getDataStore(KdsNifiProps.map { p =>
+    val props = KdsNifiProps.map { p =>
       p.getName -> context.getProperty(p.getName).getValue
     }.filter(_._2 != null).map { case (p, v) =>
       getLogger.trace(s"DataStore Properties: $p => $v")
@@ -55,15 +53,9 @@ class PutGeoMesaKafka_10 extends AbstractGeoIngestProcessor {
           case _                                                   => v
         }
       }
-    }.toMap.asJava)
-  }
+    } :+ (KDSP.ConsumerCount -> 0) // only producing
 
-  override protected def getSft(context: ProcessContext): SimpleFeatureType = {
-    val sft = super.getSft(context)
-
-    getLogger.info(s"Creating live SFT for type ${sft.getTypeName}")
-    val zkPath = context.getProperty(KDSP.ZK_PATH.getName).toString
-    KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
+    DataStoreFinder.getDataStore(props.toMap.asJava)
   }
 
   override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
@@ -95,20 +87,16 @@ class PutGeoMesaKafka_10 extends AbstractGeoIngestProcessor {
 
 }
 
-object PutGeoMesaKafka_10 {
+object PutGeoMesaKafka {
   val KdsGTProps = List(
-    KDSP.KAFKA_BROKER_PARAM,
-    KDSP.ZOOKEEPERS_PARAM,
-    KDSP.ZK_PATH,
-    KDSP.NAMESPACE_PARAM,
-    KDSP.TOPIC_PARTITIONS,
-    KDSP.TOPIC_REPLICATION,
-    KDSP.IS_PRODUCER_PARAM,
-    KDSP.EXPIRATION_PERIOD,
-    KDSP.CLEANUP_LIVE_CACHE
+    KDSP.Brokers,
+    KDSP.Zookeepers,
+    KDSP.ZkPath,
+    KDSP.TopicPartitions,
+    KDSP.TopicReplication
   )
 
-  val KdsNifiProps = KdsGTProps.map { p =>
+  val KdsNifiProps: List[PropertyDescriptor] = KdsGTProps.map { p =>
     new PropertyDescriptor.Builder()
       .name(p.getName)
       .description(p.getDescription.toString)

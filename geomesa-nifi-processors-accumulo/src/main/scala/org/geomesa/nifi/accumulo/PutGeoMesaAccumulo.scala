@@ -12,7 +12,6 @@ package org.geomesa.nifi.accumulo
 
 import java.util
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
@@ -81,10 +80,10 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
 
     useControllerService = validationContext.getProperty(GeoMesaConfigController).isSet
     val minimumParams = Seq(
-      ADSP.instanceIdParam,
-      ADSP.zookeepersParam,
-      ADSP.userParam,
-      ADSP.tableNameParam).map(_.getName)
+      ADSP.InstanceIdParam,
+      ADSP.ZookeepersParam,
+      ADSP.UserParam,
+      ADSP.CatalogParam).map(_.getName)
     val paramsSet = AdsNifiProps.filter(minimumParams contains _.getName).forall(validationContext.getProperty(_).isSet)
 
     // require either controller-service or all of {zoo,instance,user,catalog}
@@ -95,8 +94,8 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
 
     // Require precisely one of password/keytabPath
     val securityParams = Seq(
-      ADSP.passwordParam,
-      ADSP.keytabPathParam).map(_.getName)
+      ADSP.PasswordParam,
+      ADSP.KeytabPathParam).map(_.getName)
     val numSecurityParams = AdsNifiProps.filter(securityParams contains _.getName).count(validationContext.getProperty(_).isSet)
     if (!useControllerService && numSecurityParams != 1)
       validationFailures.add(new ValidationResult.Builder()
@@ -131,19 +130,19 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
 object PutGeoMesaAccumulo {
 
   val AdsProps = List(
-    ADSP.instanceIdParam,
-    ADSP.zookeepersParam,
-    ADSP.userParam,
-    ADSP.passwordParam,
-    ADSP.keytabPathParam,
-    ADSP.visibilityParam,
-    ADSP.tableNameParam,
-    ADSP.writeThreadsParam,
-    ADSP.generateStatsParam,
-    ADSP.mockParam
+    ADSP.InstanceIdParam,
+    ADSP.ZookeepersParam,
+    ADSP.UserParam,
+    ADSP.PasswordParam,
+    ADSP.KeytabPathParam,
+    ADSP.VisibilitiesParam,
+    ADSP.CatalogParam,
+    ADSP.WriteThreadsParam,
+    ADSP.GenerateStatsParam,
+    ADSP.MockParam
   )
 
-  val GeoMesaConfigController = new PropertyDescriptor.Builder()
+  val GeoMesaConfigController: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("GeoMesa Configuration Service")
     .description("The controller service used to connect to Accumulo")
     .required(false)
@@ -151,7 +150,7 @@ object PutGeoMesaAccumulo {
     .build
 
   // Don't require any properties because we are using the controller service...
-  val AdsNifiProps = AdsProps.map { p =>
+  val AdsNifiProps: List[PropertyDescriptor] = AdsProps.map { p =>
     new PropertyDescriptor.Builder()
       .name(p.getName)
       .description(p.getDescription.toString)

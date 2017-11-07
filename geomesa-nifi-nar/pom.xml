@@ -34,6 +34,10 @@
         </dependency>
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-nifi-processors-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
             <artifactId>geomesa-nifi-processors-fs</artifactId>
         </dependency>
         <dependency>
