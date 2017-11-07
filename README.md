@@ -16,6 +16,11 @@ cd geomesa-nifi
 mvn clean install
 ```
 
+## Dependency Versions
+
+The nar contains bundled dependencies. To change the dependency versions, modify the `<accumulo.version>`,
+`<hbase.version>` and/or `<kafka.version>` properties in the `pom.xml` before building.
+
 # Installation
 
 To install the GeoMesa processors you will need to copy the appropriate nar file into the ``lib`` directory of your
