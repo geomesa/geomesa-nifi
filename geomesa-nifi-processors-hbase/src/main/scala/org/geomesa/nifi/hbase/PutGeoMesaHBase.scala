@@ -116,8 +116,8 @@ object PutGeoMesaHBase {
 
   import org.locationtech.geomesa.hbase.data.HBaseDataStoreParams._
   val HBDSProps = List(
-    BigTableNameParam,
-    CoprocessorUrl,
+    HBaseCatalogParam,
+    CoprocessorUrlParam,
     EnableSecurityParam
   )
 

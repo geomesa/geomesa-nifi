@@ -4,8 +4,7 @@ GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow fram
 
 * Accumulo
 * HBase
-* Kafka 09
-* Kafka 10
+* Kafka
 
 # Building from Source
 
@@ -17,23 +16,30 @@ cd geomesa-nifi
 mvn clean install
 ```
 
+## Dependency Versions
+
+The nar contains bundled dependencies. To change the dependency versions, modify the `<accumulo.version>`,
+`<hbase.version>` and/or `<kafka.version>` properties in the `pom.xml` before building.
+
 # Installation
 
-To install the GeoMesa processors you will need to copy the appropriate nar file into the ``lib`` directory of your NiFi installation. There are
-three nar files that are built currently:
+To install the GeoMesa processors you will need to copy the appropriate nar file into the ``lib`` directory of your
+NiFi installation. There is currently a single nar file:
 
 Nar                                | Datastores
 ---                                | ---
-geomesa-nifi-nar-$VERSION.nar      | Accumulo, HBase
-geomesa-nifi-kafka-09-$VERSION.nar | Kafka 09
-geomesa-nifi-kafka-10-$VERSION.nar | Kafka 10
+geomesa-nifi-nar-$VERSION.nar      | Accumulo, HBase, Kafka
 
-For example, to install the Acccumulo or HBase nar after building from
-source:
+For example, to install the nar after building from source:
 
 ```bash
 cp geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar $NIFI_HOME/lib/
 ````
+
+## Upgrading
+
+In order to upgrade, replace the `geomesa-nifi-nar` files with the latest version. For version-specific changes,
+see [Upgrade Path](#upgrade-path).
 
 # SFTs and Converters
 
@@ -84,8 +90,7 @@ This project provides the following processors:
 
 * ``PutGeoMesaAccumulo`` - Ingest data into GeoMesa Accumulo 
 * ``PutGeoMesaHBase`` - Ingest data into GeoMesa HBase
-* ``PutGeoMesaKafka_09`` - Ingest data into GeoMesa Kafka 0.9.x
-* ``PutGeoMesaKafka_10`` - Ingest data into GeoMesa Kafka 0.10.x
+* ``PutGeoMesaKafka`` - Ingest data into GeoMesa Kafka
 * ``PutGeoTools`` - Ingest data into an arbitrary GeoTools Datastore based on parameters using a GeoMesa converter or avro
 * ``ConvertToGeoAvro`` - Use a GeoMesa converter to create geoavro
 
@@ -103,15 +108,15 @@ ConverterName                 | Name of converter on the classpath to use. This 
 FeatureNameOverride           | Override the feature name on ingest.
 SftSpec                       | SFT specification String. Overwritten by SftName if SftName is valid.
 ConverterSpec                 | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-instanceId                    | Accumulo instance ID
-zookeepers                    | Comma separated list of zookeeper IPs or hostnames
-user                          | Accumulo username with create-table and write permissions
-password                      | Accumulo password for given username
-visibilities                  | Accumulo scan visibilities
-tableName                     | Name of the table to write to. If using namespaces be sure to include that in the name.
-writeThreads                  | Number of threads to use when writing data to GeoMesa, has a linear effect on CPU and memory usage
-generateStats                 | Enable stats table generation
-useMock                       | Use a mock instance of Accumulo
+accumulo.instance.id          | Accumulo instance ID
+accumulo.zookeepers           | Comma separated list of zookeeper IPs or hostnames
+accumulo.user                 | Accumulo username with create-table and write permissions
+accumulo.password             | Accumulo password for given username
+accumulo.visibilities         | Accumulo scan visibilities
+accumulo.catalog              | Name of the table to write to. If using namespaces be sure to include that in the name.
+accumulo.write.threads        | Number of threads to use when writing data to GeoMesa, has a linear effect on CPU and memory usage
+geomesa.stats.enable          | Enable stats table generation
+accumulo.mock                 | Use a mock instance of Accumulo
 GeoMesa Configuration Service | Configuration service to use. More about this feature below.
 
 ### GeoMesa Configuration Service
@@ -125,8 +130,8 @@ To add the ``GeomesaConfigControllerService`` access the ``Contoller Settings`` 
 and click add. Edit the new service and enter the appropriate values for the properties listed.
 
 To use this feature, after configuring the service, select the appropriate Geomesa Config Controller Service from the drop down
-of the ``GeoMesa Configuration Service`` property. When a controller service is selected the ``zookeepers``, ``instanceId``,
-``user``, ``password`` and ``tableName`` parameters are not required or used.
+of the ``GeoMesa Configuration Service`` property. When a controller service is selected the ``accumulo.zookeepers``,
+``accumulo.instance.id``, ``accumulo.user``, ``accumulo.password`` and ``accumulo.catalog`` parameters are not required or used.
 
 ## PutGeoMesaHBase
 
@@ -134,17 +139,17 @@ The ``PutGeoMesaHBase`` processor is used for ingesting data into an HBase backe
 first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
 given below:
 
-Property             | Description
----                  | ---
-Mode                 | Converter or Avro file ingest mode switch.
-SftName              | Name of the SFT on the classpath to use. This property overrides SftSpec.
-ConverterName        | Name of converter on the classpath to use. This property overrides ConverterSpec.
-FeatureNameOverride  | Override the feature name on ingest.
-SftSpec              | SFT specification String. Overwritten by SftName if SftName is valid.
-ConverterSpec        | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-bigtable.table.name  | The base Catalog table name for GeoMesa in HBase
-coprocessor.url      | A path to a jar file (likely the HBase distributed runtime, likely in HDFS) containing the GeoMesa HBase coprocessors
-security.enabled     | Enable HBase Security (Visibilities) 
+Property               | Description
+---                    | ---
+Mode                   | Converter or Avro file ingest mode switch.
+SftName                | Name of the SFT on the classpath to use. This property overrides SftSpec.
+ConverterName          | Name of converter on the classpath to use. This property overrides ConverterSpec.
+FeatureNameOverride    | Override the feature name on ingest.
+SftSpec                | SFT specification String. Overwritten by SftName if SftName is valid.
+ConverterSpec          | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
+hbase.catalog          | The base Catalog table name for GeoMesa in HBase
+hbase.coprocessor.url  | A path to a jar file (likely the HBase distributed runtime, likely in HDFS) containing the GeoMesa HBase coprocessors
+hbase.security.enabled | Enable HBase Security (Visibilities)
 
 
 ## PutGeoMesaKafka
@@ -161,15 +166,11 @@ ConverterName               | Name of converter on the classpath to use. This pr
 FeatureNameOverride         | Override the feature name on ingest.
 SftSpec                     | SFT specification String. Overwritten by SftName if SftName is valid.
 ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-brokers                     | List of Kafka brokers
-zookeepers                  | Comma separated list of zookeeper IPs or hostnames
-zkpath                      | Zookeeper path to Kafka instance
-namespace                   | Kafka namespace to use
-partitions                  | Number of partitions to use in Kafka topics
-replication                 | Replication factor to use in Kafka topics
-isProducer                  | Flag to mark if this is a producer
-expirationPeriod            | Feature will be auto-dropped (expired) after this delay in milliseconds. Leave blank or use -1 to not drop features.
-cleanUpCache                | Run a thread to clean up the live feature cache if set to true. False by default. Use 'cleanUpCachePeriod' to configure the length of time between cache cleanups. Every second by default.
+kafka.brokers               | List of Kafka brokers
+kafka.zookeepers            | Comma separated list of zookeeper IPs or hostnames
+kafka.zk.path               | Zookeeper path to Kafka instance
+kafka.topic.partitions      | Number of partitions to use in Kafka topics
+kafka.topic.replication     | Replication factor to use in Kafka topics
 
 ## PutGeoTools
 
@@ -204,6 +205,21 @@ FeatureNameOverride         | Override the feature name on ingest.
 SftSpec                     | SFT specification String. Overwritten by SftName if SftName is valid.
 ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
 OutputFormat                | Only Avro is supported at this time.
+
+# Upgrade Path
+
+## 1.3.x to 1.4.x
+
+The `PutGeoMesaKafka_09` and `PutGeoMesaKafka_10` processors have been merged into a single `PutGeoMesaKafka`
+processor that will work with both Kafka 09 and 10.
+
+The configuration parameters for the following processors have changed:
+
+* ``PutGeoMesaAccumulo``
+* ``PutGeoMesaHBase``
+* ``PutGeoMesaKafka``
+
+See [Processors](#processors) for more details.
 
 # NiFi User Notes
 

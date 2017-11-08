@@ -23,7 +23,11 @@ import org.geotools.data.DataStore;
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @CapabilityDescription("Defines credentials for GeoMesa processors.")
 @SeeAlso(classNames = { "org.geomesa.nifi.geo.PutGeoMesa" })
@@ -33,28 +37,28 @@ public class GeomesaConfigControllerService
         implements GeomesaConfigService {
 
     public static final PropertyDescriptor ZOOKEEPER_PROP = new PropertyDescriptor.Builder()
-            .name(AccumuloDataStoreParams.zookeepersParam().getName())
+            .name(AccumuloDataStoreParams.ZookeepersParam().getName())
             .description("Zookeeper host(:port) pairs, comma separated")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INSTANCE_NAME_PROP = new PropertyDescriptor.Builder()
-            .name(AccumuloDataStoreParams.instanceIdParam().getName())
+            .name(AccumuloDataStoreParams.InstanceIdParam().getName())
             .description("Accumulo instance name")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor USER_PROP = new PropertyDescriptor.Builder()
-            .name(AccumuloDataStoreParams.userParam().getName())
+            .name(AccumuloDataStoreParams.UserParam().getName())
             .description("Accumulo user name")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PASSWORD_PROP = new PropertyDescriptor.Builder()
-            .name(AccumuloDataStoreParams.passwordParam().getName())
+            .name(AccumuloDataStoreParams.PasswordParam().getName())
             .description("Accumulo password")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -62,7 +66,7 @@ public class GeomesaConfigControllerService
             .build();
 
     public static final PropertyDescriptor TABLE_NAME_PROP = new PropertyDescriptor.Builder()
-            .name(AccumuloDataStoreParams.tableNameParam().getName())
+            .name(AccumuloDataStoreParams.CatalogParam().getName())
             .description("GeoMesa catalog table name")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -85,11 +89,11 @@ public class GeomesaConfigControllerService
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         final Map<Object, Object> paramMap = new HashMap<>();
-        paramMap.put(AccumuloDataStoreParams.zookeepersParam().getName(), context.getProperty(ZOOKEEPER_PROP).getValue());
-        paramMap.put(AccumuloDataStoreParams.instanceIdParam().getName(), context.getProperty(INSTANCE_NAME_PROP).getValue());
-        paramMap.put(AccumuloDataStoreParams.userParam().getName(), context.getProperty(USER_PROP).getValue());
-        paramMap.put(AccumuloDataStoreParams.passwordParam().getName(), context.getProperty(PASSWORD_PROP).getValue());
-        paramMap.put(AccumuloDataStoreParams.tableNameParam().getName(), context.getProperty(TABLE_NAME_PROP).getValue());
+        paramMap.put(AccumuloDataStoreParams.ZookeepersParam().getName(), context.getProperty(ZOOKEEPER_PROP).getValue());
+        paramMap.put(AccumuloDataStoreParams.InstanceIdParam().getName(), context.getProperty(INSTANCE_NAME_PROP).getValue());
+        paramMap.put(AccumuloDataStoreParams.UserParam().getName(), context.getProperty(USER_PROP).getValue());
+        paramMap.put(AccumuloDataStoreParams.PasswordParam().getName(), context.getProperty(PASSWORD_PROP).getValue());
+        paramMap.put(AccumuloDataStoreParams.CatalogParam().getName(), context.getProperty(TABLE_NAME_PROP).getValue());
 
         try {
             dataStore = org.geotools.data.DataStoreFinder.getDataStore(Collections.unmodifiableMap(paramMap));
