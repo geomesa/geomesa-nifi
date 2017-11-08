@@ -36,6 +36,11 @@ For example, to install the nar after building from source:
 cp geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar $NIFI_HOME/lib/
 ````
 
+## Upgrading
+
+In order to upgrade, replace the `geomesa-nifi-nar` files with the latest version. For version-specific changes,
+see [Upgrade Path](#upgrade-path).
+
 # SFTs and Converters
 
 GeoMesa NiFi nar files package a set of predefined SimpleFeatureType schema definitions and GeoMesa Converter definitions for popular data
@@ -200,6 +205,21 @@ FeatureNameOverride         | Override the feature name on ingest.
 SftSpec                     | SFT specification String. Overwritten by SftName if SftName is valid.
 ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
 OutputFormat                | Only Avro is supported at this time.
+
+# Upgrade Path
+
+## 1.3.x to 1.4.x
+
+The `PutGeoMesaKafka_09` and `PutGeoMesaKafka_10` processors have been merged into a single `PutGeoMesaKafka`
+processor that will work with both Kafka 09 and 10.
+
+The configuration parameters for the following processors have changed:
+
+* ``PutGeoMesaAccumulo``
+* ``PutGeoMesaHBase``
+* ``PutGeoMesaKafka``
+
+See [Processors](#processors) for more details.
 
 # NiFi User Notes
 
