@@ -13,9 +13,8 @@ import org.geomesa.nifi.fs.PutGeoMesaFileSystem._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
 import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
-import org.locationtech.geomesa.fs.FileSystemDataStoreParams._
-import org.locationtech.geomesa.fs.storage.common.PartitionScheme
-import org.locationtech.geomesa.fs.tools.ingest.{PartitionSchemeArgResolver, SchemeArgs}
+import org.locationtech.geomesa.fs.storage.common.conf.{PartitionSchemeArgResolver, SchemeArgs}
+import org.locationtech.geomesa.fs.storage.common.{FileSystemStorageFactory, PartitionScheme}
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
@@ -109,8 +108,8 @@ class PutGeoMesaFileSystem extends AbstractGeoIngestProcessor {
 
 object PutGeoMesaFileSystem {
   val FSDSProps = List(
-    EncodingParam,
-    PathParam
+    FileSystemStorageFactory.EncodingParam,
+    FileSystemStorageFactory.PathParam
   )
 
   val PartitionSchemeParam: PropertyDescriptor = new PropertyDescriptor.Builder()
