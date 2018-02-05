@@ -16,7 +16,7 @@ import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
 import org.geomesa.nifi.hbase.PutGeoMesaHBase._
 import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
-import org.locationtech.geomesa.hbase.data.HBaseDataStoreFactory
+import org.locationtech.geomesa.hbase.data.HBaseConnectionPool
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -64,7 +64,7 @@ class PutGeoMesaHBase extends AbstractGeoIngestProcessor {
     val hbaseConf = HBaseConfiguration.create()
     confFiles.foreach(hbaseConf.addResource)
 
-    HBaseDataStoreFactory.configureSecurity(hbaseConf)
+    HBaseConnectionPool.configureSecurity(hbaseConf)
     HBaseAdmin.checkHBaseAvailable(hbaseConf)
     ConnectionFactory.createConnection(hbaseConf)
   }
