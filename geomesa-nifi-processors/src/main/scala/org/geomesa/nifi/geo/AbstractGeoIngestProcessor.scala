@@ -240,7 +240,7 @@ object AbstractGeoIngestProcessor {
       .name("SftName")
       .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
       .required(false)
-      .allowableValues(SimpleFeatureTypeLoader.listTypeNames.toArray: _*)
+      .allowableValues(SimpleFeatureTypeLoader.listTypeNames.sorted.toArray: _*)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
@@ -248,7 +248,7 @@ object AbstractGeoIngestProcessor {
       .name("ConverterName")
       .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
       .required(false)
-      .allowableValues(ConverterConfigLoader.listConverterNames.toArray: _*)
+      .allowableValues(ConverterConfigLoader.listConverterNames.sorted.toArray: _*)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
