@@ -53,7 +53,7 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
           case _                                                   => v
         }
       }
-    } :+ (KDSP.ConsumerCount -> 0) // only producing
+    } :+ (KDSP.ConsumerCount.getName -> 0) // only producing
 
     DataStoreFinder.getDataStore(props.toMap.asJava)
   }
