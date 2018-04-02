@@ -32,8 +32,8 @@
         <geomesa.version>2.0.0-SNAPSHOT</geomesa.version>
         <accumulo.version>1.8.1</accumulo.version>
         <hbase.version>1.3.1</hbase.version>
-        <kafka.version>0.9.0.1</kafka.version>
-        <nifi.version>1.3.0</nifi.version>
+        <kafka.version>1.0.1</kafka.version>
+        <nifi.version>1.4.0</nifi.version>
         <hadoop.version>2.7.4</hadoop.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
