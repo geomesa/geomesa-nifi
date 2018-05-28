@@ -9,9 +9,11 @@
 
 package org.geomesa.nifi.geo
 
-import java.io.{IOException, InputStream}
+import java.io.InputStream
 
-import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnEnabled, OnRemoved, OnScheduled}
+import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool}
+import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
+import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -22,8 +24,7 @@ import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
 import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
 import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
-import org.locationtech.geomesa.convert
-import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
+import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -56,7 +57,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   override def getSupportedPropertyDescriptors = descriptors
 
   @volatile
-  protected var converter: convert.SimpleFeatureConverter[_] = null
+  protected var converterPool: ObjectPool[SimpleFeatureConverter[_]] = _
 
   @volatile
   protected var sft: SimpleFeatureType = null
@@ -79,11 +80,26 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     createTypeIfNeeded(this.dataStore, this.sft)
 
     mode = context.getProperty(IngestModeProp).getValue
-    if (mode == IngestMode.Converter) {
-      converter = getConverter(sft, context)
+    if(IngestMode.Converter == mode) {
+      initializeConverterPool(context)
+    }
+    getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $mode")
+  }
+
+  private def initializeConverterPool(context: ProcessContext) = {
+    val convertArg = Option(context.getProperty(ConverterName).getValue)
+      .orElse(Option(context.getProperty(ConverterSpec).getValue))
+      .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
+    val config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
+      case Left(e) => throw e
+      case Right(conf) => conf
     }
 
-    getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $mode")
+    converterPool = new GenericObjectPool[SimpleFeatureConverter[_]](
+      new BasePooledObjectFactory[SimpleFeatureConverter[_]] {
+        override def create(): SimpleFeatureConverter[_] = SimpleFeatureConverters.build(sft, config)
+        override def wrap(obj: SimpleFeatureConverter[_]): PooledObject[SimpleFeatureConverter[_]] = new DefaultPooledObject[SimpleFeatureConverter[_]](obj)
+      })
   }
 
   protected def createTypeIfNeeded(ds: DataStore, sft: SimpleFeatureType) = {
@@ -114,7 +130,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       val fw: SFW = createFeatureWriter(sft, context)
       try {
         val fn: ProcessFn = mode match {
-          case IngestMode.Converter => converterIngester(fw, converter)
+          case IngestMode.Converter => converterIngester(fw)
           case IngestMode.AvroDataFile => avroIngester(fw)
           case o: String =>
             throw new IllegalStateException(s"Unknown ingest type: $o")
@@ -153,16 +169,6 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     }
   }
 
-  protected def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
-    val convertArg = Option(context.getProperty(ConverterName).getValue)
-      .orElse(Option(context.getProperty(ConverterSpec).getValue))
-      .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
-    val config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
-      case Left(e) => throw e
-      case Right(conf) => conf
-    }
-    SimpleFeatureConverters.build(sft, config)
-  }
 
   protected def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
     dataStore.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
@@ -195,15 +201,17 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       getLogger.debug(s"Ingested avro file $fullFlowFileName")
     }
 
-  protected def converterIngester(fw: SFW, converter: convert.SimpleFeatureConverter[_]): ProcessFn =
+  protected def converterIngester(fw: SFW): ProcessFn =
     (context: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
       getLogger.debug("Running converter based ingest")
-      val fullFlowFileName = fullName(flowFile)
-      val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
-      session.read(flowFile, new InputStreamCallback {
-        override def process(in: InputStream): Unit = {
-          getLogger.info(s"Converting path $fullFlowFileName")
-          converter.process(in, ec).foreach { sf =>
+      val converter = converterPool.borrowObject()
+      try {
+        val fullFlowFileName = fullName(flowFile)
+        val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
+        session.read(flowFile, new InputStreamCallback {
+          override def process(in: InputStream): Unit = {
+            getLogger.info(s"Converting path $fullFlowFileName")
+            converter.process(in, ec).foreach { sf =>
               val toWrite = fw.next()
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
@@ -215,12 +223,14 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
                   getLogger.warn(s"ERROR writing feature to DataStore '${DataUtilities.encodeFeature(toWrite)}'", e)
               }
             }
-        }
-      })
-      getLogger.debug(s"Converted and ingested file $fullFlowFileName with ${ec.counter.getSuccess} successes and " +
-        s"${ec.counter.getFailure} failures")
+          }
+        })
+        getLogger.debug(s"Converted and ingested file $fullFlowFileName with ${ec.counter.getSuccess} successes and " +
+          s"${ec.counter.getFailure} failures")
+      } finally {
+        converterPool.returnObject(converter)
+      }
     }
-
 }
 
 object AbstractGeoIngestProcessor {
