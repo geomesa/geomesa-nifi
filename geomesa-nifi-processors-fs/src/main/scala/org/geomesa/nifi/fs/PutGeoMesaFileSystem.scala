@@ -21,8 +21,8 @@ import org.opengis.feature.simple.SimpleFeatureType
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-@Tags(Array("geomesa", "geo", "ingest", "convert", "hbase", "geotools"))
-@CapabilityDescription("Convert and ingest data files into GeoMesa HBase")
+@Tags(Array("geomesa", "geo", "ingest", "convert", "hdfs", "s3", "geotools"))
+@CapabilityDescription("Convert and ingest data files into a GeoMesa FileSystem Datastore")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
 class PutGeoMesaFileSystem extends AbstractGeoIngestProcessor {

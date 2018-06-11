@@ -5,6 +5,7 @@ GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow fram
 * Accumulo
 * HBase
 * Kafka
+* FileSystem (HDFS, S3)
 
 # Building from Source
 
