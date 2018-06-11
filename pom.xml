@@ -17,7 +17,7 @@
 
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi</artifactId>
-    <version>2.0.3-SNAPSHOT</version>
+    <version>2.0.3</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -87,7 +87,7 @@
         <connection>scm:git:git@github.com:geomesa/geomesa-nifi.git</connection>
         <developerConnection>scm:git:git@github.com:geomesa/geomesa-nifi.git</developerConnection>
         <url>https://github.com/geomesa/geomesa-nifi</url>
-        <tag>geomesa-nifi-2.0.0</tag>
+        <tag>geomesa-nifi-2.0.3</tag>
     </scm>
 
     <dependencyManagement>
