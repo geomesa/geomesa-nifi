@@ -20,8 +20,9 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.ConvertToGeoAvro._
-import org.locationtech.geomesa.convert
-import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver, SimpleFeatureConverters}
+import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver}
+import org.locationtech.geomesa.convert2
+import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.SimpleFeatureType
@@ -51,7 +52,7 @@ class ConvertToGeoAvro extends AbstractProcessor {
   override def getSupportedPropertyDescriptors = descriptors
 
   @volatile
-  private var converter: convert.SimpleFeatureConverter[_] = null
+  private var converter: convert2.SimpleFeatureConverter = null
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
@@ -68,7 +69,7 @@ class ConvertToGeoAvro extends AbstractProcessor {
     try {
       val newFlowFile = session.write(flowFile, new StreamCallback {
         override def process(in: InputStream, out: OutputStream): Unit = {
-          val dfw = new AvroDataFileWriter(out, converter.targetSFT)
+          val dfw = new AvroDataFileWriter(out, converter.targetSft)
           try {
             val fullFlowFileName = flowFile.getAttribute("path") + flowFile.getAttribute("filename")
             getLogger.info(s"Converting path $fullFlowFileName")
@@ -98,7 +99,7 @@ class ConvertToGeoAvro extends AbstractProcessor {
     }
   }
 
-  protected def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert.SimpleFeatureConverter[_] = {
+  protected def getConverter(sft: SimpleFeatureType, context: ProcessContext): convert2.SimpleFeatureConverter = {
     val convertArg = Option(context.getProperty(ConverterName).getValue)
       .orElse(Option(context.getProperty(ConverterSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
@@ -106,7 +107,7 @@ class ConvertToGeoAvro extends AbstractProcessor {
       case Left(e) => throw e
       case Right(conf) => conf
     }
-    SimpleFeatureConverters.build(sft, config)
+    SimpleFeatureConverter(sft, config)
   }
 }
 
