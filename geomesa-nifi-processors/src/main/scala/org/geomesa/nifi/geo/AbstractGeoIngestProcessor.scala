@@ -24,7 +24,8 @@ import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
 import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
 import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
 import org.geotools.filter.identity.FeatureIdImpl
-import org.locationtech.geomesa.convert._
+import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver}
+import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -57,7 +58,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   override def getSupportedPropertyDescriptors = descriptors
 
   @volatile
-  protected var converterPool: ObjectPool[SimpleFeatureConverter[_]] = _
+  protected var converterPool: ObjectPool[SimpleFeatureConverter] = _
 
   @volatile
   protected var sft: SimpleFeatureType = null
@@ -95,10 +96,10 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       case Right(conf) => conf
     }
 
-    converterPool = new GenericObjectPool[SimpleFeatureConverter[_]](
-      new BasePooledObjectFactory[SimpleFeatureConverter[_]] {
-        override def create(): SimpleFeatureConverter[_] = SimpleFeatureConverters.build(sft, config)
-        override def wrap(obj: SimpleFeatureConverter[_]): PooledObject[SimpleFeatureConverter[_]] = new DefaultPooledObject[SimpleFeatureConverter[_]](obj)
+    converterPool = new GenericObjectPool[SimpleFeatureConverter](
+      new BasePooledObjectFactory[SimpleFeatureConverter] {
+        override def create(): SimpleFeatureConverter = SimpleFeatureConverter(sft, config)
+        override def wrap(obj: SimpleFeatureConverter): PooledObject[SimpleFeatureConverter] = new DefaultPooledObject[SimpleFeatureConverter](obj)
       })
   }
 
