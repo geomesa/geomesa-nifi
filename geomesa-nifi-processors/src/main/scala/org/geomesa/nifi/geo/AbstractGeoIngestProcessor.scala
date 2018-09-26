@@ -22,7 +22,8 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
 import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
-import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
+import org.geotools.data.DataAccessFactory.Param
+import org.geotools.data._
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver}
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
@@ -38,8 +39,8 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   type SFW       = FeatureWriter[SimpleFeatureType, SimpleFeature]
   type ToStream  = (String, InputStream) => Iterator[SimpleFeature] with AutoCloseable
 
-  protected var descriptors: java.util.List[PropertyDescriptor] = null
-  protected var relationships: java.util.Set[Relationship] = null
+  protected var descriptors: java.util.List[PropertyDescriptor] = _
+  protected var relationships: java.util.Set[Relationship] = _
 
   protected override def init(context: ProcessorInitializationContext): Unit = {
     relationships = Set(SuccessRelationship, FailureRelationship).asJava
@@ -54,20 +55,20 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     ).asJava
   }
 
-  override def getRelationships = relationships
-  override def getSupportedPropertyDescriptors = descriptors
+  override def getRelationships: java.util.Set[Relationship] = relationships
+  override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = descriptors
 
   @volatile
   protected var converterPool: ObjectPool[SimpleFeatureConverter] = _
 
   @volatile
-  protected var sft: SimpleFeatureType = null
+  protected var sft: SimpleFeatureType = _
 
   @volatile
-  protected var mode: String = null
+  protected var mode: String = _
 
   @volatile
-  protected var dataStore: DataStore = null
+  protected var dataStore: DataStore = _
 
 
   @OnScheduled
@@ -75,19 +76,19 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     // Data store comes first...then getSft because
     // oddly enough sometimes you want to modify the sft
     dataStore = getDataStore(context)
-    require(dataStore != null, "Fatal error datastore is null")
+    require(dataStore != null, "Fatal error: datastore is null")
     sft = getSft(context)
 
     createTypeIfNeeded(this.dataStore, this.sft)
 
     mode = context.getProperty(IngestModeProp).getValue
-    if(IngestMode.Converter == mode) {
+    if (IngestMode.Converter == mode) {
       initializeConverterPool(context)
     }
     getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $mode")
   }
 
-  private def initializeConverterPool(context: ProcessContext) = {
+  private def initializeConverterPool(context: ProcessContext): Unit = {
     val convertArg = Option(context.getProperty(ConverterName).getValue)
       .orElse(Option(context.getProperty(ConverterSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
@@ -103,7 +104,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       })
   }
 
-  protected def createTypeIfNeeded(ds: DataStore, sft: SimpleFeatureType) = {
+  protected def createTypeIfNeeded(ds: DataStore, sft: SimpleFeatureType): Unit = {
     val existingTypes = ds.getTypeNames
     if (!existingTypes.contains(sft.getTypeName)) {
       getLogger.info(s"Creating schema ${sft.getTypeName} ... existing types are ${existingTypes.mkString(", ")}")
@@ -176,7 +177,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   }
 
   protected def avroIngester(fw: SFW): ProcessFn =
-    (context: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
+    (_: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
       val fullFlowFileName = fullName(flowFile)
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
@@ -203,7 +204,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     }
 
   protected def converterIngester(fw: SFW): ProcessFn =
-    (context: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
+    (_: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
       getLogger.debug("Running converter based ingest")
       val converter = converterPool.borrowObject()
       try {
@@ -236,8 +237,36 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
 object AbstractGeoIngestProcessor {
 
+  def property(param: Param): PropertyDescriptor = property(param, canBeRequired = true)
+
+  /**
+    * Creates a nifi property descriptor based on a geotools data store parameter
+    *
+    * @param param param
+    * @return
+    */
+  def property(param: Param, canBeRequired: Boolean): PropertyDescriptor = {
+    val validator = param.getType match {
+      case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
+      case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
+      case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
+      case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
+      case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
+    }
+    val sensitive =
+      Option(param.metadata.get(Parameter.IS_PASSWORD).asInstanceOf[java.lang.Boolean]).exists(_.booleanValue)
+    new PropertyDescriptor.Builder()
+        .name(param.getName)
+        .description(param.getDescription.toString)
+        .defaultValue(Option(param.getDefaultValue).map(_.toString).orNull)
+        .required(canBeRequired && param.required)
+        .addValidator(validator)
+        .sensitive(sensitive)
+        .build()
+  }
+
   object Properties {
-    val SftName = new PropertyDescriptor.Builder()
+    val SftName: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("SftName")
       .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
       .required(false)
@@ -245,7 +274,7 @@ object AbstractGeoIngestProcessor {
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
-    val ConverterName = new PropertyDescriptor.Builder()
+    val ConverterName: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("ConverterName")
       .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
       .required(false)
@@ -253,14 +282,14 @@ object AbstractGeoIngestProcessor {
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
-    val FeatureNameOverride = new PropertyDescriptor.Builder()
+    val FeatureNameOverride: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("FeatureNameOverride")
       .description("Override the Simple Feature Type name from the SFT Spec")
       .required(false)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
-    val SftSpec = new PropertyDescriptor.Builder()
+    val SftSpec: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("SftSpec")
       .description("Manually define a SimpleFeatureType (SFT) config spec")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -268,7 +297,7 @@ object AbstractGeoIngestProcessor {
       .required(false)
       .build
 
-    val ConverterSpec = new PropertyDescriptor.Builder()
+    val ConverterSpec: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("ConverterSpec")
       .description("Manually define a converter using typesafe config")
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -276,7 +305,7 @@ object AbstractGeoIngestProcessor {
       .required(false)
       .build
 
-    val IngestModeProp = new PropertyDescriptor.Builder()
+    val IngestModeProp: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("Mode")
       .description("Ingest mode")
       .required(true)
@@ -284,7 +313,7 @@ object AbstractGeoIngestProcessor {
       .defaultValue(IngestMode.Converter)
       .build
 
-    val NifiBatchSize = new PropertyDescriptor.Builder()
+    val NifiBatchSize: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("BatchSize")
       .description("Number for Nifi FlowFiles to Batch Together")
       .required(false)

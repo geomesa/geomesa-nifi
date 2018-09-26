@@ -13,9 +13,10 @@ import org.geomesa.nifi.fs.PutGeoMesaFileSystem._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
 import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
-import org.locationtech.geomesa.fs.FileSystemDataStoreFactory.FileSystemDataStoreParams
+import org.locationtech.geomesa.fs.FileSystemDataStoreFactory
 import org.locationtech.geomesa.fs.storage.common.PartitionScheme
 import org.locationtech.geomesa.fs.storage.common.conf.{PartitionSchemeArgResolver, SchemeArgs}
+import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
@@ -108,10 +109,8 @@ class PutGeoMesaFileSystem extends AbstractGeoIngestProcessor {
 }
 
 object PutGeoMesaFileSystem {
-  val FSDSProps = List(
-    FileSystemDataStoreParams.EncodingParam,
-    FileSystemDataStoreParams.PathParam
-  )
+
+  val FSDSProps: List[GeoMesaParam[_]] = FileSystemDataStoreFactory.ParameterInfo.toList
 
   val PartitionSchemeParam: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("PartitionScheme")
@@ -120,21 +119,6 @@ object PutGeoMesaFileSystem {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build()
 
-  // Don't require any properties because we are using the controller service...
-  val FSNifiProps: List[PropertyDescriptor] = FSDSProps.map { p =>
-    new PropertyDescriptor.Builder()
-      .name(p.getName)
-      .description(p.getDescription.toString)
-      .defaultValue(if (p.getDefaultValue != null) p.getDefaultValue.toString else null)
-      .required(p.required)
-      .addValidator(p.getType match {
-        case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
-        case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
-      })
-      .sensitive(p.metadata.getOrDefault(Parameter.IS_PASSWORD, java.lang.Boolean.FALSE).asInstanceOf[java.lang.Boolean] == java.lang.Boolean.TRUE)
-      .build()
-  } ++ List(PartitionSchemeParam)
+  val FSNifiProps: List[PropertyDescriptor] =
+    FSDSProps.map(AbstractGeoIngestProcessor.property) :+ PartitionSchemeParam
 }

@@ -17,12 +17,12 @@ import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
-import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.accumulo.PutGeoMesaAccumulo._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
-import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
-import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreParams => ADSP}
+import org.geotools.data.DataAccessFactory.Param
+import org.geotools.data.{DataStore, DataStoreFinder}
+import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams => ADSP}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -129,18 +129,7 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
 
 object PutGeoMesaAccumulo {
 
-  val AdsProps = List(
-    ADSP.InstanceIdParam,
-    ADSP.ZookeepersParam,
-    ADSP.UserParam,
-    ADSP.PasswordParam,
-    ADSP.KeytabPathParam,
-    ADSP.VisibilitiesParam,
-    ADSP.CatalogParam,
-    ADSP.WriteThreadsParam,
-    ADSP.GenerateStatsParam,
-    ADSP.MockParam
-  )
+  val AdsProps: List[Param] = AccumuloDataStoreFactory.ParameterInfo.toList :+ ADSP.MockParam
 
   val GeoMesaConfigController: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("GeoMesa Configuration Service")
@@ -150,20 +139,7 @@ object PutGeoMesaAccumulo {
     .build
 
   // Don't require any properties because we are using the controller service...
-  val AdsNifiProps: List[PropertyDescriptor] = AdsProps.map { p =>
-    new PropertyDescriptor.Builder()
-      .name(p.getName)
-      .description(p.getDescription.toString)
-      .defaultValue(if (p.getDefaultValue != null) p.getDefaultValue.toString else null)
-      .addValidator(p.getType match {
-        case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
-        case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
-      })
-      .sensitive(p.metadata.getOrDefault(Parameter.IS_PASSWORD, java.lang.Boolean.FALSE).asInstanceOf[java.lang.Boolean] == java.lang.Boolean.TRUE)
-      .build()
-  } ++ List(GeoMesaConfigController)
+  val AdsNifiProps: List[PropertyDescriptor] =
+    AdsProps.map(AbstractGeoIngestProcessor.property(_, canBeRequired = false)) :+ GeoMesaConfigController
 
 }
