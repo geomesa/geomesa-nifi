@@ -15,7 +15,7 @@ import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.DataStoreFinder
+import org.geotools.data.{DataStore, DataStoreFactorySpi, DataStoreFinder}
 import org.geomesa.nifi.geo.PutGeoTools._
 
 import scala.collection.JavaConversions._
@@ -40,7 +40,8 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
       .expressionLanguageSupported(false)
       .build()
 
-  def sensitiveProps() = listDataStores().map(_.getParametersInfo.filter(_.isPassword).map(_.getName)).flatten
+  def sensitiveProps(): Iterator[String] =
+    listDataStores().flatMap(_.getParametersInfo.collect { case i if i.isPassword => i.getName })
 
   override protected def init(context: ProcessorInitializationContext): Unit = {
     super.init(context)
@@ -49,7 +50,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
     getLogger.info(s"Relationships are ${relationships.mkString(", ")}")
   }
 
-  override protected def getDataStore(context: ProcessContext) = {
+  override protected def getDataStore(context: ProcessContext): DataStore = {
     val dsProps = context.getProperties.filter(_._1.getName != DataStoreName.getName).map { case (a, b) => a.getName -> b }
     getLogger.info(s"Looking for DataSore with props $dsProps")
     DataStoreFinder.getDataStore(dsProps)
@@ -96,12 +97,12 @@ class PutGeoTools extends AbstractGeoIngestProcessor {
 
 object PutGeoTools {
 
-  private def listDataStores() = DataStoreFinder.getAvailableDataStores
+  private def listDataStores(): Iterator[DataStoreFactorySpi] = DataStoreFinder.getAvailableDataStores
 
   //
   // Define Properties
   //
-  val DataStoreName = new PropertyDescriptor.Builder()
+  val DataStoreName: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("DataStoreName")
     .description("DataStoreName")
     .allowableValues(listDataStores().map(_.getDisplayName).toArray: _*)

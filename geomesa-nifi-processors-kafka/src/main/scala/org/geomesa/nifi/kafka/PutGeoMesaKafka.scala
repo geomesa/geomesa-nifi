@@ -15,11 +15,12 @@ import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
-import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
 import org.geomesa.nifi.kafka.PutGeoMesaKafka._
+import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.{DataStore, DataStoreFinder}
+import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.{KafkaDataStoreFactoryParams => KDSP}
 
 import scala.collection.JavaConversions._
@@ -88,28 +89,16 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 }
 
 object PutGeoMesaKafka {
+
+  // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
   val KdsGTProps = List(
     KDSP.Brokers,
     KDSP.Zookeepers,
     KDSP.ZkPath,
+    KDSP.ProducerConfig,
     KDSP.TopicPartitions,
     KDSP.TopicReplication
   )
 
-  val KdsNifiProps: List[PropertyDescriptor] = KdsGTProps.map { p =>
-    new PropertyDescriptor.Builder()
-      .name(p.getName)
-      .description(p.getDescription.toString)
-      .required(p.isRequired)
-      .defaultValue(if (p.getDefaultValue != null) p.getDefaultValue.toString else null)
-      .addValidator(p.getType match {
-        case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
-        case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
-      })
-      .build()
-  }
-
+  val KdsNifiProps: List[PropertyDescriptor] = KdsGTProps.map(AbstractGeoIngestProcessor.property)
 }

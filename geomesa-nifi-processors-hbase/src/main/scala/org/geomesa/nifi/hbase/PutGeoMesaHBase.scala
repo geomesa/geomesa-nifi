@@ -15,8 +15,9 @@ import org.apache.nifi.processor.{ProcessContext, ProcessorInitializationContext
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
 import org.geomesa.nifi.hbase.PutGeoMesaHBase._
+import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
-import org.locationtech.geomesa.hbase.data.HBaseConnectionPool
+import org.locationtech.geomesa.hbase.data.{HBaseConnectionPool, HBaseDataStoreFactory}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -114,12 +115,7 @@ class PutGeoMesaHBase extends AbstractGeoIngestProcessor {
 
 object PutGeoMesaHBase {
 
-  import org.locationtech.geomesa.hbase.data.HBaseDataStoreParams._
-  val HBDSProps = List(
-    HBaseCatalogParam,
-    CoprocessorUrlParam,
-    EnableSecurityParam
-  )
+  val HBDSProps: List[Param] = HBaseDataStoreFactory.ParameterInfo.toList
 
   val HBaseConfigFilesProp: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("HBaseConfigFiles")
@@ -128,21 +124,6 @@ object PutGeoMesaHBase {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build()
 
-  // Don't require any properties because we are using the controller service...
-  val HBaseNifiProps: List[PropertyDescriptor] = HBDSProps.map { p =>
-    new PropertyDescriptor.Builder()
-      .name(p.getName)
-      .description(p.getDescription.toString)
-      .defaultValue(if (p.getDefaultValue != null) p.getDefaultValue.toString else null)
-      .required(p.required)
-      .addValidator(p.getType match {
-        case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
-        case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
-        case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
-      })
-      .sensitive(p.metadata.getOrDefault(Parameter.IS_PASSWORD, java.lang.Boolean.FALSE).asInstanceOf[java.lang.Boolean] == java.lang.Boolean.TRUE)
-      .build()
-  } ++ List(HBaseConfigFilesProp)
+  val HBaseNifiProps: List[PropertyDescriptor] =
+    HBDSProps.map(AbstractGeoIngestProcessor.property) :+ HBaseConfigFilesProp
 }
