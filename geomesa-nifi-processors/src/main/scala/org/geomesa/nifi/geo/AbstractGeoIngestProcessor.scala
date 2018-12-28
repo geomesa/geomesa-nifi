@@ -29,6 +29,7 @@ import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, Conver
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConverters._
@@ -70,7 +71,6 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   @volatile
   protected var dataStore: DataStore = _
 
-
   @OnScheduled
   protected def initialize(context: ProcessContext): Unit = {
     // Data store comes first...then getSft because
@@ -101,6 +101,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       new BasePooledObjectFactory[SimpleFeatureConverter] {
         override def create(): SimpleFeatureConverter = SimpleFeatureConverter(sft, config)
         override def wrap(obj: SimpleFeatureConverter): PooledObject[SimpleFeatureConverter] = new DefaultPooledObject[SimpleFeatureConverter](obj)
+        override def destroyObject(p: PooledObject[SimpleFeatureConverter]): Unit = p.getObject.close()
       })
   }
 
@@ -114,12 +115,15 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
   @OnRemoved
   def cleanup(): Unit = {
+    if (converterPool != null) {
+      CloseWithLogging(converterPool)
+      converterPool = null
+    }
     if (dataStore != null) {
       dataStore.dispose()
       dataStore = null
     }
-
-    getLogger.info("Shut down GeoMesaIngest processor " + getIdentifier)
+    getLogger.info(s"Shut down ${getClass.getName} processor $getIdentifier")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
