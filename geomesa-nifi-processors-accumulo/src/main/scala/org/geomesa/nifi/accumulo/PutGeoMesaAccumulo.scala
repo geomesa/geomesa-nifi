@@ -18,8 +18,7 @@ import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.geomesa.nifi.accumulo.PutGeoMesaAccumulo._
-import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
+import org.geomesa.nifi.geo.AbstractGeoIngestProcessor
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.{DataStore, DataStoreFinder}
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams => ADSP}
@@ -50,20 +49,16 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
     context.getProperty(GeoMesaConfigController).asControllerService().asInstanceOf[GeomesaConfigService]
   }
 
-  protected def getDataStoreFromParams(context: ProcessContext): DataStore =
-    DataStoreFinder.getDataStore(AdsNifiProps.map { p =>
-      p.getName -> context.getProperty(p.getName).getValue
-    }.filter(_._2 != null).map { case (p, v) =>
-      getLogger.trace(s"DataStore Properties: $p => $v")
-      p -> {
-        AdsProps.find(_.getName == p).head.getType match {
-          case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
-          case x if x.isAssignableFrom(classOf[java.lang.Long])    => v.toLong
-          case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => v.toBoolean
-          case _                                                   => v
-        }
+  protected def getDataStoreFromParams(context: ProcessContext): DataStore = {
+    val props = AdsNifiProps.flatMap { p =>
+      val value = context.getProperty(p.getName).getValue
+      if (value == null) { Seq.empty } else {
+        Seq(p.getName -> value)
       }
-    }.toMap.asJava)
+    }
+    getLogger.trace(s"DataStore Properties: $props")
+    DataStoreFinder.getDataStore(props.toMap.asJava)
+  }
 
   // Abstract
   override protected def getDataStore(context: ProcessContext): DataStore = {
@@ -77,6 +72,8 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
   override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
 
     val validationFailures = new util.ArrayList[ValidationResult]()
+
+    validationFailures.addAll(super.customValidate(validationContext))
 
     useControllerService = validationContext.getProperty(GeoMesaConfigController).isSet
     val minimumParams = Seq(
@@ -102,29 +99,8 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
         .input("Precisely one of password and keytabPath must be set.")
         .build)
 
-    // If using converters check for params relevant to that
-    def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
-    if (useConverter) {
-      // make sure either a sft is named or written
-      val sftNameSet = validationContext.getProperty(SftName).isSet
-      val sftSpecSet = validationContext.getProperty(SftSpec).isSet
-      if (!sftNameSet && !sftSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a simple feature type by name or spec")
-          .build)
-
-      val convNameSet = validationContext.getProperty(ConverterName).isSet
-      val convSpecSet = validationContext.getProperty(ConverterSpec).isSet
-      if (!convNameSet && !convSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a converter by name or spec")
-          .build
-        )
-    }
-
     validationFailures
   }
-
 }
 
 object PutGeoMesaAccumulo {

@@ -1,22 +1,17 @@
 package org.geomesa.nifi.fs
 
-import java.util
-
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.apache.nifi.annotation.lifecycle.OnDisabled
-import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
+import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processor.{ProcessContext, ProcessorInitializationContext}
 import org.geomesa.nifi.fs.PutGeoMesaFileSystem._
-import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
-import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
+import org.geomesa.nifi.geo.AbstractGeoIngestProcessor
+import org.geotools.data.{DataStore, DataStoreFinder}
 import org.locationtech.geomesa.fs.FileSystemDataStoreFactory
 import org.locationtech.geomesa.fs.storage.common.PartitionScheme
 import org.locationtech.geomesa.fs.storage.common.conf.{PartitionSchemeArgResolver, SchemeArgs}
-import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
@@ -53,64 +48,18 @@ class PutGeoMesaFileSystem extends AbstractGeoIngestProcessor {
   }
 
   override protected def getDataStore(context: ProcessContext): DataStore = {
-    val dsProps = FSNifiProps.map { p =>
-      p.getName -> context.getProperty(p.getName).getValue
-    }.filter { case (p, v) => v != null && FSDSProps.exists(_.getName == p) }
-     .map { case (p, v) =>
-       getLogger.trace(s"DataStore Properties: $p => $v")
-       p -> {
-         FSDSProps.find(_.getName == p).map { opt =>
-          opt.getType match {
-            case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
-            case x if x.isAssignableFrom(classOf[java.lang.Long]) => v.toLong
-            case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => v.toBoolean
-            case _ => v
-          }
-        }.getOrElse({throw new IllegalArgumentException(s"Error: unable to determine type of property $p")})
+    val props = FSNifiProps.flatMap { p =>
+      val value = context.getProperty(p.getName).getValue
+      if (value == null) { Seq.empty } else {
+        Seq(p.getName -> value)
       }
-    }.toMap.asJava
-
-    DataStoreFinder.getDataStore(dsProps)
-  }
-
-
-  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
-
-    val validationFailures = new util.ArrayList[ValidationResult]()
-
-    // If using converters check for params relevant to that
-    def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
-    if (useConverter) {
-      // make sure either a sft is named or written
-      val sftNameSet = validationContext.getProperty(SftName).isSet
-      val sftSpecSet = validationContext.getProperty(SftSpec).isSet
-      if (!sftNameSet && !sftSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a simple feature type by name or spec")
-          .build)
-
-      val convNameSet = validationContext.getProperty(ConverterName).isSet
-      val convSpecSet = validationContext.getProperty(ConverterSpec).isSet
-      if (!convNameSet && !convSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a converter by name or spec")
-          .build
-        )
     }
-
-    validationFailures
+    getLogger.trace(s"DataStore Properties: $props")
+    DataStoreFinder.getDataStore(props.toMap.asJava)
   }
-
-  @OnDisabled
-  override def cleanup(): Unit = {
-    super.cleanup()
-  }
-
 }
 
 object PutGeoMesaFileSystem {
-
-  val FSDSProps: List[GeoMesaParam[_]] = FileSystemDataStoreFactory.ParameterInfo.toList
 
   val PartitionSchemeParam: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("PartitionScheme")
@@ -120,5 +69,5 @@ object PutGeoMesaFileSystem {
     .build()
 
   val FSNifiProps: List[PropertyDescriptor] =
-    FSDSProps.map(AbstractGeoIngestProcessor.property) :+ PartitionSchemeParam
+    FileSystemDataStoreFactory.ParameterInfo.toList.map(AbstractGeoIngestProcessor.property) :+ PartitionSchemeParam
 }

@@ -42,50 +42,15 @@ class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
 
   // Abstract
   override protected def getDataStore(context: ProcessContext): DataStore = {
-    val props = KdsNifiProps.map { p =>
-      p.getName -> context.getProperty(p.getName).getValue
-    }.filter(_._2 != null).map { case (p, v) =>
-      getLogger.trace(s"DataStore Properties: $p => $v")
-      p -> {
-        KdsGTProps.find(_.getName == p).head.getType match {
-          case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
-          case x if x.isAssignableFrom(classOf[java.lang.Long])    => v.toLong
-          case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => v.toBoolean
-          case _                                                   => v
-        }
+    val props = KdsNifiProps.flatMap { p =>
+      val value = context.getProperty(p.getName).getValue
+      if (value == null) { Seq.empty } else {
+        Seq(p.getName -> value)
       }
     } :+ (KDSP.ConsumerCount.getName -> 0) // only producing
-
+    getLogger.trace(s"DataStore Properties: $props")
     DataStoreFinder.getDataStore(props.toMap.asJava)
   }
-
-  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
-
-    val validationFailures = new util.ArrayList[ValidationResult]()
-
-    // If using converters check for params relevant to that
-    def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
-    if (useConverter) {
-      // make sure either a sft is named or written
-      val sftNameSet = validationContext.getProperty(SftName).isSet
-      val sftSpecSet = validationContext.getProperty(SftSpec).isSet
-      if (!sftNameSet && !sftSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a simple feature type by name or spec")
-          .build)
-
-      val convNameSet = validationContext.getProperty(ConverterName).isSet
-      val convSpecSet = validationContext.getProperty(ConverterSpec).isSet
-      if (!convNameSet && !convSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a converter by name or spec")
-          .build
-        )
-    }
-
-    validationFailures
-  }
-
 }
 
 object PutGeoMesaKafka {
