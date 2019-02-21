@@ -8,62 +8,32 @@
 
 package org.geomesa.nifi.kafka
 
-import java.util
-
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
-import org.apache.nifi.processor._
-import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
-import org.geomesa.nifi.kafka.PutGeoMesaKafka._
-import org.geotools.data.DataAccessFactory.Param
-import org.geotools.data.{DataStore, DataStoreFinder}
-import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory
-import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.{KafkaDataStoreFactoryParams => KDSP}
-
-import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
+import org.apache.nifi.processor.ProcessContext
+import org.geomesa.nifi.geo.AbstractGeoIngestProcessor
+import org.geotools.data.DataStore
+import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.KafkaDataStoreFactoryParams
 
 @Tags(Array("geomesa", "kafka", "streaming", "stream", "geo", "ingest", "convert", "geotools"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
-class PutGeoMesaKafka extends AbstractGeoIngestProcessor {
+class PutGeoMesaKafka extends AbstractGeoIngestProcessor(PutGeoMesaKafka.KafkaProperties) {
 
-  protected override def init(context: ProcessorInitializationContext): Unit = {
-    super.init(context)
-
-    descriptors = (getPropertyDescriptors ++ KdsNifiProps).asJava
-    getLogger.info(s"Props are ${descriptors.mkString(", ")}")
-    getLogger.info(s"Relationships are ${relationships.mkString(", ")}")
-  }
-
-  // Abstract
-  override protected def getDataStore(context: ProcessContext): DataStore = {
-    val props = KdsNifiProps.flatMap { p =>
-      val value = context.getProperty(p.getName).getValue
-      if (value == null) { Seq.empty } else {
-        Seq(p.getName -> value)
-      }
-    } :+ (KDSP.ConsumerCount.getName -> 0) // only producing
-    getLogger.trace(s"DataStore Properties: $props")
-    DataStoreFinder.getDataStore(props.toMap.asJava)
-  }
+  // set consumer count to zero to disable consuming
+  override protected def loadDataStore(context: ProcessContext, static: Map[String, _]): DataStore =
+    super.loadDataStore(context, static ++ Map(KafkaDataStoreFactoryParams.ConsumerCount.getName -> Int.box(0)))
 }
 
 object PutGeoMesaKafka {
 
-  // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
-  val KdsGTProps = List(
-    KDSP.Brokers,
-    KDSP.Zookeepers,
-    KDSP.ZkPath,
-    KDSP.ProducerConfig,
-    KDSP.TopicPartitions,
-    KDSP.TopicReplication
-  )
+  import KafkaDataStoreFactoryParams._
 
-  val KdsNifiProps: List[PropertyDescriptor] = KdsGTProps.map(AbstractGeoIngestProcessor.property)
+  // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
+  private val KafkaProperties = {
+    val params = Seq(Brokers, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication)
+    params.map(AbstractGeoIngestProcessor.property)
+  }
 }
