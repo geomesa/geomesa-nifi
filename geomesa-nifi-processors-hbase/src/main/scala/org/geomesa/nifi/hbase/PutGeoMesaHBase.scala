@@ -1,7 +1,5 @@
 package org.geomesa.nifi.hbase
 
-import java.util
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, HBaseAdmin}
@@ -9,15 +7,13 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.OnDisabled
-import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
+import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processor.{ProcessContext, ProcessorInitializationContext}
-import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
-import org.geomesa.nifi.geo.{AbstractGeoIngestProcessor, IngestMode}
+import org.geomesa.nifi.geo.AbstractGeoIngestProcessor
 import org.geomesa.nifi.hbase.PutGeoMesaHBase._
-import org.geotools.data.DataAccessFactory.Param
-import org.geotools.data.{DataStore, DataStoreFinder, Parameter}
-import org.locationtech.geomesa.hbase.data.{HBaseConnectionPool, HBaseDataStoreFactory}
+import org.geotools.data.{DataStore, DataStoreFinder}
+import org.locationtech.geomesa.hbase.data.{HBaseConnectionPool, HBaseDataStoreFactory, HBaseDataStoreParams}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -40,24 +36,14 @@ class PutGeoMesaHBase extends AbstractGeoIngestProcessor {
   override protected def getDataStore(context: ProcessContext): DataStore = {
     connection = getConnection(context)
 
-    val dsProps = Map("connection" -> connection) ++ HBaseNifiProps.map { p =>
-      p.getName -> context.getProperty(p.getName).getValue
-    }.filter { case (p, v) => v != null && HBDSProps.exists(_.getName == p) }
-     .map { case (p, v) =>
-       getLogger.trace(s"DataStore Properties: $p => $v")
-       p -> {
-        HBDSProps.find(_.getName == p).map { opt =>
-          opt.getType match {
-            case x if x.isAssignableFrom(classOf[java.lang.Integer]) => v.toInt
-            case x if x.isAssignableFrom(classOf[java.lang.Long]) => v.toLong
-            case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => v.toBoolean
-            case _ => v
-          }
-        }.getOrElse({throw new IllegalArgumentException(s"Error: unable to determine type of property $p")})
+    val props = HBaseNifiProps.flatMap { p =>
+      val value = context.getProperty(p.getName).getValue
+      if (value == null) { Seq.empty } else {
+        Seq(p.getName -> value)
       }
-    }.toMap.asJava
-
-    DataStoreFinder.getDataStore(dsProps)
+    } :+ (HBaseDataStoreParams.ConnectionParam.key -> connection)
+    getLogger.trace(s"DataStore Properties: $props")
+    DataStoreFinder.getDataStore(props.toMap.asJava)
   }
 
   def getConnection(context: ProcessContext): Connection = {
@@ -68,33 +54,6 @@ class PutGeoMesaHBase extends AbstractGeoIngestProcessor {
     HBaseConnectionPool.configureSecurity(hbaseConf)
     HBaseAdmin.checkHBaseAvailable(hbaseConf)
     ConnectionFactory.createConnection(hbaseConf)
-  }
-
-  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
-
-    val validationFailures = new util.ArrayList[ValidationResult]()
-
-    // If using converters check for params relevant to that
-    def useConverter = validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter
-    if (useConverter) {
-      // make sure either a sft is named or written
-      val sftNameSet = validationContext.getProperty(SftName).isSet
-      val sftSpecSet = validationContext.getProperty(SftSpec).isSet
-      if (!sftNameSet && !sftSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a simple feature type by name or spec")
-          .build)
-
-      val convNameSet = validationContext.getProperty(ConverterName).isSet
-      val convSpecSet = validationContext.getProperty(ConverterSpec).isSet
-      if (!convNameSet && !convSpecSet)
-        validationFailures.add(new ValidationResult.Builder()
-          .input("Specify a converter by name or spec")
-          .build
-        )
-    }
-
-    validationFailures
   }
 
   @OnDisabled
@@ -110,12 +69,9 @@ class PutGeoMesaHBase extends AbstractGeoIngestProcessor {
       }
     }
   }
-
 }
 
 object PutGeoMesaHBase {
-
-  val HBDSProps: List[Param] = HBaseDataStoreFactory.ParameterInfo.toList
 
   val HBaseConfigFilesProp: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("HBaseConfigFiles")
@@ -125,5 +81,5 @@ object PutGeoMesaHBase {
     .build()
 
   val HBaseNifiProps: List[PropertyDescriptor] =
-    HBDSProps.map(AbstractGeoIngestProcessor.property) :+ HBaseConfigFilesProp
+    HBaseDataStoreFactory.ParameterInfo.toList.map(AbstractGeoIngestProcessor.property) :+ HBaseConfigFilesProp
 }

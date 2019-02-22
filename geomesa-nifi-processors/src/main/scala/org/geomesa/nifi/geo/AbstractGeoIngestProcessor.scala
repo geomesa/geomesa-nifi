@@ -10,11 +10,12 @@
 package org.geomesa.nifi.geo
 
 import java.io.InputStream
+import java.util
 
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
-import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled}
-import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnRemoved, OnScheduled}
+import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
@@ -114,6 +115,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   }
 
   @OnRemoved
+  @OnDisabled
   def cleanup(): Unit = {
     if (converterPool != null) {
       CloseWithLogging(converterPool)
@@ -124,6 +126,32 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       dataStore = null
     }
     getLogger.info(s"Shut down ${getClass.getName} processor $getIdentifier")
+  }
+
+  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
+
+    val validationFailures = new util.ArrayList[ValidationResult]()
+
+    // If using converters check for params relevant to that
+    if (validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter) {
+      // make sure either a sft is named or written
+      val sftNameSet = validationContext.getProperty(SftName).isSet
+      val sftSpecSet = validationContext.getProperty(SftSpec).isSet
+      if (!sftNameSet && !sftSpecSet)
+        validationFailures.add(new ValidationResult.Builder()
+            .input("Specify a simple feature type by name or spec")
+            .build)
+
+      val convNameSet = validationContext.getProperty(ConverterName).isSet
+      val convSpecSet = validationContext.getProperty(ConverterSpec).isSet
+      if (!convNameSet && !convSpecSet)
+        validationFailures.add(new ValidationResult.Builder()
+            .input("Specify a converter by name or spec")
+            .build
+        )
+    }
+
+    validationFailures
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
@@ -251,22 +279,28 @@ object AbstractGeoIngestProcessor {
     */
   def property(param: Param, canBeRequired: Boolean): PropertyDescriptor = {
     val validator = param.getType match {
-      case x if x.isAssignableFrom(classOf[java.lang.Integer]) => StandardValidators.INTEGER_VALIDATOR
-      case x if x.isAssignableFrom(classOf[java.lang.Long])    => StandardValidators.LONG_VALIDATOR
-      case x if x.isAssignableFrom(classOf[java.lang.Boolean]) => StandardValidators.BOOLEAN_VALIDATOR
-      case x if x.isAssignableFrom(classOf[java.lang.String])  => StandardValidators.NON_EMPTY_VALIDATOR
+      case x if classOf[java.lang.Integer].isAssignableFrom(x) => StandardValidators.INTEGER_VALIDATOR
+      case x if classOf[java.lang.Long].isAssignableFrom(x)    => StandardValidators.LONG_VALIDATOR
+      case x if classOf[java.lang.Boolean].isAssignableFrom(x) => StandardValidators.BOOLEAN_VALIDATOR
+      case x if classOf[java.lang.String].isAssignableFrom(x)  => StandardValidators.NON_EMPTY_VALIDATOR
       case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
     }
     val sensitive =
       Option(param.metadata.get(Parameter.IS_PASSWORD).asInstanceOf[java.lang.Boolean]).exists(_.booleanValue)
-    new PropertyDescriptor.Builder()
+
+    val builder = new PropertyDescriptor.Builder()
         .name(param.getName)
         .description(param.getDescription.toString)
         .defaultValue(Option(param.getDefaultValue).map(_.toString).orNull)
         .required(canBeRequired && param.required)
         .addValidator(validator)
         .sensitive(sensitive)
-        .build()
+
+    if (classOf[java.lang.Boolean].isAssignableFrom(param.getType)) {
+      builder.allowableValues("true", "false")
+    }
+
+    builder.build()
   }
 
   object Properties {
