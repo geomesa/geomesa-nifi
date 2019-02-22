@@ -11,7 +11,10 @@ package org.geomesa.nifi.geo
 
 import java.io.InputStream
 import java.util
+import java.util.Collections
 
+
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnRemoved, OnScheduled}
@@ -26,6 +29,7 @@ import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeVal
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data._
 import org.geotools.filter.identity.FeatureIdImpl
+import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver}
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
@@ -49,10 +53,11 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     descriptors = List(
       IngestModeProp,
       SftName,
-      ConverterName,
-      FeatureNameOverride,
       SftSpec,
+      FeatureNameOverride,
+      ConverterName,
       ConverterSpec,
+      ConverterErrorMode,
       NifiBatchSize
     ).asJava
   }
@@ -93,9 +98,13 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     val convertArg = Option(context.getProperty(ConverterName).getValue)
       .orElse(Option(context.getProperty(ConverterSpec).getValue))
       .getOrElse(throw new IllegalArgumentException(s"Must provide either ${ConverterName.getName} or ${ConverterSpec.getName} property"))
-    val config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
+    var config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
       case Left(e) => throw e
       case Right(conf) => conf
+    }
+    Option(context.getProperty(ConverterErrorMode).getValue).foreach { mode =>
+      val opts = ConfigValueFactory.fromMap(Collections.singletonMap("error-mode", mode))
+      config = ConfigFactory.empty().withValue("options", opts).withFallback(config)
     }
 
     converterPool = new GenericObjectPool[SimpleFeatureConverter](
@@ -204,9 +213,8 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   }
 
 
-  protected def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW = {
+  protected def createFeatureWriter(sft: SimpleFeatureType, context: ProcessContext): SFW =
     dataStore.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)
-  }
 
   protected def avroIngester(fw: SFW): ProcessFn =
     (_: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
@@ -312,27 +320,27 @@ object AbstractGeoIngestProcessor {
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
       .build
 
+    val SftSpec: PropertyDescriptor = new PropertyDescriptor.Builder()
+        .name("SftSpec")
+        .description("Manually define a SimpleFeatureType (SFT) config spec")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(SimpleFeatureTypeValidator)
+        .required(false)
+        .build
+
+    val FeatureNameOverride: PropertyDescriptor = new PropertyDescriptor.Builder()
+        .name("FeatureNameOverride")
+        .description("Override the Simple Feature Type name from the SFT Spec")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build
+
     val ConverterName: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("ConverterName")
       .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
       .required(false)
       .allowableValues(ConverterConfigLoader.listConverterNames.sorted.toArray: _*)
       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .build
-
-    val FeatureNameOverride: PropertyDescriptor = new PropertyDescriptor.Builder()
-      .name("FeatureNameOverride")
-      .description("Override the Simple Feature Type name from the SFT Spec")
-      .required(false)
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .build
-
-    val SftSpec: PropertyDescriptor = new PropertyDescriptor.Builder()
-      .name("SftSpec")
-      .description("Manually define a SimpleFeatureType (SFT) config spec")
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .addValidator(SimpleFeatureTypeValidator)
-      .required(false)
       .build
 
     val ConverterSpec: PropertyDescriptor = new PropertyDescriptor.Builder()
@@ -343,11 +351,18 @@ object AbstractGeoIngestProcessor {
       .required(false)
       .build
 
+    val ConverterErrorMode: PropertyDescriptor = new PropertyDescriptor.Builder()
+        .name("ConverterErrorMode")
+        .description("Override the converter error mode behavior")
+        .allowableValues(ErrorMode.SkipBadRecords.toString, ErrorMode.RaiseErrors.toString)
+        .required(false)
+        .build
+
     val IngestModeProp: PropertyDescriptor = new PropertyDescriptor.Builder()
       .name("Mode")
       .description("Ingest mode")
       .required(true)
-      .allowableValues(Array[String](IngestMode.Converter, IngestMode.AvroDataFile): _*)
+      .allowableValues(IngestMode.Converter, IngestMode.AvroDataFile)
       .defaultValue(IngestMode.Converter)
       .build
 
