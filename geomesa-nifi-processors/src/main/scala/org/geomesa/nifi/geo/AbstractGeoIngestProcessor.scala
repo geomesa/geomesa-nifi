@@ -126,7 +126,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     import scala.collection.JavaConversions._
     val batchSize: Int = context.getProperty(NifiBatchSize).asInteger()
     val flowFiles = session.get(batchSize)
-    getLogger.info(s"Processing ${flowFiles.size()} files in batch")
+    getLogger.debug(s"Processing ${flowFiles.size()} files in batch")
     val successes = new java.util.ArrayList[FlowFile]()
     if (flowFiles != null && flowFiles.size > 0) {
       val fw: SFW = createFeatureWriter(sft, context)
@@ -139,7 +139,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
         }
         flowFiles.foreach { f =>
           try {
-            getLogger.info(s"Processing file ${fullName(f)}")
+            getLogger.debug(s"Processing file ${fullName(f)}")
             fn(context, session, f)
             successes.add(f)
           } catch {
@@ -212,7 +212,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
         val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
         session.read(flowFile, new InputStreamCallback {
           override def process(in: InputStream): Unit = {
-            getLogger.info(s"Converting path $fullFlowFileName")
+            getLogger.debug(s"Converting path $fullFlowFileName")
             converter.process(in, ec).foreach { sf =>
               val toWrite = fw.next()
               toWrite.setAttributes(sf.getAttributes)
