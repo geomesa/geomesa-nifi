@@ -145,12 +145,12 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
     val flowFiles = session.get(context.getProperty(NifiBatchSize).asInteger())
-    logger.info(s"Processing ${flowFiles.size()} files in batch")
+    logger.debug(s"Processing ${flowFiles.size()} files in batch")
     if (flowFiles != null && flowFiles.size > 0) {
       WithClose(dataStore.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { fw =>
         flowFiles.asScala.foreach { f =>
           try {
-            logger.info(s"Processing file ${fullName(f)}")
+            logger.debug(s"Processing file ${fullName(f)}")
             mode match {
               case IngestMode.Converter => converterIngest(fw, session, f)
               case IngestMode.AvroDataFile => avroIngest(fw, session, f)
@@ -261,7 +261,7 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
       val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
-          logger.info(s"Converting path $fullFlowFileName")
+          logger.debug(s"Converting path $fullFlowFileName")
           converter.process(in, ec).foreach { sf =>
             try {
               FeatureUtils.copyToWriter(fw, sf)
