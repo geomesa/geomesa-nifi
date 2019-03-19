@@ -27,7 +27,7 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.FeatureWriterSimple
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
-import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
+import org.geomesa.nifi.geo.validators.{ConverterValidator, KnownNameOrExpressionValidator, SimpleFeatureTypeValidator}
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data._
 import org.locationtech.geomesa.convert.Modes.ErrorMode
@@ -387,8 +387,7 @@ object AbstractGeoIngestProcessor {
           .name("SftName")
           .required(false)
           .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
-          .allowableValues(SimpleFeatureTypeLoader.listTypeNames.sorted: _*)
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .addValidator(KnownNameOrExpressionValidator(SimpleFeatureTypeLoader.listTypeNames))
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
@@ -415,8 +414,7 @@ object AbstractGeoIngestProcessor {
           .name("ConverterName")
           .required(false)
           .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
-          .allowableValues(ConverterConfigLoader.listConverterNames.sorted: _*)
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .addValidator(KnownNameOrExpressionValidator(ConverterConfigLoader.listConverterNames))
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
