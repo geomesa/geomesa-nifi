@@ -8,9 +8,8 @@ import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.fs.PutGeoMesaFileSystem._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor
-import org.locationtech.geomesa.fs.FileSystemDataStoreFactory
-import org.locationtech.geomesa.fs.storage.common.PartitionScheme
-import org.locationtech.geomesa.fs.storage.common.conf.{PartitionSchemeArgResolver, SchemeArgs}
+import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory
+import org.locationtech.geomesa.fs.tools.utils.PartitionSchemeArgResolver
 import org.opengis.feature.simple.SimpleFeatureType
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "hdfs", "s3", "geotools"))
@@ -20,16 +19,17 @@ import org.opengis.feature.simple.SimpleFeatureType
 class PutGeoMesaFileSystem extends AbstractGeoIngestProcessor(PutGeoMesaFileSystem.FileSystemProperties) {
 
   override protected def loadSft(context: ProcessContext): SimpleFeatureType = {
+    import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
     val sft = super.loadSft(context)
 
     Option(context.getProperty(PartitionSchemeParam).getValue).foreach { arg =>
       logger.info(s"Adding partition scheme to ${sft.getTypeName}")
-      val scheme = PartitionSchemeArgResolver.getArg(SchemeArgs(arg, sft)) match {
+      val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
         case Left(e) => throw new IllegalArgumentException(e)
         case Right(s) => s
       }
-      PartitionScheme.addToSft(sft, scheme)
-      logger.info(s"Updated SFT with partition scheme: ${scheme.getName}")
+      sft.setScheme(scheme.name, scheme.options)
+      logger.info(s"Updated SFT with partition scheme: ${scheme.name}")
     }
 
     sft
