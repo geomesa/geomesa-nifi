@@ -22,35 +22,32 @@ import org.apache.nifi.processor.io.StreamCallback
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties.NifiBatchSize
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships.{FailureRelationship, SuccessRelationship}
 import org.geomesa.nifi.geo.ConvertToGeoAvro.{ConverterName, ConverterSpec, FeatureNameOverride, SftName, SftSpec}
-import org.geomesa.nifi.geo.IngestMode
 import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
-import org.geotools.data.Transaction
 import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver, EvaluationContext}
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert2
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypeLoader}
-import org.locationtech.geomesa.utils.io.WithClose
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
 
-@Tags(Array("reporting","graphite","metric"))
+@Tags(Array("reporting", "graphite", "metric"))
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Sends metrics to graphite")
+@CapabilityDescription("Sends latency metrics to graphite")
 @SupportsBatching
 class DropwizardLatencyMetrics extends AbstractProcessor {
-
-
   private var descriptors: Seq[PropertyDescriptor] = _
   private var relationships: Set[Relationship] = _
-  private var lastTimeSeen:Long = 0
-  private def lastTimeGauge = new CachedGauge[Long](30,TimeUnit.SECONDS) {
+  private var lastTimeSeen: Long = 0
+
+  private def lastTimeSeenGauge = new CachedGauge[Long](30, TimeUnit.SECONDS) {
     override def loadValue: Long = lastTimeSeen
   }
-  protected override def init(context:ProcessorInitializationContext): Unit ={
+
+  protected override def init(context: ProcessorInitializationContext): Unit = {
     descriptors = List(
       SftName,
       SftSpec,
@@ -65,7 +62,7 @@ class DropwizardLatencyMetrics extends AbstractProcessor {
       GraphiteHost,
       GraphitePort
     )
-    relationships = Set(SuccessRelationship,FailureRelationship)
+    relationships = Set(SuccessRelationship, FailureRelationship)
   }
 
   @volatile
@@ -84,57 +81,56 @@ class DropwizardLatencyMetrics extends AbstractProcessor {
   private var reporter: GraphiteReporter = _
 
   @OnScheduled
-  def initilize(context: ProcessContext): Unit ={
+  def initilize(context: ProcessContext): Unit = {
     val sft = getSft(context)
-    converter = getConverter(sft,context)
+    converter = getConverter(sft, context)
     fieldName = context.getProperty(FieldToExtract).getValue
-    if(!sft.getAttributeDescriptors.exists(_.getLocalName == fieldName)){
+    if (!sft.getAttributeDescriptors.exists(_.getLocalName == fieldName)) {
       throw new IllegalArgumentException(s"Unable to find field $fieldName in sft ${sft.getTypeName}")
     }
     metricName = context.getProperty(LatencyMetricsName).getValue
     metrics = getRegistry(context)
     // register the 'last time seen' gauge metric
-    val lastTime:String = s"${converter.targetSft.getTypeName}.$metricName.lastTime"
-    metrics.register(lastTime, lastTimeGauge)
-
+    val lastTime: String = s"${converter.targetSft.getTypeName}.$metricName.lastTime"
+    metrics.register(lastTime, lastTimeSeenGauge)
   }
 
-  protected def fullName(f:FlowFile):String = f.getAttribute("path") +f.getAttribute("filename")
+  protected def fullName(f: FlowFile): String = f.getAttribute("path") + f.getAttribute("filename")
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
     val flowFiles = session.get(context.getProperty(NifiBatchSize).asInteger())
     getLogger.debug(s"Processing ${flowFiles.size()} files in batch")
-    val metric =s"${converter.targetSft.getTypeName}.$metricName.latency"
+    val metric = s"${converter.targetSft.getTypeName}.$metricName.latency"
     val successes = new util.ArrayList[FlowFile]()
     if (flowFiles != null && flowFiles.size > 0) {
-        flowFiles.asScala.foreach { f =>
-          try {
-            getLogger.debug(s"Processing file ${fullName(f)}")
-            doWork(context,session,f,metric)
-            successes.add(f)
-          } catch {
-            case NonFatal(e) =>
-              getLogger.error(s"Error processing file ${fullName(f)}:", e)
-              session.transfer(f, FailureRelationship)
-          }
+      flowFiles.asScala.foreach { f =>
+        try {
+          getLogger.debug(s"Processing file ${fullName(f)}")
+          doWork(context, session, f, metric)
+          successes.add(f)
+        } catch {
+          case NonFatal(e) =>
+            getLogger.error(s"Error processing file ${fullName(f)}:", e)
+            session.transfer(f, FailureRelationship)
         }
+      }
     }
     successes.foreach(session.transfer(_, SuccessRelationship))
   }
 
-  private def doWork(context:ProcessContext, session: ProcessSession, flowFile: FlowFile, metric:String): Unit = {
+  private def doWork(context: ProcessContext, session: ProcessSession, flowFile: FlowFile, metric: String): Unit = {
     val newflowFile = session.write(flowFile, new StreamCallback {
       override def process(in: InputStream, out: OutputStream): Unit = {
         val fullflowfilename = fullName(flowFile)
         val ec = converter.createEvaluationContext(Map(EvaluationContext.InputFilePathKey -> fullflowfilename))
-        converter.process(in,ec).foreach {sf =>
+        converter.process(in, ec).foreach { sf =>
           lastTimeSeen = System.currentTimeMillis()
           val latency = lastTimeSeen - sf.getAttribute(fieldName).asInstanceOf[Date].getTime
-          if (latency>0){
-            if(getLogger.isDebugEnabled) getLogger.debug(s"$metric with value ${latency.toString}")
+          if (latency > 0) {
+            if (getLogger.isDebugEnabled) getLogger.debug(s"$metric with value ${latency.toString}")
             metrics.histogram(metric).update(latency)
-          }else{
-            if(getLogger.isDebugEnabled) getLogger.debug(s"$metric with value ${latency.toString} is negative for observation $sf")
+          } else {
+            if (getLogger.isDebugEnabled) getLogger.debug(s"$metric with value ${latency.toString} is negative for observation $sf")
           }
         }
       }
@@ -166,14 +162,14 @@ class DropwizardLatencyMetrics extends AbstractProcessor {
   def getRegistry(context: ProcessContext): MetricRegistry = {
     val grh = context.getProperty(GraphiteHost).getValue
     val grp = context.getProperty(GraphitePort).getValue.toInt
-    val graphite = new Graphite(new InetSocketAddress(grh,grp))
+    val graphite = new Graphite(new InetSocketAddress(grh, grp))
     val registry = new MetricRegistry
     reporter = GraphiteReporter.forRegistry(registry)
-        .prefixedWith(context.getProperty(MetricsPrefix).getValue)
-        .convertDurationsTo(TimeUnit.MILLISECONDS)
-        .convertRatesTo(TimeUnit.SECONDS)
-        .filter(MetricFilter.ALL)
-        .build(graphite)
+      .prefixedWith(context.getProperty(MetricsPrefix).getValue)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .filter(MetricFilter.ALL)
+      .build(graphite)
     reporter.start(10, TimeUnit.SECONDS)
     registry
   }
@@ -184,7 +180,7 @@ class DropwizardLatencyMetrics extends AbstractProcessor {
     if (metrics != null) {
       metrics = null
     }
-    if (reporter != null){
+    if (reporter != null) {
       reporter.stop()
       reporter = null
     }
@@ -257,12 +253,11 @@ object DropwizardLatencyMetrics {
       .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
       .defaultValue("5")
       .build()
-  //      MetricsPrefix,
 
   val MetricsPrefix: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("MetricsPrefix")
     .required(true)
-    .description("graphite metric prefix, (eg path.to.some.)")
+    .description("graphite metric prefix, (eg path.to.some)")
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build()
 
@@ -291,7 +286,7 @@ object DropwizardLatencyMetrics {
     new PropertyDescriptor.Builder()
       .name("GraphitePort")
       .required(true)
-      .description("Graphite Port ")
+      .description("Graphite Port")
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
       .defaultValue("2003")
       .build()
