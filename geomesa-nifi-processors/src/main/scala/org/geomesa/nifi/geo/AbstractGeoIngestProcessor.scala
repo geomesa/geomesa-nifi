@@ -31,7 +31,7 @@ import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeVal
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data._
 import org.locationtech.geomesa.convert.Modes.ErrorMode
-import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigLoader, ConverterConfigResolver}
+import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools._
@@ -151,11 +151,13 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
         flowFiles.asScala.foreach { f =>
           try {
             logger.debug(s"Processing file ${fullName(f)}")
-            mode match {
+            val counter = mode match {
               case IngestMode.Converter => converterIngest(fw, session, f)
               case IngestMode.AvroDataFile => avroIngest(fw, session, f)
               case _ => throw new IllegalStateException(s"Unknown ingest type: $mode")
             }
+            session.putAttribute(f, "geomesa.ingest.successes", counter.getSuccess.toString)
+            session.putAttribute(f, "geomesa.ingest.failures", counter.getFailure.toString)
             session.transfer(f, SuccessRelationship)
           } catch {
             case NonFatal(e) =>
@@ -224,9 +226,10 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
     * @param session nifi session
     * @param flowFile flow file to ingest
     */
-  private def avroIngest(fw: FeatureWriterSimple, session: ProcessSession, flowFile: FlowFile): Unit = {
+  private def avroIngest(fw: FeatureWriterSimple, session: ProcessSession, flowFile: FlowFile): Counter = {
     logger.debug("Running avro-based ingest")
     val fullFlowFileName = fullName(flowFile)
+    val counter = new DefaultCounter
     session.read(flowFile, new InputStreamCallback {
       override def process(in: InputStream): Unit = {
         WithClose(new AvroDataFileReader(in)) { reader =>
@@ -235,8 +238,10 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
             try {
               FeatureUtils.copyToWriter(fw, sf)
               fw.write()
+              counter.incSuccess(1)
             } catch {
               case NonFatal(e) =>
+                counter.incFailure(1)
                 logger.warn(s"ERROR writing feature to DataStore '${DataUtilities.encodeFeature(sf)}'", e)
             }
           }
@@ -244,6 +249,7 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
       }
     })
     logger.debug(s"Ingested avro file $fullFlowFileName")
+    counter
   }
 
   /**
@@ -253,12 +259,12 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
     * @param session nifi session
     * @param flowFile flow file to ingest
     */
-  private def converterIngest(fw: FeatureWriterSimple, session: ProcessSession, flowFile: FlowFile): Unit = {
+  private def converterIngest(fw: FeatureWriterSimple, session: ProcessSession, flowFile: FlowFile): Counter = {
     logger.debug("Running converter-based ingest")
     val converter = converterPool.borrowObject()
+    val fullFlowFileName = fullName(flowFile)
+    val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
     try {
-      val fullFlowFileName = fullName(flowFile)
-      val ec = converter.createEvaluationContext(Map("inputFilePath" -> fullFlowFileName))
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           logger.debug(s"Converting path $fullFlowFileName")
@@ -280,6 +286,7 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
     } finally {
       converterPool.returnObject(converter)
     }
+    ec.counter
   }
 
   /**
