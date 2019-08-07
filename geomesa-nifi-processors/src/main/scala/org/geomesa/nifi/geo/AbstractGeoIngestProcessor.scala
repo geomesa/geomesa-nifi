@@ -10,7 +10,6 @@
 package org.geomesa.nifi.geo
 
 import java.io.InputStream
-import java.util
 import java.util.Collections
 
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
@@ -127,7 +126,7 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
   }
 
   override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
-    val result = new util.ArrayList[ValidationResult]()
+    val result = new java.util.ArrayList[ValidationResult]()
 
     // If using converters check for params relevant to that
     if (validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter) {
