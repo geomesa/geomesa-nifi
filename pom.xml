@@ -65,7 +65,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>2.3.0</geomesa.version>
+        <geomesa.version>2.4.0-SNAPSHOT</geomesa.version>
         <scala.version>2.11.7</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
         <accumulo.version>1.9.2</accumulo.version>
