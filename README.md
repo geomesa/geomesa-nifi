@@ -21,8 +21,8 @@ mvn clean install
 
 ## Dependency Versions
 
-The nar contains bundled dependencies. To change the dependency versions, modify the `<accumulo.version>`,
-`<hbase.version>` and/or `<kafka.version>` properties in the `pom.xml` before building.
+The nar contains bundled dependencies. To change the dependency versions, modify the version properties
+(`<hbase.version>`, etc) in the `pom.xml` before building.
 
 # Installation
 
@@ -39,49 +39,6 @@ cp geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar $NIFI_HOME
 
 In order to upgrade, replace the `geomesa-nifi-nar` files with the latest version. For version-specific changes,
 see [Upgrade Path](#upgrade-path).
-
-# SFTs and Converters
-
-GeoMesa NiFi nar files package a set of predefined SimpleFeatureType schema definitions and GeoMesa Converter definitions for popular data
-sources including:
-
-* Twitter
-* GDelt
-* OpenStreetMaps
-
-The full list of converters can be found in the GeoMesa source:
-
-https://github.com/locationtech/geomesa/tree/master/geomesa-tools/conf/sfts
-
-## Defining custom SFTs and Converters
-
-There are two ways of providing custom SFTs and converters:
-
-* Providing a ``reference.conf`` file via a jar in the ``lib`` dir
-* Providing the config definitions via the Processor configuration
-
-### SFTs and Converters on the Classpath
-
-To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it in a jar file:
-
-```bash
-jar cvf data-formats.jar reference.conf
-```
-
-You can verify your jar was building properly:
-
-```bash
-$ jar tvf data-formats.jar
-     0 Mon Mar 20 18:18:36 EDT 2017 META-INF/
-    69 Mon Mar 20 18:18:36 EDT 2017 META-INF/MANIFEST.MF
- 28473 Mon Mar 20 14:49:54 EDT 2017 reference.conf
-```
-
-### Definining SFTs and Converters via the UI
-
-The preferred way of providing SFTs and Converters is direction in the Processor configuration via the NiFi UI. Simply copy/paste your typesafe
-configuration into the ``SftSpec`` and ``ConverterSpec`` property 
-fields.
 
 # Processors
 
@@ -104,10 +61,10 @@ tab of its configuration. Common properties are as follows:
 Property                  | Description
 ---                       | ---
 Mode                      | Ingest arbitrary files with `Converter` mode, or GeoAvro with `Avro` mode
-SftName                   | The SimpleFeatureType to use, if the SimpleFeatureType is already on the classpath (see above). Takes precedence over `SftSpec`
+SftName                   | The SimpleFeatureType to use, if the SimpleFeatureType is already on the classpath (see below). Takes precedence over `SftSpec`
 SftSpec                   | Define a SimpleFeatureType via TypeSafe config or GeoTools specification string
 FeatureNameOverride       | Override the SimpleFeatureType name
-ConverterName             | The converter to use, if the converter is already on the classpath (see above). Takes precedence over `ConverterSpec`
+ConverterName             | The converter to use, if the converter is already on the classpath (see below). Takes precedence over `ConverterSpec`
 ConverterSpec             | Define a converter via TypeSafe config
 ConverterErrorMode        | Override the converter error mode (`skip-bad-records` or `raise-errors`)
 BatchSize                 | The number of flow files that will be processed in a single batch
@@ -125,6 +82,41 @@ immediately. In addition, any features that have been processed but not flushed 
 unexpectedly. To ensure data is properly flushed, shut down the processor before stopping NiFi.
 
 An alternative to feature writer caching is to use NiFi's built-in `MergeContent` processor to batch up small files.
+
+### Defining SimpleFeatureTypes and Converters
+
+The GeoMesa NiFi processors package a set of predefined SimpleFeatureType schema definitions and GeoMesa
+converter definitions for popular data sources such as Twitter, GDelt and OpenStreetMaps.
+
+The full list of provided sources can be found in the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/convert/premade/index.html).
+
+For custom data sources, there are two ways of providing custom SFTs and converters:
+
+#### Providing SimpleFeatureTypes and Converters on the Classpath
+
+To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it in a
+jar file:
+
+```bash
+jar cvf data-formats.jar reference.conf
+```
+
+You can verify your jar was building properly:
+
+```bash
+$ jar tvf data-formats.jar
+     0 Mon Mar 20 18:18:36 EDT 2017 META-INF/
+    69 Mon Mar 20 18:18:36 EDT 2017 META-INF/MANIFEST.MF
+ 28473 Mon Mar 20 14:49:54 EDT 2017 reference.conf
+```
+
+Add the jar file to `$NIFI_HOME/lib` to make it available on the classpath.
+
+##### Defining SimpleFeatureTypes and Converters via the UI
+
+You may also provide SimpleFeatureTypes and Converters directly in the Processor configuration via the NiFi UI.
+Simply paste your TypeSafe configuration into the ``SftSpec`` and ``ConverterSpec`` property fields.
 
 ## PutGeoMesaAccumulo
 
