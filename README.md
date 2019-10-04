@@ -1,11 +1,13 @@
 # GeoMesa NiFi
 
-GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow framework. Currently, the following datastores are supported:
+GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow framework. Currently, the following data stores are supported:
 
 * Accumulo
 * HBase
 * Kafka
 * FileSystem (HDFS, S3)
+* Redis
+* Arbitrary GeoTools data stores (e.g. Postgis)
 
 # Building from Source
 
@@ -19,17 +21,13 @@ mvn clean install
 
 ## Dependency Versions
 
-The nar contains bundled dependencies. To change the dependency versions, modify the `<accumulo.version>`,
-`<hbase.version>` and/or `<kafka.version>` properties in the `pom.xml` before building.
+The nar contains bundled dependencies. To change the dependency versions, modify the version properties
+(`<hbase.version>`, etc) in the `pom.xml` before building.
 
 # Installation
 
-To install the GeoMesa processors you will need to copy the appropriate nar file into the ``lib`` directory of your
-NiFi installation. There is currently a single nar file:
-
-Nar                                | Datastores
----                                | ---
-geomesa-nifi-nar-$VERSION.nar      | Accumulo, HBase, Kafka
+To install the GeoMesa processors you will need to copy the nar file into the ``lib`` directory of your
+NiFi installation. There is currently a single nar file, in the `geomesa-nifi-nar` module.
 
 For example, to install the nar after building from source:
 
@@ -42,29 +40,63 @@ cp geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar $NIFI_HOME
 In order to upgrade, replace the `geomesa-nifi-nar` files with the latest version. For version-specific changes,
 see [Upgrade Path](#upgrade-path).
 
-# SFTs and Converters
+# Processors
 
-GeoMesa NiFi nar files package a set of predefined SimpleFeatureType schema definitions and GeoMesa Converter definitions for popular data
-sources including:
+This project provides the following processors:
 
-* Twitter
-* GDelt
-* OpenStreetMaps
+* ``PutGeoMesaAccumulo`` - Ingest data into GeoMesa Accumulo 
+* ``PutGeoMesaHBase`` - Ingest data into GeoMesa HBase
+* ``PutGeoMesaKafka`` - Ingest data into GeoMesa Kafka
+* ``PutGeoMesaFileSystem`` - Ingest data into a distributed file system like HDFS, S3 or WASB
+* ``PutGeoMesaRedis`` - Ingest data into GeoMesa Redis
+* ``PutGeoTools`` - Ingest data into an arbitrary GeoTools Datastore
+* ``ConvertToGeoAvro`` - Use a GeoMesa converter to create GeoAvro
 
-The full list of converters can be found in the GeoMesa source:
+## Common Processor Configurations
 
-https://github.com/locationtech/geomesa/tree/master/geomesa-tools/conf/sfts
+All geomesa-nifi processors share some common configuration properties, that define how input data is converted
+into GeoTools SimpleFeatures for ingest. To use a processor, first add it to the workspace and open the properties
+tab of its configuration. Common properties are as follows:
 
-## Defining custom SFTs and Converters
+Property                  | Description
+---                       | ---
+Mode                      | Ingest arbitrary files with `Converter` mode, or GeoAvro with `Avro` mode
+SftName                   | The SimpleFeatureType to use, if the SimpleFeatureType is already on the classpath (see below). Takes precedence over `SftSpec`
+SftSpec                   | Define a SimpleFeatureType via TypeSafe config or GeoTools specification string
+FeatureNameOverride       | Override the SimpleFeatureType name
+ConverterName             | The converter to use, if the converter is already on the classpath (see below). Takes precedence over `ConverterSpec`
+ConverterSpec             | Define a converter via TypeSafe config
+ConverterErrorMode        | Override the converter error mode (`skip-bad-records` or `raise-errors`)
+BatchSize                 | The number of flow files that will be processed in a single batch
+FeatureWriterCaching      | Enable caching of feature writers between flow files, useful if flow files have a small number of records
+FeatureWriterCacheTimeout | How often feature writers will be flushed to the data store, if caching is enabled
 
-There are two ways of providing custom SFTs and converters:
+### Feature Writer Caching
 
-* Providing a ``reference.conf`` file via a jar in the ``lib`` dir
-* Providing the config definitions via the Processor configuration
+Feature writer caching can be used to improve the throughput of processing many small flow files. Instead of a new
+feature writer being created for each flow file, writers are cached and re-used between operations. If a writer is
+idle for the configured timeout, then it will be flushed to the data store and closed.
 
-### SFTs and Converters on the Classpath
+Note that if feature writer caching is enabled, features that are processed may not show up in the data store
+immediately. In addition, any features that have been processed but not flushed may be lost if NiFi shuts down
+unexpectedly. To ensure data is properly flushed, shut down the processor before stopping NiFi.
 
-To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it in a jar file:
+An alternative to feature writer caching is to use NiFi's built-in `MergeContent` processor to batch up small files.
+
+### Defining SimpleFeatureTypes and Converters
+
+The GeoMesa NiFi processors package a set of predefined SimpleFeatureType schema definitions and GeoMesa
+converter definitions for popular data sources such as Twitter, GDelt and OpenStreetMaps.
+
+The full list of provided sources can be found in the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/convert/premade/index.html).
+
+For custom data sources, there are two ways of providing custom SFTs and converters:
+
+#### Providing SimpleFeatureTypes and Converters on the Classpath
+
+To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it in a
+jar file:
 
 ```bash
 jar cvf data-formats.jar reference.conf
@@ -79,52 +111,25 @@ $ jar tvf data-formats.jar
  28473 Mon Mar 20 14:49:54 EDT 2017 reference.conf
 ```
 
-### Definining SFTs and Converters via the UI
+Add the jar file to `$NIFI_HOME/lib` to make it available on the classpath.
 
-The preferred way of providing SFTs and Converters is direction in the Processor configuration via the NiFi UI. Simply copy/paste your typesafe
-configuration into the ``SftSpec`` and ``ConverterSpec`` property 
-fields.
+##### Defining SimpleFeatureTypes and Converters via the UI
 
-# Processors
-
-This project provides the following processors:
-
-* ``PutGeoMesaAccumulo`` - Ingest data into GeoMesa Accumulo 
-* ``PutGeoMesaHBase`` - Ingest data into GeoMesa HBase
-* ``PutGeoMesaKafka`` - Ingest data into GeoMesa Kafka
-* ``PutGeoTools`` - Ingest data into an arbitrary GeoTools Datastore based on parameters using a GeoMesa converter or avro
-* ``ConvertToGeoAvro`` - Use a GeoMesa converter to create geoavro
+You may also provide SimpleFeatureTypes and Converters directly in the Processor configuration via the NiFi UI.
+Simply paste your TypeSafe configuration into the ``SftSpec`` and ``ConverterSpec`` property fields.
 
 ## PutGeoMesaAccumulo
 
-The ``PutGeoMesaAccumulo`` processor is used for ingesting data into an Accumulo backed GeoMesa datastore. To use this processor
-first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
-given below:
-
-Property                      | Description
----                           | ---
-Mode                          | Converter or Avro file ingest mode switch.
-SftName                       | Name of the SFT on the classpath to use. This property overrides SftSpec.
-ConverterName                 | Name of converter on the classpath to use. This property overrides ConverterSpec.
-FeatureNameOverride           | Override the feature name on ingest.
-SftSpec                       | SFT specification String. Overwritten by SftName if SftName is valid.
-ConverterSpec                 | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-accumulo.instance.id          | Accumulo instance ID
-accumulo.zookeepers           | Comma separated list of zookeeper IPs or hostnames
-accumulo.user                 | Accumulo username with create-table and write permissions
-accumulo.password             | Accumulo password for given username
-accumulo.visibilities         | Accumulo scan visibilities
-accumulo.catalog              | Name of the table to write to. If using namespaces be sure to include that in the name.
-accumulo.write.threads        | Number of threads to use when writing data to GeoMesa, has a linear effect on CPU and memory usage
-geomesa.stats.enable          | Enable stats table generation
-accumulo.mock                 | Use a mock instance of Accumulo
-GeoMesa Configuration Service | Configuration service to use. More about this feature below.
+The ``PutGeoMesaAccumulo`` processor is used for ingesting data into an Accumulo-backed GeoMesa data store. In
+addition to the common properties defined above, it requires properties for connecting to Accumulo. See the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/accumulo/usage.html#accumulo-data-store-parameters)
+for a description of the data store parameters.
 
 ### GeoMesa Configuration Service
 
-The ``PutGeoMesa`` plugin supports [NiFi Controller Services](http://docs.geoserver.org/stable/en/user/tutorials/cql/cql_tutorial.html)
+The ``PutGeoMesaAccumulo`` plugin supports [NiFi Controller Services](http://docs.geoserver.org/stable/en/user/tutorials/cql/cql_tutorial.html)
 to manage common configurations. This allows the user to specify a single location to store the Accumulo connection parameters.
-This allows you to add new PutGeoMesa processors without having to enter duplicate data.
+This allows you to add new processors without having to enter duplicate data.
 
 To add the ``GeomesaConfigControllerService`` access the ``Contoller Settings`` from NiFi global menu and navigate to the
 ``ControllerServices`` tab and click the ``+`` to add a new service. Search for the ``GeomesaConfigControllerService``
@@ -136,76 +141,49 @@ of the ``GeoMesa Configuration Service`` property. When a controller service is 
 
 ## PutGeoMesaHBase
 
-The ``PutGeoMesaHBase`` processor is used for ingesting data into an HBase backed GeoMesa datastore. To use this processor
-first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
-given below:
+The ``PutGeoMesaHBase`` processor is used for ingesting data into an HBase-backed GeoMesa data store. In
+addition to the common properties defined above, it requires properties for connecting to HBase. See the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/hbase/usage.html#hbase-data-store-parameters)
+for a description of the data store parameters.
 
-Property               | Description
----                    | ---
-Mode                   | Converter or Avro file ingest mode switch.
-SftName                | Name of the SFT on the classpath to use. This property overrides SftSpec.
-ConverterName          | Name of converter on the classpath to use. This property overrides ConverterSpec.
-FeatureNameOverride    | Override the feature name on ingest.
-SftSpec                | SFT specification String. Overwritten by SftName if SftName is valid.
-ConverterSpec          | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-hbase.catalog          | The base Catalog table name for GeoMesa in HBase
-hbase.coprocessor.url  | A path to a jar file (likely the HBase distributed runtime, likely in HDFS) containing the GeoMesa HBase coprocessors
-hbase.security.enabled | Enable HBase Security (Visibilities)
-
+Of note, the `hbase.config.paths` parameter is required for the NiFi processor, as generally you would not want
+to install your `hbase-site.xml` in your NiFi classpath. Instead, you can point to a location on the local file
+system, HDFS or S3.
 
 ## PutGeoMesaKafka
 
-The ``PutGeoMesaKafka`` processor is used for ingesting data into a Kafka backed GeoMesa datastore. This processor only supports Kafka 0.9
-and newer. To use this processor first add it to the workspace and open the properties tab of its configuration. Descriptions of the 
-properties are given below:
+The ``PutGeoMesaKafka`` processor is used for ingesting data into a Kafka-backed GeoMesa data store. In
+addition to the common properties defined above, it requires properties for connecting to Kafka. See the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/kafka/usage.html#kafka-data-store-parameters)
+for a description of the data store parameters.
 
-Property                    | Description
----                         | ---
-Mode                        | Converter or Avro file ingest mode switch.
-SftName                     | Name of the SFT on the classpath to use. This property overrides SftSpec.
-ConverterName               | Name of converter on the classpath to use. This property overrides ConverterSpec.
-FeatureNameOverride         | Override the feature name on ingest.
-SftSpec                     | SFT specification String. Overwritten by SftName if SftName is valid.
-ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-kafka.brokers               | List of Kafka brokers
-kafka.zookeepers            | Comma separated list of zookeeper IPs or hostnames
-kafka.zk.path               | Zookeeper path to Kafka instance
-kafka.topic.partitions      | Number of partitions to use in Kafka topics
-kafka.topic.replication     | Replication factor to use in Kafka topics
+## PutGeoMesaFileSystem
+
+The ``PutGeoMesaFileSystem`` processor is used for ingesting data into a file-system-backed GeoMesa data store. In
+addition to the common properties defined above, it requires properties defining the file system. See the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/filesystem/usage.html#filesystem-data-store-parameters)
+for a description of the data store parameters.
+
+## PutGeoMesaRedis
+
+The ``PutGeoMesaRedis`` processor is used for ingesting data into a Redis-backed GeoMesa data store. In
+addition to the common properties defined above, it requires properties for connecting to Redis. See the
+[GeoMesa documentation](https://www.geomesa.org/documentation/user/redis/usage.html#redis-data-store-parameters)
+for a description of the data store parameters.
 
 ## PutGeoTools
 
-The ``PutGeoTools`` processor is used for ingesting data into a GeoTools compatible datastore. To use this processor
-first add it to the workspace and open the properties tab of its configuration. Descriptions of the properties are
-given below:
+The ``PutGeoTools`` processor is used for ingesting data into a GeoTools compatible datastore. In
+addition to the common properties defined above, it requires properties for connecting to the data store.
 
-Property                    | Description
----                         | ---
-Mode                        | Converter or Avro file ingest mode switch.
-SftName                     | Name of the SFT on the classpath to use. This property overrides SftSpec.
-ConverterName               | Name of converter on the classpath to use. This property overrides ConverterSpec.
-FeatureNameOverride         | Override the feature name on ingest.
-SftSpec                     | SFT specification String. Overwritten by SftName if SftName is valid.
-ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-DataStoreName               | Name of the datastore to ingest data into.
-
-This processor also accepts dynamic parameters that may be needed for the specific datastore that you're trying to access.
+The `DataStoreName` property should match to the display name of the data store to use, for example `PostGIS`
+to use a PostGIS data store. Additional data store parameters for the specific data store you are using can be
+specified through NiFi dynamic properties.
 
 ## ConvertToGeoAvro
 
-The ``ConvertToGeoAvro`` processor leverages GeoMesa's internal converter framework to convert features into Avro and pass them
-along as a flow to be used by other processors in NiFi. To use this processor first add it to the workspace and open
-the properties tab of its configuration. Descriptions of the properties are given below:
-
-Property                    | Description
----                         | ---
-Mode                        | Converter or Avro file ingest mode switch.
-SftName                     | Name of the SFT on the classpath to use. This property override SftSpec.
-ConverterName               | Name of converter on the classpath to use. This property overrides ConverterSpec.
-FeatureNameOverride         | Override the feature name on ingest.
-SftSpec                     | SFT specification String. Overwritten by SftName if SftName is valid.
-ConverterSpec               | Converter specification string. Overwritten by ConverterName if ConverterName is valid.
-OutputFormat                | Only Avro is supported at this time.
+The ``ConvertToGeoAvro`` processor leverages GeoMesa's internal converter framework to convert features into Avro
+and pass them along as a flow to be used by other processors in NiFi.
 
 # Upgrade Path
 
