@@ -1,6 +1,7 @@
 # GeoMesa NiFi
 
-GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow framework. Currently, the following data stores are supported:
+GeoMesa-NiFi allows you to ingest data into GeoMesa using the NiFi dataflow framework. Currently, the following
+data stores are supported:
 
 * Accumulo
 * HBase
@@ -26,19 +27,34 @@ The nar contains bundled dependencies. To change the dependency versions, modify
 
 # Installation
 
-To install the GeoMesa processors you will need to copy the nar file into the ``lib`` directory of your
-NiFi installation. There is currently a single nar file, in the `geomesa-nifi-nar` module.
+To install the GeoMesa processors you will need to copy the nar files into the `lib` directory of your
+NiFi installation. There are currently three nar files:
 
-For example, to install the nar after building from source:
+* `geomesa-nifi-controllers-api-nar-$VERSION.nar`
+* `geomesa-nifi-controllers-nar-$VERSION.nar`
+* `geomesa-nifi-processors-nar-$VERSION.nar`
+
+For convenience, they are bundled into a `tar.gz` file, which is available through the
+[GitHub Releases](https://github.com/geomesa/geomesa-nifi/releases) page or under
+`geomesa-nifi-dist/target/geomesa-nifi-$VERSION-dist.tar.gz` after building from source.
+
+For example, to download and install the nars from GitHub:
 
 ```bash
-cp geomesa-nifi/geomesa-nifi-nar/target/geomesa-nifi-nar-$VERSION.nar $NIFI_HOME/lib/
+wget "https://github.com/geomesa/geomesa-nifi/releases/download/geomesa-nifi-$VERSION/geomesa-nifi-$VERSION-dist.tar.gz"
+tar -xf geomesa-nifi-$VERSION-dist.tar.gz --directory $NIFI_HOME/lib/
+````
+
+Or, to install the nars after building from source:
+
+```bash
+tar -xf geomesa-nifi-dist/target/geomesa-nifi-$VERSION-dist.tar.gz --directory $NIFI_HOME/lib/
 ````
 
 ## Upgrading
 
-In order to upgrade, replace the `geomesa-nifi-nar` files with the latest version. For version-specific changes,
-see [Upgrade Path](#upgrade-path).
+In order to upgrade, replace the nar files with the latest versions. For version-specific changes,
+see [Upgrade Guide](#upgrade-guide).
 
 # Processors
 
@@ -68,7 +84,7 @@ ConverterName             | The converter to use, if the converter is already on
 ConverterSpec             | Define a converter via TypeSafe config
 ConverterErrorMode        | Override the converter error mode (`skip-bad-records` or `raise-errors`)
 BatchSize                 | The number of flow files that will be processed in a single batch
-FeatureWriterCaching      | Enable caching of feature writers between flow files, useful if flow files have a small number of records
+FeatureWriterCaching      | Enable caching of feature writers between flow files, useful if flow files have a small number of records (see below)
 FeatureWriterCacheTimeout | How often feature writers will be flushed to the data store, if caching is enabled
 
 ### Feature Writer Caching
@@ -79,9 +95,9 @@ idle for the configured timeout, then it will be flushed to the data store and c
 
 Note that if feature writer caching is enabled, features that are processed may not show up in the data store
 immediately. In addition, any features that have been processed but not flushed may be lost if NiFi shuts down
-unexpectedly. To ensure data is properly flushed, shut down the processor before stopping NiFi.
+unexpectedly. To ensure data is properly flushed, stop the processor before shutting down NiFi.
 
-An alternative to feature writer caching is to use NiFi's built-in `MergeContent` processor to batch up small files.
+Alternatively, NiFi's built-in `MergeContent` processor can be used to batch up small files.
 
 ### Defining SimpleFeatureTypes and Converters
 
@@ -95,14 +111,14 @@ For custom data sources, there are two ways of providing custom SFTs and convert
 
 #### Providing SimpleFeatureTypes and Converters on the Classpath
 
-To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it in a
-jar file:
+To bundle configuration in a jar file simply place your config in a file named ``reference.conf`` and place it **at
+the root level** of a jar file:
 
 ```bash
 jar cvf data-formats.jar reference.conf
 ```
 
-You can verify your jar was building properly:
+You can verify your jar was built properly:
 
 ```bash
 $ jar tvf data-formats.jar
@@ -131,13 +147,13 @@ The ``PutGeoMesaAccumulo`` plugin supports [NiFi Controller Services](http://doc
 to manage common configurations. This allows the user to specify a single location to store the Accumulo connection parameters.
 This allows you to add new processors without having to enter duplicate data.
 
-To add the ``GeomesaConfigControllerService`` access the ``Contoller Settings`` from NiFi global menu and navigate to the
-``ControllerServices`` tab and click the ``+`` to add a new service. Search for the ``GeomesaConfigControllerService``
+To add the ``AccumuloDataStoreConfigControllerService`` access the ``Contoller Settings`` from NiFi global menu and navigate to the
+``ControllerServices`` tab and click the ``+`` to add a new service. Search for the ``AccumuloDataStoreConfigControllerService``
 and click add. Edit the new service and enter the appropriate values for the properties listed.
 
-To use this feature, after configuring the service, select the appropriate Geomesa Config Controller Service from the drop down
-of the ``GeoMesa Configuration Service`` property. When a controller service is selected the ``accumulo.zookeepers``,
-``accumulo.instance.id``, ``accumulo.user``, ``accumulo.password`` and ``accumulo.catalog`` parameters are not required or used.
+After configuring the service, select the appropriate service in the ``GeoMesa Configuration Service`` property
+of your processor. When a controller service is selected the ``accumulo.zookeepers``, ``accumulo.instance.id``,
+``accumulo.user``, ``accumulo.password`` and ``accumulo.catalog`` parameters are not required or used.
 
 ## PutGeoMesaHBase
 
@@ -146,9 +162,10 @@ addition to the common properties defined above, it requires properties for conn
 [GeoMesa documentation](https://www.geomesa.org/documentation/user/hbase/usage.html#hbase-data-store-parameters)
 for a description of the data store parameters.
 
-Of note, the `hbase.config.paths` parameter is required for the NiFi processor, as generally you would not want
-to install your `hbase-site.xml` in your NiFi classpath. Instead, you can point to a location on the local file
-system, HDFS or S3.
+HBase generally requires an `hbase-site.xml` file to be on your classpath, in order to connect to your cluster.
+The `PutGeoMesaHBase` processor provides two options to avoid this: you can use the `hbase.config.paths` property
+to point to a file on the local file system, HDFS or S3, or you can simply paste the `<configuration>` into
+the `hbase.config.xml` property.
 
 ## PutGeoMesaKafka
 
@@ -173,19 +190,27 @@ for a description of the data store parameters.
 
 ## PutGeoTools
 
-The ``PutGeoTools`` processor is used for ingesting data into a GeoTools compatible datastore. In
+The ``PutGeoTools`` processor is used for ingesting data into a GeoTools compatible data store. In
 addition to the common properties defined above, it requires properties for connecting to the data store.
 
 The `DataStoreName` property should match to the display name of the data store to use, for example `PostGIS`
 to use a PostGIS data store. Additional data store parameters for the specific data store you are using can be
 specified through NiFi dynamic properties.
 
+Note that the dependencies for the requested data store must be available on the NiFi classpath.
+
 ## ConvertToGeoAvro
 
 The ``ConvertToGeoAvro`` processor leverages GeoMesa's internal converter framework to convert features into Avro
 and pass them along as a flow to be used by other processors in NiFi.
 
-# Upgrade Path
+# Upgrade Guide
+
+## 2.4.x
+
+The GeoMesa processors have been refactored to support NiFi nar inheritance and as a first step towards supporting
+Java 11. Any existing processors will continue to work under the older version, as long as you don't delete the old
+GeoMesa nar file. However, you will need to create new processors in order to upgrade to 2.4.x.
 
 ## 1.3.x to 1.4.x
 
