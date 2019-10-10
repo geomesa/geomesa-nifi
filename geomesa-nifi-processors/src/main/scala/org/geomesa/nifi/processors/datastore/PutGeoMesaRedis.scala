@@ -6,12 +6,12 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.processors.datastore
+package org.geomesa.nifi.processors
+package datastore
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.processors.AbstractGeoIngestProcessor
 import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "redis", "geotools"))
@@ -21,5 +21,5 @@ import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 class PutGeoMesaRedis extends AbstractGeoIngestProcessor(PutGeoMesaRedis.RedisProperties)
 
 object PutGeoMesaRedis {
-  private val RedisProperties = RedisDataStoreFactory.ParameterInfo.toList.map(AbstractGeoIngestProcessor.property)
+  private val RedisProperties = RedisDataStoreFactory.ParameterInfo.toList.map(property)
 }

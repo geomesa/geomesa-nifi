@@ -6,13 +6,13 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.processors.datastore
+package org.geomesa.nifi.processors
+package datastore
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.processors.AbstractGeoIngestProcessor
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.KafkaDataStoreFactoryParams
 
 @Tags(Array("geomesa", "kafka", "streaming", "stream", "geo", "ingest", "convert", "geotools"))
@@ -30,8 +30,6 @@ object PutGeoMesaKafka {
   import KafkaDataStoreFactoryParams._
 
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
-  private val KafkaProperties = {
-    val params = Seq(Brokers, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication)
-    params.map(AbstractGeoIngestProcessor.property)
-  }
+  private val KafkaProperties =
+    Seq(Brokers, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication).map(property)
 }

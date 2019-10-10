@@ -143,7 +143,7 @@ for a description of the data store parameters.
 
 ### GeoMesa Configuration Service
 
-The ``PutGeoMesaAccumulo`` plugin supports [NiFi Controller Services](http://docs.geoserver.org/stable/en/user/tutorials/cql/cql_tutorial.html)
+The ``PutGeoMesaAccumulo`` plugin supports [NiFi Controller Services](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#Controller_Services)
 to manage common configurations. This allows the user to specify a single location to store the Accumulo connection parameters.
 This allows you to add new processors without having to enter duplicate data.
 

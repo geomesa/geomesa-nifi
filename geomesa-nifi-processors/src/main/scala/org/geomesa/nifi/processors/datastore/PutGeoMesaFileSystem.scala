@@ -6,7 +6,8 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.processors.datastore
+package org.geomesa.nifi.processors
+package datastore
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
@@ -14,7 +15,6 @@ import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.processors.{AbstractGeoIngestProcessor, AwsGeoIngestProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.fs.tools.utils.PartitionSchemeArgResolver
@@ -58,5 +58,5 @@ object PutGeoMesaFileSystem {
         .build()
 
   private val FileSystemProperties =
-    FileSystemDataStoreFactory.ParameterInfo.toList.map(AbstractGeoIngestProcessor.property) :+ PartitionSchemeParam
+    FileSystemDataStoreFactory.ParameterInfo.toList.map(property) :+ PartitionSchemeParam
 }
