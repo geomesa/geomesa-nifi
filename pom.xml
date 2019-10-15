@@ -3,15 +3,15 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <name>GeoMesa-NiFi</name>
-    <description>NiFi Processors for ingesting and converting geo data using GeoMesa and GeoTools</description>
-    <url>https://github.com/geomesa/geomesa-nifi</url>
-    <inceptionYear>2015</inceptionYear>
-
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi</artifactId>
     <version>2.4.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <name>GeoMesa-NiFi</name>
+    <description>NiFi Processors for ingesting and converting geo data using GeoMesa and GeoTools</description>
+    <url>https://github.com/geomesa/geomesa-nifi</url>
+    <inceptionYear>2015</inceptionYear>
 
     <licenses>
         <license>
@@ -55,13 +55,10 @@
     </developers>
 
     <modules>
+        <module>geomesa-nifi-controllers</module>
+        <module>geomesa-nifi-dist</module>
         <module>geomesa-nifi-processors</module>
-        <module>geomesa-nifi-processors-accumulo</module>
-        <module>geomesa-nifi-processors-fs</module>
-        <module>geomesa-nifi-processors-hbase</module>
-        <module>geomesa-nifi-processors-kafka</module>
-        <module>geomesa-nifi-processors-redis</module>
-        <module>geomesa-nifi-nar</module>
+        <module>geomesa-nifi-processors-nar</module>
     </modules>
 
     <properties>
@@ -73,8 +70,8 @@
         <kafka.version>1.0.1</kafka.version>
         <nifi.version>1.8.0</nifi.version>
         <hadoop.version>2.8.5</hadoop.version>
-        <aws.sdk.version>1.11.636</aws.sdk.version>
-        <fasterxml.jackson.version>2.9.7</fasterxml.jackson.version> <!-- required for hadoop aws -->
+        <fasterxml.jackson.version>2.9.7</fasterxml.jackson.version>
+        <aws.java.sdk.version>1.11.412</aws.java.sdk.version>
 
         <specs2.version>4.3.2</specs2.version>
         <junit.version>4.12</junit.version>
@@ -109,39 +106,65 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-services-api-nar</artifactId>
+                <version>${nifi.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-aws-service-api</artifactId>
+                <version>${nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-aws-service-api-nar</artifactId>
+                <version>${nifi.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
                 <version>${nifi.version}</version>
             </dependency>
 
             <!-- Managed submodules -->
             <dependency>
-                <groupId>${project.groupId}</groupId>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-controllers</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-controllers-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-controllers-api-nar</artifactId>
+                <version>${project.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-controllers-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-controllers-nar</artifactId>
+                <version>${project.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-nar</artifactId>
+                <version>${project.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
                 <artifactId>geomesa-nifi-processors</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-kafka</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-accumulo</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-hbase</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-fs</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-redis</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -244,6 +267,26 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-hdfs</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-auth</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-mapreduce-client-core</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-common</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-aws</artifactId>
                 <version>${hadoop.version}</version>
                 <scope>compile</scope>
@@ -251,14 +294,22 @@
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>${aws.sdk.version}</version>
-                <scope>compile</scope>
+                <version>${aws.java.sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-core</artifactId>
+                <version>${aws.java.sdk.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-s3</artifactId>
-                <version>${aws.sdk.version}</version>
-                <scope>compile</scope>
+                <version>${aws.java.sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.1.6</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -279,11 +330,6 @@
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-cbor</artifactId>
                 <version>${fasterxml.jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.xerial.snappy</groupId>
-                <artifactId>snappy-java</artifactId>
-                <version>1.1.1.6</version>
             </dependency>
 
             <!-- Scala -->
@@ -342,45 +388,94 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>2.6</version>
+                    <!-- 3.1.0 was released 2017-08-13. -->
+                    <version>3.1.0</version>
+                    <configuration>
+                        <tarLongFileMode>posix</tarLongFileMode>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.3.2</version>
+                    <!-- 3.8.0 was released 2018-07-26. -->
+                    <version>3.8.0</version>
                     <configuration>
+                        <!-- Turn off 'useIncrementalCompilation' to keep this plugin
+                             from recompiling Java files that the scala-maven-plugin
+                             already compiled.  The scala-maven-plugin generates .class
+                             files from Java sources when its 'incremental' option is
+                             turned on (as it is in the 'zinc' profile).  In this case,
+                             maven-compiler-plugin 3.0 to current (3.8.0) erroneously
+                             detects changes and re-compiles the Java files unless this
+                             option is turned off.  -->
+                        <useIncrementalCompilation>false</useIncrementalCompilation>
                         <source>1.8</source>
                         <target>1.8</target>
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>net.alchim31.maven</groupId>
+                    <artifactId>scala-maven-plugin</artifactId>
+                    <!-- 3.4.4 was released 2018-11-01.  It requires Maven version >= 3.3.9. -->
+                    <version>3.4.4</version>
+                    <configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.scala-lang</groupId>
+                                <artifactId>scala-reflect</artifactId>
+                                <version>${scala.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <jvmArgs>
+                            <jvmArg>-Xms1024m</jvmArg>
+                            <jvmArg>-Xmx8G</jvmArg>
+                            <jvmArg>-Duser.timezone=UTC</jvmArg>
+                            <jvmArg>-Djava.awt.headless=true</jvmArg>
+                        </jvmArgs>
+                        <args>
+                            <arg>-nowarn</arg>
+                            <arg>-unchecked</arg>
+                            <arg>-deprecation</arg>
+                        </args>
+                        <source>1.8</source>
+                        <target>1.8</target>
+                        <scalaVersion>${scala.version}</scalaVersion>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>2.7</version>
+                    <!-- 3.1.0 was released 2018-04-23. -->
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>2.4</version>
+                    <!-- 3.1.0 was released 2018-04-06. -->
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.3</version>
+                    <!-- 3.2.1 was released 2018-11-12. -->
+                    <version>3.2.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
+                    <!-- 3.0.0-M1 was released 2018-09-23. -->
                     <version>3.0.0-M1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <!-- 3.0.1 was released 2016-06-18. -->
+                    <version>3.0.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
+                    <!-- 2.5.3 was released 2015-10-17 and is the latest as of 2018-11-29. -->
                     <version>2.5.3</version>
                     <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
@@ -394,14 +489,15 @@
                 <plugin>
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>2.11</version>
+                    <!-- 3.0 was released 2016-08-20 and is the latest as of 2018-11-30. -->
+                    <version>3.0</version>
                     <configuration>
                         <header>build/copyright/ccri.txt</header>
                         <validHeaders>
                             <validHeader>build/copyright/ccri.txt</validHeader>
                         </validHeaders>
                         <properties>
-                            <year>2017</year>
+                            <year>2019</year>
                             <owner>Commonwealth Computer Research, Inc.</owner>
                         </properties>
                         <headerDefinitions>
@@ -422,7 +518,8 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.17</version>
+                    <!-- 3.0.0 was released 2018-01-07. -->
+                    <version>3.0.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>org.slf4j</groupId>
@@ -443,7 +540,6 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <id>scala-compile-first</id>
@@ -461,22 +557,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <jvmArgs>
-                        <jvmArg>-Xms1024m</jvmArg>
-                        <jvmArg>-Xmx8G</jvmArg>
-                        <jvmArg>-Duser.timezone=UTC</jvmArg>
-                        <jvmArg>-Djava.awt.headless=true</jvmArg>
-                    </jvmArgs>
-                    <args>
-                        <arg>-nowarn</arg>
-                        <arg>-unchecked</arg>
-                        <arg>-deprecation</arg>
-                    </args>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <scalaVersion>${scala.version}</scalaVersion>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -597,12 +677,12 @@
     </profiles>
 
     <repositories>
-	<!-- include central so that it is searched before our alternate repos -->
+        <!-- include central so that it is searched before our alternate repos -->
         <repository>
             <id>central</id>
             <name>Maven Repository Switchboard</name>
             <layout>default</layout>
-            <url>http://repo1.maven.org/maven2</url>
+            <url>https://repo1.maven.org/maven2</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -624,9 +704,19 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <!-- geotools -->
         <repository>
             <id>boundlessgeo</id>
-            <url>http://repo.boundlessgeo.com/main</url>
+            <url>https://repo.boundlessgeo.com/main</url>
+        </repository>
+        <!-- jai -->
+        <repository>
+            <id>osgeo</id>
+            <url>https://download.osgeo.org/webdav/geotools</url>
+        </repository>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
         </repository>
     </repositories>
 
