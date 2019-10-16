@@ -29,7 +29,6 @@ import org.geomesa.nifi.processors.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.processors.AbstractGeoIngestProcessor.Relationships._
 import org.geomesa.nifi.processors.AbstractGeoIngestProcessor._
 import org.geomesa.nifi.processors.validators.{ConverterValidator, SimpleFeatureTypeValidator}
-import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data._
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
@@ -227,47 +226,6 @@ object AbstractGeoIngestProcessor {
 
   type FeatureWriterSimple = FeatureWriter[SimpleFeatureType, SimpleFeature]
 
-  /**
-    * Creates a nifi property descriptor based on a geotools data store parameter
-    *
-    * @param param param
-    * @return
-    */
-  def property(param: Param): PropertyDescriptor = property(param, canBeRequired = true)
-
-  /**
-    * Creates a nifi property descriptor based on a geotools data store parameter
-    *
-    * @param param param
-    * @param canBeRequired disable any 'required' flags
-    * @return
-    */
-  def property(param: Param, canBeRequired: Boolean): PropertyDescriptor = {
-    val validator = param.getType match {
-      case x if classOf[java.lang.Integer].isAssignableFrom(x) => StandardValidators.INTEGER_VALIDATOR
-      case x if classOf[java.lang.Long].isAssignableFrom(x)    => StandardValidators.LONG_VALIDATOR
-      case x if classOf[java.lang.Boolean].isAssignableFrom(x) => StandardValidators.BOOLEAN_VALIDATOR
-      case x if classOf[java.lang.String].isAssignableFrom(x)  => StandardValidators.NON_EMPTY_VALIDATOR
-      case _                                                   => StandardValidators.NON_EMPTY_VALIDATOR
-    }
-    val sensitive =
-      Option(param.metadata.get(Parameter.IS_PASSWORD).asInstanceOf[java.lang.Boolean]).exists(_.booleanValue)
-
-    val builder =
-      new PropertyDescriptor.Builder()
-        .name(param.getName)
-        .description(param.getDescription.toString)
-        .defaultValue(Option(param.getDefaultValue).map(_.toString).orNull)
-        .required(canBeRequired && param.required)
-        .addValidator(validator)
-        .sensitive(sensitive)
-
-    if (classOf[java.lang.Boolean].isAssignableFrom(param.getType)) {
-      builder.allowableValues("true", "false")
-    }
-
-    builder.build()
-  }
 
   /**
     * Create a validation result to mark a value invalid
@@ -534,7 +492,6 @@ object AbstractGeoIngestProcessor {
           .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
           .allowableValues(SimpleFeatureTypeLoader.listTypeNames.sorted: _*)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
     val SftSpec: PropertyDescriptor =
@@ -562,7 +519,6 @@ object AbstractGeoIngestProcessor {
           .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
           .allowableValues(ConverterConfigLoader.listConverterNames.sorted: _*)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
     val ConverterSpec: PropertyDescriptor =
@@ -589,7 +545,6 @@ object AbstractGeoIngestProcessor {
           .required(true)
           .description("Ingest mode")
           .allowableValues(IngestMode.Converter, IngestMode.AvroDataFile)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .defaultValue(IngestMode.Converter)
           .build()
 
@@ -609,7 +564,6 @@ object AbstractGeoIngestProcessor {
           .required(false)
           .description("Enable reuse of feature writers between flow files")
           .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .allowableValues("true", "false")
           .defaultValue("false")
           .build()

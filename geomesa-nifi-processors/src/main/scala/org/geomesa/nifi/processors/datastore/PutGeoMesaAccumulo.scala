@@ -7,18 +7,15 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-
-package org.geomesa.nifi.processors.datastore
-
-import java.util
+package org.geomesa.nifi.processors
+package datastore
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
-import org.apache.nifi.processor._
+import org.apache.nifi.processor.ProcessContext
 import org.geomesa.nifi.controller.api.DataStoreConfigService
-import org.geomesa.nifi.processors.AbstractGeoIngestProcessor
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo", "geotools"))
@@ -50,7 +47,7 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor(PutGeoMesaAccumulo.A
   override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
     import AbstractGeoIngestProcessor.invalid
 
-    val result = new util.ArrayList[ValidationResult]()
+    val result = new java.util.ArrayList[ValidationResult]()
     result.addAll(super.customValidate(validationContext))
 
     useControllerService = validationContext.getProperty(GeoMesaConfigController).isSet
@@ -93,6 +90,6 @@ object PutGeoMesaAccumulo {
   private val AccumuloProperties = {
     val params = AccumuloDataStoreFactory.ParameterInfo.toList :+ AccumuloDataStoreParams.MockParam
     // don't require any properties because we are using the controller service
-    params.map(AbstractGeoIngestProcessor.property(_, canBeRequired = false)) :+ GeoMesaConfigController
+    params.map(p => unrequired(createPropertyDescriptor(p))) :+ GeoMesaConfigController
   }
 }
