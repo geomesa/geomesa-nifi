@@ -22,5 +22,5 @@ class PutGeoMesaHBase extends AwsGeoIngestProcessor(PutGeoMesaHBase.HBasePropert
 
 object PutGeoMesaHBase {
 
-  private val HBaseProperties = HBaseDataStoreFactory.ParameterInfo.toList.map(property)
+  private val HBaseProperties = HBaseDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor)
 }

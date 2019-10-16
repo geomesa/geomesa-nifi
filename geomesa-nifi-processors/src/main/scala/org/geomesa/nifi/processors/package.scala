@@ -26,7 +26,7 @@ package object processors extends LazyLogging {
     * @param param param
     * @return
     */
-  def property(param: Param): PropertyDescriptor = {
+  def createPropertyDescriptor(param: Param): PropertyDescriptor = {
     val validator = param.getType match {
       case x if classOf[java.lang.Integer].isAssignableFrom(x) => StandardValidators.INTEGER_VALIDATOR
       case x if classOf[java.lang.Long].isAssignableFrom(x)    => StandardValidators.LONG_VALIDATOR

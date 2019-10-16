@@ -90,6 +90,6 @@ object PutGeoMesaAccumulo {
   private val AccumuloProperties = {
     val params = AccumuloDataStoreFactory.ParameterInfo.toList :+ AccumuloDataStoreParams.MockParam
     // don't require any properties because we are using the controller service
-    params.map(p => unrequired(property(p))) :+ GeoMesaConfigController
+    params.map(p => unrequired(createPropertyDescriptor(p))) :+ GeoMesaConfigController
   }
 }

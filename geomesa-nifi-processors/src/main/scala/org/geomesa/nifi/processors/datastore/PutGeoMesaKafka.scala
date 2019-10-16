@@ -31,5 +31,5 @@ object PutGeoMesaKafka {
 
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
   private val KafkaProperties =
-    Seq(Brokers, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication).map(property)
+    Seq(Brokers, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication).map(createPropertyDescriptor)
 }

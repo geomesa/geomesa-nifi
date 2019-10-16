@@ -21,5 +21,5 @@ import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 class PutGeoMesaRedis extends AbstractGeoIngestProcessor(PutGeoMesaRedis.RedisProperties)
 
 object PutGeoMesaRedis {
-  private val RedisProperties = RedisDataStoreFactory.ParameterInfo.toList.map(property)
+  private val RedisProperties = RedisDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor)
 }

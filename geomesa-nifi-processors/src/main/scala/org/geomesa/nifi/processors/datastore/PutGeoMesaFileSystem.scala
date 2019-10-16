@@ -58,5 +58,5 @@ object PutGeoMesaFileSystem {
         .build()
 
   private val FileSystemProperties =
-    FileSystemDataStoreFactory.ParameterInfo.toList.map(property) :+ PartitionSchemeParam
+    FileSystemDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor) :+ PartitionSchemeParam
 }
