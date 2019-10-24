@@ -63,6 +63,8 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
 
   protected def logger: ComponentLog = getLogger
 
+  protected def useDataStoreControllerService: Boolean = false
+
   override protected def init(context: ProcessorInitializationContext): Unit = {
     relationships = Set(SuccessRelationship, FailureRelationship)
     descriptors = Seq(
@@ -175,7 +177,9 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
       converterPool = null
     }
     if (dataStore != null) {
-      dataStore.dispose()
+      if (!useDataStoreControllerService) {
+        dataStore.dispose()
+      }
       dataStore = null
     }
     logger.info(s"Shut down ${getClass.getName} processor $getIdentifier")
