@@ -15,6 +15,7 @@ import java.util
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.annotation.lifecycle.OnRemoved
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor._
 import org.geomesa.nifi.accumulo.PutGeoMesaAccumulo._
@@ -125,6 +126,16 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor {
     validationFailures
   }
 
+  @OnRemoved
+  override def cleanup(): Unit = {
+    if (dataStore != null) {
+      if (!useControllerService) {
+        dataStore.dispose()
+      }
+      dataStore = null
+    }
+    getLogger.info("Shut down GeoMesaIngest processor " + getIdentifier)
+  }
 }
 
 object PutGeoMesaAccumulo {
