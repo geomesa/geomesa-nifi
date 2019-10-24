@@ -34,6 +34,8 @@ class PutGeoMesaAccumulo extends AbstractGeoIngestProcessor(PutGeoMesaAccumulo.A
   @volatile
   protected var useControllerService: Boolean = false
 
+  override protected def useDataStoreControllerService: Boolean = useControllerService
+
   override protected def loadDataStore(context: ProcessContext, static: Map[String, _]): DataStore = {
     if (useControllerService) {
       val service = context.getProperty(GeoMesaConfigController).asControllerService()
