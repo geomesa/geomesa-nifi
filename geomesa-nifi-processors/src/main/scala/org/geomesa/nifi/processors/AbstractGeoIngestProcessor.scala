@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, PooledObject}
-import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled, OnShutdown, OnStopped}
+import org.apache.nifi.annotation.lifecycle.{OnAdded, OnRemoved, OnScheduled, OnShutdown, OnStopped}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
@@ -53,6 +53,9 @@ abstract class AbstractGeoIngestProcessor(
 
   import scala.collection.JavaConverters._
 
+  private var converterName: PropertyDescriptor = _
+  private var sftName: PropertyDescriptor = _
+
   private var descriptors: Seq[PropertyDescriptor] = _
   private var relationships: Set[Relationship] = _
 
@@ -63,24 +66,32 @@ abstract class AbstractGeoIngestProcessor(
 
   override protected def init(context: ProcessorInitializationContext): Unit = {
     relationships = Set(SuccessRelationship, FailureRelationship)
-    descriptors = Seq(
-      IngestModeProp,
-      SftName,
-      SftSpec,
-      FeatureNameOverride,
-      ConverterName,
-      ConverterSpec,
-      ConverterErrorMode,
-      NifiBatchSize,
-      FeatureWriterCaching,
-      FeatureWriterCacheTimeout
-    ) ++ dataStoreProperties ++ otherProperties
+    initDescriptors()
     logger.info(s"Props are ${descriptors.mkString(", ")}")
     logger.info(s"Relationships are ${relationships.mkString(", ")}")
   }
 
   override def getRelationships: java.util.Set[Relationship] = relationships.asJava
   override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = descriptors.asJava
+
+  @OnAdded // reload on add to pick up any sft/converter classpath changes
+  def initDescriptors(): Unit = {
+    converterName = Properties.converterName(ConverterConfigLoader.listConverterNames)
+    sftName = Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
+    descriptors = Seq(
+      IngestModeProp,
+      sftName,
+      SftSpec,
+      FeatureNameOverride,
+      converterName,
+      ConverterSpec,
+      ConverterErrorMode,
+      ConverterClasspath,
+      NifiBatchSize,
+      FeatureWriterCaching,
+      FeatureWriterCacheTimeout
+    ) ++ dataStoreProperties ++ otherProperties
+  }
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
@@ -109,7 +120,7 @@ abstract class AbstractGeoIngestProcessor(
 
     ingest = context.getProperty(IngestModeProp).getValue match {
       case IngestMode.Converter =>
-        val convertArg = AbstractGeoIngestProcessor.getFirst(context, Seq(ConverterName, ConverterSpec))
+        val convertArg = AbstractGeoIngestProcessor.getFirst(context, Seq(converterName, ConverterSpec))
         var config = ConverterConfigResolver.getArg(ConfArgs(convertArg)) match {
           case Left(e) => throw e
           case Right(conf) => conf
@@ -143,10 +154,10 @@ abstract class AbstractGeoIngestProcessor(
     // If using converters check for params relevant to that
     if (validationContext.getProperty(IngestModeProp).getValue == IngestMode.Converter) {
       // make sure either a sft is named or written
-      if (!Seq(SftName, SftSpec).exists(validationContext.getProperty(_).isSet)) {
+      if (!Seq(sftName, SftSpec).exists(validationContext.getProperty(_).isSet)) {
         result.add(AbstractGeoIngestProcessor.invalid("Specify a simple feature type by name or spec"))
       }
-      if (!Seq(ConverterName, ConverterSpec).exists(validationContext.getProperty(_).isSet)) {
+      if (!Seq(converterName, ConverterSpec).exists(validationContext.getProperty(_).isSet)) {
         result.add(AbstractGeoIngestProcessor.invalid("Specify a converter by name or spec"))
       }
     }
@@ -199,7 +210,7 @@ abstract class AbstractGeoIngestProcessor(
     * @return
     */
   protected def loadSft(context: ProcessContext): SimpleFeatureType = {
-    val sftArg = AbstractGeoIngestProcessor.getFirst(context, Seq(SftName, SftSpec))
+    val sftArg = AbstractGeoIngestProcessor.getFirst(context, Seq(sftName, SftSpec))
     val typeName = context.getProperty(FeatureNameOverride).getValue
     SftArgResolver.getArg(SftArgs(sftArg, typeName)) match {
       case Left(e) => throw e
@@ -485,12 +496,22 @@ object AbstractGeoIngestProcessor {
     * Processor configuration properties
     */
   object Properties {
-    val SftName: PropertyDescriptor =
+
+    val IngestModeProp: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+          .name("Mode")
+          .required(true)
+          .description("Ingest mode")
+          .allowableValues(IngestMode.Converter, IngestMode.AvroDataFile)
+          .defaultValue(IngestMode.Converter)
+          .build()
+
+    def sftName(values: Seq[String]): PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("SftName")
           .required(false)
           .description("Choose a simple feature type defined by a GeoMesa SFT Provider (preferred)")
-          .allowableValues(SimpleFeatureTypeLoader.listTypeNames.sorted: _*)
+          .allowableValues(values.sorted: _*)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .build()
 
@@ -512,12 +533,12 @@ object AbstractGeoIngestProcessor {
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
-    val ConverterName: PropertyDescriptor =
+    def converterName(values: Seq[String]): PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("ConverterName")
           .required(false)
           .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
-          .allowableValues(ConverterConfigLoader.listConverterNames.sorted: _*)
+          .allowableValues(values.sorted: _*)
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .build()
 
@@ -539,13 +560,14 @@ object AbstractGeoIngestProcessor {
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
-    val IngestModeProp: PropertyDescriptor =
+    val ConverterClasspath: PropertyDescriptor =
       new PropertyDescriptor.Builder()
-          .name("Mode")
-          .required(true)
-          .description("Ingest mode")
-          .allowableValues(IngestMode.Converter, IngestMode.AvroDataFile)
-          .defaultValue(IngestMode.Converter)
+          .name("ConverterClasspath")
+          .required(false)
+          .description("Add additional converter resources to the classpath")
+          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .dynamicallyModifiesClasspath(true)
           .build()
 
     val NifiBatchSize: PropertyDescriptor =
