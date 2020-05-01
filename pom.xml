@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi</artifactId>
-    <version>2.4.0-SNAPSHOT</version>
+    <version>2.5.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>GeoMesa-NiFi</name>
@@ -62,7 +61,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>2.4.0-SNAPSHOT</geomesa.version>
+        <geomesa.version>2.5.0-SNAPSHOT</geomesa.version>
         <scala.version>2.11.7</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
         <accumulo.version>1.9.2</accumulo.version>
@@ -689,14 +688,14 @@
         </repository>
         <repository>
             <id>locationtech-releases</id>
-            <url>https://repo.locationtech.org/content/groups/releases</url>
+            <url>https://repo.eclipse.org/content/groups/releases</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
         </repository>
         <repository>
             <id>locationtech-snapshots</id>
-            <url>https://repo.locationtech.org/content/groups/snapshots</url>
+            <url>https://repo.eclipse.org/content/groups/snapshots</url>
             <releases>
                 <enabled>false</enabled>
             </releases>
@@ -704,15 +703,23 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-        <!-- geotools -->
-        <repository>
-            <id>boundlessgeo</id>
-            <url>https://repo.boundlessgeo.com/main</url>
-        </repository>
-        <!-- jai -->
+	<!-- geotools -->
         <repository>
             <id>osgeo</id>
-            <url>https://download.osgeo.org/webdav/geotools</url>
+            <url>https://repo.osgeo.org/repository/release</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>osgeo-snapshots</id>
+            <url>https://repo.osgeo.org/repository/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
         <repository>
             <id>confluent</id>
