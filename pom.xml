@@ -135,6 +135,11 @@
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
                 <artifactId>geomesa-nifi-controllers-api</artifactId>
                 <version>${project.version}</version>
             </dependency>

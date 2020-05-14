@@ -10,3 +10,4 @@ dependency-reduced-pom.xml
 .metals/
 .settings/
 *.classpath
+.vscode/settings.json
