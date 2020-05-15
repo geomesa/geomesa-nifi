@@ -64,7 +64,8 @@
         <geomesa.version>3.0.0-SNAPSHOT</geomesa.version>
         <scala.version>2.11.7</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
-        <accumulo.version>1.9.2</accumulo.version>
+        <accumulo1.version>1.9.2</accumulo1.version>
+        <accumulo2.version>2.0.0</accumulo2.version>
         <hbase.version>1.3.1</hbase.version>
         <kafka.version>1.0.1</kafka.version>
         <nifi.version>1.8.0</nifi.version>
@@ -132,6 +133,21 @@
                 <artifactId>geomesa-nifi-controllers</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-nar-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-nar-accumulo1</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-nar-accumulo2</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
@@ -223,12 +239,17 @@
                 <artifactId>geomesa-fs-tools_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>1.8</version>
+            </dependency>
+            
             <!-- Hadoop and friends -->
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
                 <artifactId>accumulo-core</artifactId>
-                <version>${accumulo.version}</version>
+                <version>${accumulo1.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>

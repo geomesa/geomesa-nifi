@@ -9,28 +9,34 @@
         <version>3.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-nifi-processors-nar-common</artifactId>
-    <packaging>jar</packaging>
+    <artifactId>geomesa-nifi-processors-nar-accumulo2</artifactId>
+    <packaging>nar</packaging>
 
     <description>Processors nar</description>
 
     <dependencies>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its
              classpath at runtime. see https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars -->
+   
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-nifi-controllers-api-nar</artifactId>
-            <type>nar</type>
+            <artifactId>geomesa-nifi-processors-accumulo</artifactId>
         </dependency>
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-nifi-processors-common</artifactId>
+            <artifactId>geomesa-nifi-processors-nar-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools_2.11</artifactId>
-            <classifier>data</classifier>
-            <version>${geomesa.version}</version>
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-core</artifactId>
+            <version>${accumulo2.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!--  additional dependency required by accumulo2-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
         </dependency>
     </dependencies>
 
