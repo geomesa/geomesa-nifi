@@ -17,6 +17,11 @@
     <dependencies>
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-nifi-processors-nar-fs</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
             <artifactId>geomesa-nifi-processors-nar-accumulo1</artifactId>
             <type>nar</type>
         </dependency>

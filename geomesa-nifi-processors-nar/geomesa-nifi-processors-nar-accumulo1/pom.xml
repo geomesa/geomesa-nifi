@@ -12,7 +12,7 @@
     <artifactId>geomesa-nifi-processors-nar-accumulo1</artifactId>
     <packaging>nar</packaging>
 
-    <description>Processors nar</description>
+    <description>Accumulo1 Processor nar</description>
 
     <dependencies>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its

@@ -141,6 +141,12 @@
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-nar-fs</artifactId>
+                <version>${project.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
                 <artifactId>geomesa-nifi-processors-nar-accumulo1</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
@@ -159,6 +165,11 @@
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
                 <artifactId>geomesa-nifi-processors-accumulo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-nifi-processors-fs</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
