@@ -36,12 +36,12 @@
             <groupId>org.geomesa.nifi</groupId>
             <artifactId>geomesa-nifi-controllers-api</artifactId>
         </dependency>
-
-        <dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa--datastore_2.11</artifactId>
+            <artifactId>geomesa-fs-datastore_2.11</artifactId>
         </dependency>
+
+        <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-convert-all_2.11</artifactId>
         </dependency>
@@ -50,10 +50,12 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-fs-datastore_2.11</artifactId>
-        </dependency> 
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-core</artifactId>
+        </dependency>
+        
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
