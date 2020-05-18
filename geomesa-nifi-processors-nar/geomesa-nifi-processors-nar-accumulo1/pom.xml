@@ -5,27 +5,28 @@
 
     <parent>
         <groupId>org.geomesa.nifi</groupId>
-        <artifactId>geomesa-nifi-controllers</artifactId>
+        <artifactId>geomesa-nifi-processors-nar</artifactId>
         <version>3.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-nifi-controllers-nar</artifactId>
+    <artifactId>geomesa-nifi-processors-nar-accumulo1</artifactId>
     <packaging>nar</packaging>
 
-    <description>Controller service implementations nar</description>
+    <description>Processors nar</description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-nifi-controllers-impl</artifactId>
-        </dependency>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its
              classpath at runtime. see https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars -->
+   
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-nifi-controllers-api-nar</artifactId>
-            <type>nar</type>
+            <artifactId>geomesa-nifi-processors-accumulo</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-nifi-processors-nar-common</artifactId>
+        </dependency>
+        
     </dependencies>
 
     <build>

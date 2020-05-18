@@ -6,3 +6,8 @@
 target
 atlassian*
 dependency-reduced-pom.xml
+.project
+.metals/
+.settings/
+*.classpath
+.vscode/settings.json
