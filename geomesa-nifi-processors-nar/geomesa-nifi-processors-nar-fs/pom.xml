@@ -24,11 +24,16 @@
         </dependency>
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-nifi-processors-nar-common</artifactId>
+            <artifactId>geomesa-nifi-controllers-api-nar</artifactId>
+            <type>nar</type>
         </dependency>
-        
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-tools_2.11</artifactId>
+            <classifier>data</classifier>
+            <version>${geomesa.version}</version>
+        </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
