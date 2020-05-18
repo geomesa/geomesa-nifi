@@ -1,0 +1,7 @@
+org.geomesa.nifi.processors.datastore.PutGeoTools
+org.geomesa.nifi.processors.ConvertToGeoAvro
+org.geomesa.nifi.processors.datastore.PutGeoMesaAccumulo
+org.geomesa.nifi.processors.datastore.PutGeoMesaFileSystem
+org.geomesa.nifi.processors.datastore.PutGeoMesaHBase
+org.geomesa.nifi.processors.datastore.PutGeoMesaKafka
+org.geomesa.nifi.processors.datastore.PutGeoMesaRedis
