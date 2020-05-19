@@ -14,6 +14,7 @@
 
     <modules>
         <module>geomesa-nifi-processors-nar-fs</module>
+        <module>geomesa-nifi-processors-nar-kafka</module>
         <module>geomesa-nifi-processors-nar-accumulo1</module>
         <module>geomesa-nifi-processors-nar-accumulo2</module>
         <module>geomesa-nifi-processors-nar-common</module>
