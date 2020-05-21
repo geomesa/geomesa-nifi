@@ -9,10 +9,10 @@
         <version>3.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-nifi-processors-fs</artifactId>
+    <artifactId>geomesa-nifi-processors-kafka</artifactId>
     <packaging>jar</packaging>
 
-    <description>File System processor implementation</description>
+    <description>Kafka processor implementation</description>
 
     <dependencies>
         <dependency>
@@ -38,36 +38,23 @@
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-fs-datastore_2.11</artifactId>
+            <artifactId>geomesa-kafka-datastore_2.11</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-convert-all_2.11</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.curator</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-aws</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>

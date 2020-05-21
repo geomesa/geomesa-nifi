@@ -12,7 +12,7 @@
     <artifactId>geomesa-nifi-processors-accumulo</artifactId>
     <packaging>jar</packaging>
 
-    <description>Core processor implementations</description>
+    <description>Accumulo processor implementation</description>
 
     <dependencies>
         <dependency>
