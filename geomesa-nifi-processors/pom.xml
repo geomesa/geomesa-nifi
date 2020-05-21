@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>geomesa-nifi-processors-redis</module>
         <module>geomesa-nifi-processors-fs</module>
         <module>geomesa-nifi-processors-kafka</module>
         <module>geomesa-nifi-processors-accumulo</module>
