@@ -1,0 +1,2 @@
+org.geomesa.nifi.datastore.processor.PutGeoTools
+org.geomesa.nifi.datastore.processor.ConvertToGeoAvro

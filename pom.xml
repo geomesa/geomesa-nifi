@@ -54,10 +54,12 @@
     </developers>
 
     <modules>
-        <module>geomesa-nifi-controllers</module>
-        <module>geomesa-nifi-dist</module>
-        <module>geomesa-nifi-processors</module>
-        <module>geomesa-nifi-processors-nar</module>
+        <module>geomesa-accumulo-bundle</module>
+        <module>geomesa-datastore-bundle</module>
+        <module>geomesa-fs-bundle</module>
+        <module>geomesa-hbase-bundle</module>
+        <module>geomesa-kafka-bundle</module>
+        <module>geomesa-redis-bundle</module>
     </modules>
 
     <properties>
@@ -66,9 +68,11 @@
         <scala.binary.version>2.11</scala.binary.version>
         <accumulo.version>2.0.0</accumulo.version>
         <accumulo-1.version>1.9.3</accumulo-1.version>
-        <hbase.version>1.3.1</hbase.version>
+        <hbase.version>2.2.3</hbase.version>
+        <hbase-1.version>1.4.12</hbase-1.version>
         <kafka.version>1.0.1</kafka.version>
-        <nifi.version>1.8.0</nifi.version>
+        <zookeer.version>3.4.14</zookeer.version>
+        <nifi.version>1.11.4</nifi.version>
         <hadoop.version>2.8.5</hadoop.version>
         <fasterxml.jackson.version>2.9.7</fasterxml.jackson.version>
         <aws.java.sdk.version>1.11.412</aws.java.sdk.version>
@@ -127,108 +131,117 @@
                 <version>${nifi.version}</version>
             </dependency>
 
-            <!-- Managed submodules -->
+            <!-- managed submodules -->
+
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-controllers</artifactId>
-                <version>${project.version}</version>
-                <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar-common</artifactId>
+                <artifactId>geomesa-accumulo-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar-fs</artifactId>
+                <artifactId>geomesa-accumulo1-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar-kafka</artifactId>
+                <artifactId>geomesa-accumulo2-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar-redis</artifactId>
+                <artifactId>geomesa-datastore-services-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-datastore-services-api-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar-accumulo1</artifactId>
+                <artifactId>geomesa-datastore-services</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-datastore-services-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar-accumulo2</artifactId>
+                <artifactId>geomesa-datastore-processors</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-fs-processors</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-fs-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-common</artifactId>
+                <artifactId>geomesa-hbase-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-accumulo</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-fs</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-kafka</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-redis</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-controllers-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-controllers-api-nar</artifactId>
+                <artifactId>geomesa-hbase1-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-controllers-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-controllers-nar</artifactId>
+                <artifactId>geomesa-hbase2-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors-nar</artifactId>
+                <artifactId>geomesa-kafka-processors</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-kafka-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-nifi-processors</artifactId>
+                <artifactId>geomesa-redis-processors</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-redis-nar</artifactId>
+                <version>${project.version}</version>
+                <type>nar</type>
             </dependency>
 
-            <!-- GeoMesa -->
+
+            <!-- geomesa -->
+
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-index-api_2.11</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-accumulo-datastore_${scala.binary.version}</artifactId>
@@ -256,42 +269,56 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-redis-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-fs-tools_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-text</artifactId>
-                <version>1.8</version>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-redis-datastore_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
             </dependency>
 
-            <!-- Hadoop and friends -->
+            <!-- data store dependencies -->
+
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
                 <artifactId>accumulo-core</artifactId>
                 <version>${accumulo.version}</version>
-                <scope>compile</scope>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.9</version>
+                <version>${zookeer.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.hbase</groupId>
+                <artifactId>hbase-client</artifactId>
+                <version>${hbase.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hbase</groupId>
+                <artifactId>hbase-common</artifactId>
+                <version>${hbase.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hbase</groupId>
+                <artifactId>hbase-protocol</artifactId>
+                <version>${hbase.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_${scala.binary.version}</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
@@ -371,6 +398,7 @@
                 <artifactId>aws-java-sdk-s3</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
@@ -397,7 +425,30 @@
                 <version>${fasterxml.jackson.version}</version>
             </dependency>
 
-            <!-- Scala -->
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-client</artifactId>
+                <version>4.3.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>4.3.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-recipes</artifactId>
+                <version>4.3.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>1.8</version>
+            </dependency>
+
+            <!-- scala -->
+
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
@@ -562,7 +613,7 @@
                             <validHeader>build/copyright/ccri.txt</validHeader>
                         </validHeaders>
                         <properties>
-                            <year>2019</year>
+                            <year>2020</year>
                             <owner>Commonwealth Computer Research, Inc.</owner>
                         </properties>
                         <headerDefinitions>
@@ -769,7 +820,7 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-	<!-- geotools -->
+        <!-- geotools -->
         <repository>
             <id>osgeo</id>
             <url>https://repo.osgeo.org/repository/release</url>

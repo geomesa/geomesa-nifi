@@ -1,3 +1,0 @@
-org.geomesa.nifi.processors.datastore.PutGeoTools
-org.geomesa.nifi.processors.ConvertToGeoAvro
-org.geomesa.nifi.processors.datastore.PutGeoMesaKafka
