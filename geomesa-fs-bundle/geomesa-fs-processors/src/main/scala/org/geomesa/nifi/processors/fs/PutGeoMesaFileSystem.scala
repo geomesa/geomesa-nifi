@@ -11,6 +11,7 @@ package org.geomesa.nifi.processors.fs
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
@@ -29,12 +30,18 @@ class PutGeoMesaFileSystem
     extends AwsGeoIngestProcessor(PutGeoMesaFileSystem.FileSystemProperties, FileSystemDataStoreParams.ConfigsParam) {
 
   import PutGeoMesaFileSystem._
+  import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
 
-  override protected def loadSft(context: ProcessContext): SimpleFeatureType = {
-    import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
-    val sft = super.loadSft(context)
+  private var partitionScheme: Option[String] = None
 
-    Option(context.getProperty(PartitionSchemeParam).getValue).foreach { arg =>
+  @OnScheduled
+  override def initialize(context: ProcessContext): Unit = {
+    super.initialize(context)
+    partitionScheme = Option(context.getProperty(PartitionSchemeParam).getValue)
+  }
+
+  override protected def decorate(sft: SimpleFeatureType): Unit = {
+    partitionScheme.foreach { arg =>
       logger.info(s"Adding partition scheme to ${sft.getTypeName}")
       val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
         case Left(e) => throw new IllegalArgumentException(e)
@@ -43,8 +50,6 @@ class PutGeoMesaFileSystem
       sft.setScheme(scheme.name, scheme.options)
       logger.info(s"Updated SFT with partition scheme: ${scheme.name}")
     }
-
-    sft
   }
 }
 
