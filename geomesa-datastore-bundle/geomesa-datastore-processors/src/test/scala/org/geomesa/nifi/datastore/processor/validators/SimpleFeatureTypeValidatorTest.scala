@@ -13,7 +13,7 @@ import org.junit.Assert._
 import org.junit.Test
 import org.mockito.Mockito._
 
-class TestSimpleFeatureTypeValidator {
+class SimpleFeatureTypeValidatorTest {
 
   private val validInputs = List(
     "geomesa {sfts {twitter = {fields = [{name = text, type = String}{name = username, type = String}{name = geom, type = Point, srid = 4326}]}}}",
