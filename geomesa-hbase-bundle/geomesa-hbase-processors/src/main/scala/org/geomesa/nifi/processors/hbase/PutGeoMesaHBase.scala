@@ -8,20 +8,6 @@
 
 package org.geomesa.nifi.processors.hbase
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.datastore.processor.AwsGeoIngestProcessor
-import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.locationtech.geomesa.hbase.data.{HBaseDataStoreFactory, HBaseDataStoreParams}
+import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-@Tags(Array("geomesa", "geo", "ingest", "convert", "hbase", "geotools"))
-@CapabilityDescription("Convert and ingest data files into GeoMesa HBase")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-class PutGeoMesaHBase
-    extends AwsGeoIngestProcessor(PutGeoMesaHBase.HBaseProperties, HBaseDataStoreParams.ConfigsParam)
-
-object PutGeoMesaHBase extends PropertyDescriptorUtils {
-  private val HBaseProperties = HBaseDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor)
-}
+class PutGeoMesaHBase extends GeoMesaHBaseProcessor with ConverterIngestProcessor

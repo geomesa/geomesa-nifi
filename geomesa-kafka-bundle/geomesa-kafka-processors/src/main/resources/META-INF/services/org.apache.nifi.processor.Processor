@@ -1,1 +1,2 @@
 org.geomesa.nifi.processors.kafka.PutGeoMesaKafka
+org.geomesa.nifi.processors.kafka.AvroToPutGeoMesaKafka

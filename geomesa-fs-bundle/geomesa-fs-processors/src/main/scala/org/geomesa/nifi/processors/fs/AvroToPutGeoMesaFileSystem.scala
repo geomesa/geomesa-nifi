@@ -8,6 +8,6 @@
 
 package org.geomesa.nifi.processors.fs
 
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
 
-class PutGeoMesaFileSystem extends GeoMesaFileSystemProcessor with ConverterIngestProcessor
+class AvroToPutGeoMesaFileSystem extends GeoMesaFileSystemProcessor with AvroIngestProcessor
