@@ -19,15 +19,21 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
 /**
-  * Abstract ingest processor for geotools data stores, with support for an AWSCredentialsProviderService
-  *
-  * @param dataStoreProperties properties exposed through NiFi used to load the data store
-  * @param configParam parameter for embedding hadoop &lt;configuration&gt; xml, used to pass the AWS credentials
+  * Trait with support for an AWSCredentialsProviderService
   */
-abstract class AwsGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescriptor], configParam: GeoMesaParam[String])
-  extends AbstractGeoIngestProcessor(dataStoreProperties, Seq(AwsGeoIngestProcessor.CredentialsServiceProperty)) {
+trait AwsGeoIngestProcessor extends AbstractGeoIngestProcessor {
 
   import scala.collection.JavaConverters._
+
+  /**
+   * Parameter for embedding hadoop &lt;configuration&gt; xml, used to pass the AWS credentials
+   *
+   * @return
+   */
+  protected def configParam: GeoMesaParam[String]
+
+  override protected def getServiceProperties: Seq[PropertyDescriptor] =
+    super.getServiceProperties ++ Seq(AwsGeoIngestProcessor.CredentialsServiceProperty)
 
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
     val base = super.getDataStoreParams(context)

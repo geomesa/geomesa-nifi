@@ -9,12 +9,10 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import java.io.{Closeable, InputStream}
-import java.util.Collections
+import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
@@ -24,17 +22,12 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor._
-import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
-import org.geomesa.nifi.datastore.processor.validators.{ConverterValidator, SimpleFeatureTypeValidator}
+import org.geomesa.nifi.datastore.processor.validators.SimpleFeatureTypeValidator
 import org.geotools.data._
-import org.locationtech.geomesa.convert.Modes.ErrorMode
-import org.locationtech.geomesa.convert._
-import org.locationtech.geomesa.convert2.SimpleFeatureConverter
-import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools._
-import org.locationtech.geomesa.utils.io.{CloseQuietly, CloseWithLogging}
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.util.control.NonFatal
@@ -43,19 +36,14 @@ import scala.util.control.NonFatal
   * Abstract ingest processor for geotools data stores
   *
   * @param dataStoreProperties properties exposed through NiFi used to load the data store
-  * @param otherProperties other properties exposed through NiFi, but not used for loading the data store
   */
 @ReadsAttributes(
   Array(
-    new ReadsAttribute(attribute = "geomesa.converter", description = "GeoMesa converter name or configuration"),
     new ReadsAttribute(attribute = "geomesa.sft.name", description = "GeoMesa SimpleFeatureType name"),
     new ReadsAttribute(attribute = "geomesa.sft.spec", description = "GeoMesa SimpleFeatureType specification")
   )
 )
-abstract class AbstractGeoIngestProcessor(
-    dataStoreProperties: Seq[PropertyDescriptor],
-    otherProperties: Seq[PropertyDescriptor] = Seq.empty
-  ) extends AbstractProcessor {
+abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescriptor]) extends AbstractProcessor {
 
   import AbstractGeoIngestProcessor.Properties._
   import AbstractGeoIngestProcessor.Relationships._
@@ -63,14 +51,13 @@ abstract class AbstractGeoIngestProcessor(
 
   import scala.collection.JavaConverters._
 
-  private var converterName: PropertyDescriptor = _
   private var sftName: PropertyDescriptor = _
 
   private var descriptors: Seq[PropertyDescriptor] = _
   private var relationships: Set[Relationship] = _
 
   @volatile
-  private var ingest: Ingest = _
+  private var ingest: IngestProcessor = _
 
   protected def logger: ComponentLog = getLogger
 
@@ -86,26 +73,20 @@ abstract class AbstractGeoIngestProcessor(
 
   @OnAdded // reload on add to pick up any sft/converter classpath changes
   def initDescriptors(): Unit = {
-    converterName = Properties.converterName(ConverterConfigLoader.listConverterNames)
     sftName = Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
-    descriptors = Seq(
-      IngestModeProp,
-      sftName,
-      SftSpec,
-      FeatureNameOverride,
-      converterName,
-      ConverterSpec,
-      ConverterErrorMode,
-      ConverterClasspath,
-      NifiBatchSize,
-      FeatureWriterCaching,
-      FeatureWriterCacheTimeout
-    ) ++ dataStoreProperties ++ otherProperties
+    val sftProps = Seq(sftName, SftSpec, FeatureNameOverride)
+    val configProps = Seq(NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
+    descriptors =
+        sftProps ++ getProcessorProperties ++ Seq(ExtraClasspaths) ++
+            dataStoreProperties ++ configProps ++ getServiceProperties
   }
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
+
+    val sftArg = AbstractGeoIngestProcessor.getFirst(context, Seq(sftName, SftSpec))
+    val typeName = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
 
     val dataStore = {
       val props = getDataStoreParams(context)
@@ -118,29 +99,23 @@ abstract class AbstractGeoIngestProcessor(
     }
     require(dataStore != null, "Could not load datastore using provided parameters")
 
-    // lazy in case ingest mode fails validation
-    lazy val writers = if (context.getProperty(FeatureWriterCaching).getValue.toBoolean) {
-      val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
-      new PooledWriters(dataStore, FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS))
-    } else {
-      new SingletonWriters(dataStore)
+    try {
+      val writers = if (context.getProperty(FeatureWriterCaching).getValue.toBoolean) {
+        val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
+        new PooledWriters(dataStore, FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS))
+      } else {
+        new SingletonWriters(dataStore)
+      }
+      try {
+        ingest = createIngest(context, dataStore, writers, sftArg, typeName)
+      } catch {
+        case NonFatal(e) => writers.close(); throw e
+      }
+    } catch {
+      case NonFatal(e) => dataStore.dispose(); throw e
     }
 
-    val sftArg = AbstractGeoIngestProcessor.getFirst(context, Seq(sftName, SftSpec))
-    val typeName = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
-
-    ingest = context.getProperty(IngestModeProp).getValue match {
-      case IngestMode.AvroDataFile => new AvroIngest(dataStore, writers, sftArg, typeName)
-
-      case IngestMode.Converter =>
-        val converterArg = AbstractGeoIngestProcessor.getFirst(context, Seq(converterName, ConverterSpec))
-        val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
-        new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode)
-
-      case m => throw new IllegalStateException(s"Unknown ingest type: $m")
-    }
-
-    logger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} in mode ${ingest.getClass.getName}")
+    logger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with ingest ${ingest.getClass.getSimpleName}")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
@@ -174,6 +149,10 @@ abstract class AbstractGeoIngestProcessor(
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
+  protected def getProcessorProperties: Seq[PropertyDescriptor] = Seq.empty
+
+  protected def getServiceProperties: Seq[PropertyDescriptor] = Seq.empty
+
   /**
     * Get params for looking up the data store
     *
@@ -194,6 +173,13 @@ abstract class AbstractGeoIngestProcessor(
 
   protected def decorate(sft: SimpleFeatureType): Unit = {}
 
+  protected def createIngest(
+      context: ProcessContext,
+      dataStore: DataStore,
+      writers: Writers,
+      sftArg: Option[String],
+      typeName: Option[String]): IngestProcessor
+
   /**
    * Abstraction over ingest methods
    *
@@ -202,7 +188,7 @@ abstract class AbstractGeoIngestProcessor(
    * @param spec simple feature spec
    * @param name simple feature name override
    */
-  sealed abstract class Ingest(
+  abstract class IngestProcessor(
       store: DataStore,
       writers: Writers,
       spec: Option[String],
@@ -293,153 +279,6 @@ abstract class AbstractGeoIngestProcessor(
     protected def logError(sf: SimpleFeature, e: Throwable): Unit =
       logger.error(s"Error writing feature to store: '${DataUtilities.encodeFeature(sf)}'", e)
   }
-
-
-  /**
-   * Converter ingest
-   *
-   * @param store data store
-   * @param writers feature writers
-   * @param spec simple feature spec
-   * @param name simple feature name override
-   * @param conf converter config
-   * @param error converter error mode
-   */
-  class ConverterIngest(
-      store: DataStore,
-      writers: Writers,
-      spec: Option[String],
-      name: Option[String],
-      conf: Option[String],
-      error: Option[String]
-    ) extends Ingest(store, writers, spec, name) {
-
-    private val converterCache = Caffeine.newBuilder().build(
-      new CacheLoader[(SimpleFeatureType, String), Either[Throwable, ObjectPool[SimpleFeatureConverter]]]() {
-        override def load(key: (SimpleFeatureType, String)): Either[Throwable, ObjectPool[SimpleFeatureConverter]] = {
-          ConverterConfigResolver.getArg(ConfArgs(key._2)).right.flatMap { base =>
-            try {
-              val config = error match {
-                case None => base
-                case Some(mode) =>
-                  val opts = ConfigValueFactory.fromMap(Collections.singletonMap("error-mode", mode))
-                  ConfigFactory.empty().withValue("options", opts).withFallback(base)
-              }
-
-              val factory = new BasePooledObjectFactory[SimpleFeatureConverter] {
-                override def create(): SimpleFeatureConverter = SimpleFeatureConverter(key._1, config)
-                override def wrap(obj: SimpleFeatureConverter): PooledObject[SimpleFeatureConverter] =
-                  new DefaultPooledObject(obj)
-                override def destroyObject(p: PooledObject[SimpleFeatureConverter]): Unit = p.getObject.close()
-              }
-
-              val poolConfig = new GenericObjectPoolConfig[SimpleFeatureConverter]()
-              poolConfig.setMaxTotal(-1)
-
-              Right(new GenericObjectPool(factory, poolConfig))
-            } catch {
-              case NonFatal(e) => Left(e)
-            }
-          }
-        }
-      }
-    )
-
-    override protected def ingest(
-        session: ProcessSession,
-        file: FlowFile,
-        name: String,
-        sft: SimpleFeatureType,
-        fw: SimpleFeatureWriter): (Long, Long) = {
-
-      val config = Option(file.getAttribute(Attributes.ConverterAttribute)).orElse(conf).getOrElse {
-        throw new IllegalArgumentException(
-          s"Converter not specified: configure '$ConverterNameKey', '${ConverterSpec.getName}' " +
-              s"or flow-file attribute '${Attributes.ConverterAttribute}'")
-      }
-
-      val converters = converterCache.get(sft -> config) match {
-        case Left(e) => throw e
-        case Right(c) => c
-      }
-
-      val converter = converters.borrowObject()
-      try {
-        val ec = converter.createEvaluationContext(EvaluationContext.inputFileParam(name))
-        session.read(file, new InputStreamCallback {
-          override def process(in: InputStream): Unit = {
-            converter.process(in, ec).foreach { sf =>
-              try { FeatureUtils.write(fw, sf) } catch {
-                case NonFatal(e) =>
-                  ec.success.inc(-1)
-                  ec.failure.inc(1)
-                  logError(sf, e)
-              }
-            }
-          }
-        })
-        (ec.success.getCount, ec.failure.getCount)
-      } finally {
-        converters.returnObject(converter)
-      }
-    }
-
-    override def close(): Unit = {
-      try { super.close() } finally {
-        CloseQuietly.raise(converterCache.asMap.asScala.values.flatMap(_.right.toSeq))
-      }
-    }
-  }
-
-  /**
-   * GeoAvro ingest
-   *
-   * @param store data store
-   * @param writers feature writers
-   * @param spec simple feature spec
-   * @param name simple feature name override
-   */
-  class AvroIngest(
-      store: DataStore,
-      writers: Writers,
-      spec: Option[String],
-      name: Option[String]
-    ) extends Ingest(store, writers, spec, name) {
-
-    override protected def ingest(
-        session: ProcessSession,
-        file: FlowFile,
-        name: String,
-        sft: SimpleFeatureType,
-        fw: SimpleFeatureWriter): (Long, Long) = {
-
-      var success = 0L
-      var failure = 0L
-
-      session.read(file, new InputStreamCallback {
-        override def process(in: InputStream): Unit = {
-          val reader = new AvroDataFileReader(in)
-          try {
-            checkCompatibleSchema(sft, reader.getSft)
-            reader.foreach { sf =>
-              try {
-                FeatureUtils.write(fw, sf)
-                success += 1L
-              } catch {
-                case NonFatal(e) =>
-                  failure += 1L
-                  logError(sf, e)
-              }
-            }
-          } finally {
-            reader.close()
-          }
-        }
-      })
-
-      (success, failure)
-    }
-  }
 }
 
 object AbstractGeoIngestProcessor {
@@ -456,17 +295,6 @@ object AbstractGeoIngestProcessor {
     */
   def invalid(message: String): ValidationResult = new ValidationResult.Builder().input(message).build()
 
-  private def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =
-    props.toStream.flatMap(p => Option(context.getProperty(p).getValue)).headOption
-
-  /**
-    * Full name of a flow file
-    *
-    * @param f flow file
-    * @return
-    */
-  private def fullName(f: FlowFile): String = f.getAttribute("path") + f.getAttribute("filename")
-
   /**
     * Verifies the input type is compatible with the existing feature type in the data store
     *
@@ -482,7 +310,7 @@ object AbstractGeoIngestProcessor {
     * @param existing current feature type
     * @param input input simple feature type
     */
-  private def checkCompatibleSchema(existing: SimpleFeatureType, input: SimpleFeatureType): Unit = {
+  def checkCompatibleSchema(existing: SimpleFeatureType, input: SimpleFeatureType): Unit = {
     require(existing != null) // if we're calling this method the schema should have already been created
 
     lazy val exception =
@@ -503,10 +331,16 @@ object AbstractGeoIngestProcessor {
     }
   }
 
-  object IngestMode {
-    val Converter    = "Converter"
-    val AvroDataFile = "AvroDataFile"
-  }
+  def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =
+    props.toStream.flatMap(p => Option(context.getProperty(p).getValue)).headOption
+
+  /**
+   * Full name of a flow file
+   *
+   * @param f flow file
+   * @return
+   */
+  private def fullName(f: FlowFile): String = f.getAttribute("path") + f.getAttribute("filename")
 
   /**
     * Abstraction over feature writers
@@ -584,15 +418,6 @@ object AbstractGeoIngestProcessor {
     */
   object Properties {
 
-    val IngestModeProp: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("Mode")
-          .required(true)
-          .description("Ingest mode")
-          .allowableValues(IngestMode.Converter, IngestMode.AvroDataFile)
-          .defaultValue(IngestMode.Converter)
-          .build()
-
     val SftNameKey = "SftName"
 
     def sftName(values: Seq[String]): PropertyDescriptor =
@@ -622,40 +447,11 @@ object AbstractGeoIngestProcessor {
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
-    val ConverterNameKey = "ConverterName"
-
-    def converterName(values: Seq[String]): PropertyDescriptor =
+    val ExtraClasspaths: PropertyDescriptor =
       new PropertyDescriptor.Builder()
-          .name(ConverterNameKey)
+          .name("ExtraClasspaths")
           .required(false)
-          .description("Choose an SimpleFeature Converter defined by a GeoMesa SFT Provider (preferred)")
-          .allowableValues(values.sorted: _*)
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .build()
-
-    val ConverterSpec: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("ConverterSpec")
-          .required(false)
-          .description("Manually define a converter using typesafe config")
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .addValidator(ConverterValidator)
-          .build()
-
-    val ConverterErrorMode: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("ConverterErrorMode")
-          .required(false)
-          .description("Override the converter error mode behavior")
-          .allowableValues(ErrorMode.SkipBadRecords.toString, ErrorMode.RaiseErrors.toString)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .build()
-
-    val ConverterClasspath: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("ConverterClasspath")
-          .required(false)
-          .description("Add additional converter resources to the classpath")
+          .description("Add additional resources to the classpath")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .dynamicallyModifiesClasspath(true)

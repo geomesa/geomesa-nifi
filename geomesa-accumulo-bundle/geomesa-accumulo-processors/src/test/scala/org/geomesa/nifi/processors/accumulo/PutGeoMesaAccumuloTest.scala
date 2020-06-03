@@ -10,8 +10,7 @@ package org.geomesa.nifi.processors.accumulo
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor
-import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor.IngestMode
+import org.geomesa.nifi.datastore.processor.{AbstractGeoIngestProcessor, ConverterIngestProcessor}
 import org.geotools.data.DataStoreFinder
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
@@ -40,9 +39,8 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
-      runner.setProperty(AbstractGeoIngestProcessor.Properties.IngestModeProp, IngestMode.Converter)
       runner.setProperty(AbstractGeoIngestProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(AbstractGeoIngestProcessor.Properties.ConverterNameKey, "example-csv")
+      runner.setProperty(ConverterIngestProcessor.ConverterNameKey, "example-csv")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
       runner.run()
       runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.SuccessRelationship, 1)
@@ -71,7 +69,6 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
-      runner.setProperty(AbstractGeoIngestProcessor.Properties.IngestModeProp, IngestMode.Converter)
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(AbstractGeoIngestProcessor.Attributes.SftSpecAttribute, "example")
       attributes.put(AbstractGeoIngestProcessor.Attributes.ConverterAttribute, "example-csv")
@@ -103,9 +100,8 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
-      runner.setProperty(AbstractGeoIngestProcessor.Properties.IngestModeProp, IngestMode.Converter)
       runner.setProperty(AbstractGeoIngestProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(AbstractGeoIngestProcessor.Properties.ConverterNameKey, "example-csv")
+      runner.setProperty(ConverterIngestProcessor.ConverterNameKey, "example-csv")
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(AbstractGeoIngestProcessor.Attributes.SftNameAttribute, "renamed")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"), attributes)

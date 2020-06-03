@@ -6,8 +6,8 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.processors.fs
+package org.geomesa.nifi.processors.hbase
 
 import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-class PutGeoMesaFileSystem extends GeoMesaFileSystemProcessor with ConverterIngestProcessor
+class AvroToPutGeoMesaHBase extends GeoMesaHBaseProcessor with ConverterIngestProcessor

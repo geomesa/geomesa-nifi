@@ -6,7 +6,7 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor
+package org.geomesa.nifi.datastore.processor.geotools
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
@@ -15,15 +15,16 @@ import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, Valida
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
+import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor
 import org.geotools.data.{DataStoreFactorySpi, DataStoreFinder}
 
 @Tags(Array("geomesa", "geo", "ingest", "geotools", "datastore", "features", "simple feature"))
 @CapabilityDescription("store avro files into geomesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
-class PutGeoTools extends AbstractGeoIngestProcessor(Seq(PutGeoTools.DataStoreName)) {
+abstract class GeoToolsIngestProcessor extends AbstractGeoIngestProcessor(Seq(GeoToolsIngestProcessor.DataStoreName)) {
 
-  import PutGeoTools.DataStoreName
+  import GeoToolsIngestProcessor.DataStoreName
 
   import scala.collection.JavaConverters._
 
@@ -37,7 +38,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor(Seq(PutGeoTools.DataStoreNa
     new PropertyDescriptor.Builder()
         .name(propertyDescriptorName)
         .description("Sets the value on the DataStore")
-        .sensitive(PutGeoTools.sensitiveProps().contains(propertyDescriptorName))
+        .sensitive(GeoToolsIngestProcessor.sensitiveProps().contains(propertyDescriptorName))
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .dynamic(true)
@@ -65,7 +66,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor(Seq(PutGeoTools.DataStoreNa
       result.add(invalid(DataStoreName.getName, "Must define available DataSore name"))
     } else {
       logger.debug(s"Attempting to validate params for DataSore $dsName")
-      val dsParams = PutGeoTools.listDataStores().find(_.getDisplayName == dsName).toSeq.flatMap(_.getParametersInfo)
+      val dsParams = GeoToolsIngestProcessor.listDataStores().find(_.getDisplayName == dsName).toSeq.flatMap(_.getParametersInfo)
       val required = dsParams.filter(_.isRequired)
       logger.debug(s"Required props for DataSore $dsName are ${required.mkString(", ")}")
 
@@ -83,7 +84,7 @@ class PutGeoTools extends AbstractGeoIngestProcessor(Seq(PutGeoTools.DataStoreNa
   }
 }
 
-object PutGeoTools {
+object GeoToolsIngestProcessor {
 
   import scala.collection.JavaConverters._
 
