@@ -63,8 +63,42 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   }
 
   @Test
-  def testIngestAttributes(): Unit = {
-    val catalog = s"${root}IngestAttributes"
+  def testIngestConvertAttributes(): Unit = {
+    val catalog = s"${root}IngestConvertAttributes"
+    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(ConverterIngestProcessor.ConvertFlowFileAttributes, "true")
+      val attributes = new java.util.HashMap[String, String]()
+      attributes.put(AbstractGeoIngestProcessor.Attributes.SftSpecAttribute, "example")
+      attributes.put(AbstractGeoIngestProcessor.Attributes.ConverterAttribute, "example-csv-attributes")
+      attributes.put("my.flowfile.attribute", "foobar")
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"), attributes)
+      runner.run()
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.FailureRelationship, 0)
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(3, features.length)
+      Assert.assertEquals(Seq("foobar2", "foobar3", "foobar4"), features.map(_.getID).sorted)
+    } finally {
+      ds.dispose()
+    }
+  }
+
+  @Test
+  def testIngestConfigureAttributes(): Unit = {
+    val catalog = s"${root}IngestConfigureAttributes"
     val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
@@ -94,8 +128,8 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   }
 
   @Test
-  def testIngestAttributeOverride(): Unit = {
-    val catalog = s"${root}IngestAttributeOverride"
+  def testIngestConfigureAttributeOverride(): Unit = {
+    val catalog = s"${root}IngestConfigureAttributeOverride"
     val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }

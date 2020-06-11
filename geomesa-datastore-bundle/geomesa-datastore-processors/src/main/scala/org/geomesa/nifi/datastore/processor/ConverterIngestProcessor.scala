@@ -59,7 +59,10 @@ trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
   }
 
   override protected def getProcessorProperties: Seq[PropertyDescriptor] =
-    Seq(converterName, ConverterSpec, ConverterErrorMode)
+    super.getProcessorProperties ++ Seq(converterName, ConverterSpec, ConverterErrorMode)
+
+  override protected def getConfigProperties: Seq[PropertyDescriptor] =
+    super.getConfigProperties ++ Seq(ConvertFlowFileAttributes)
 
   override protected def createIngest(
       context: ProcessContext,
@@ -69,7 +72,8 @@ trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
       typeName: Option[String]): IngestProcessor = {
     val converterArg = AbstractGeoIngestProcessor.getFirst(context, Seq(converterName, ConverterSpec))
     val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
-    new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode)
+    val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
+    new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode, attributes)
   }
 
   /**
@@ -88,7 +92,8 @@ trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
       spec: Option[String],
       name: Option[String],
       conf: Option[String],
-      error: Option[String]
+      error: Option[String],
+      exposeAttributes: Boolean
     ) extends IngestProcessor(store, writers, spec, name) {
 
     private val converterCache = Caffeine.newBuilder().build(
@@ -142,7 +147,10 @@ trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
 
       val converter = converters.borrowObject()
       try {
-        val ec = converter.createEvaluationContext(EvaluationContext.inputFileParam(name))
+        val globalParams =
+          EvaluationContext.inputFileParam(name) ++
+              (if (exposeAttributes) { file.getAttributes.asScala -- Attributes.all } else { Map.empty })
+        val ec = converter.createEvaluationContext(globalParams)
         session.read(file, new InputStreamCallback {
           override def process(in: InputStream): Unit = {
             converter.process(in, ec).foreach { sf =>
@@ -200,4 +208,13 @@ object ConverterIngestProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build()
 
+  val ConvertFlowFileAttributes: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+        .name("ConvertFlowFileAttributes")
+        .required(false)
+        .description("Expose flow file attributes to the converter framework by name")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build()
 }

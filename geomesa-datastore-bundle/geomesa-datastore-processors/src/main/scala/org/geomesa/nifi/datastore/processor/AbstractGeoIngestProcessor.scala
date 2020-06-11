@@ -75,10 +75,9 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
   def initDescriptors(): Unit = {
     sftName = Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
     val sftProps = Seq(sftName, SftSpec, FeatureNameOverride)
-    val configProps = Seq(NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
     descriptors =
         sftProps ++ getProcessorProperties ++ Seq(ExtraClasspaths) ++
-            dataStoreProperties ++ configProps ++ getServiceProperties
+            dataStoreProperties ++ getConfigProperties ++ getServiceProperties
   }
 
   @OnScheduled
@@ -150,6 +149,9 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
   }
 
   protected def getProcessorProperties: Seq[PropertyDescriptor] = Seq.empty
+
+  protected def getConfigProperties: Seq[PropertyDescriptor] =
+    Seq(NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
 
   protected def getServiceProperties: Seq[PropertyDescriptor] = Seq.empty
 
@@ -489,9 +491,12 @@ object AbstractGeoIngestProcessor {
   }
 
   object Attributes {
+
     val ConverterAttribute = "geomesa.converter"
     val SftNameAttribute   = "geomesa.sft.name"
     val SftSpecAttribute   = "geomesa.sft.spec"
+
+    val all: Seq[String] = Seq(ConverterAttribute, SftNameAttribute, SftSpecAttribute)
   }
 
   object Relationships {
