@@ -22,5 +22,5 @@ import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 abstract class GeoMesaRedisProcessor extends AbstractGeoIngestProcessor(GeoMesaRedisProcessor.RedisProperties)
 
 object GeoMesaRedisProcessor extends PropertyDescriptorUtils {
-  private val RedisProperties = RedisDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor)
+  private val RedisProperties = createPropertyDescriptors(RedisDataStoreFactory)
 }

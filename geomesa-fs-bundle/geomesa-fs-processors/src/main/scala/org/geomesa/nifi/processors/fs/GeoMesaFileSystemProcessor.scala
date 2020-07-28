@@ -66,6 +66,5 @@ object GeoMesaFileSystemProcessor extends PropertyDescriptorUtils {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build()
 
-  private val FileSystemProperties =
-    FileSystemDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor) :+ PartitionSchemeParam
+  private val FileSystemProperties = createPropertyDescriptors(FileSystemDataStoreFactory) :+ PartitionSchemeParam
 }
