@@ -26,5 +26,5 @@ abstract class GeoMesaHBaseProcessor
 }
 
 object GeoMesaHBaseProcessor extends PropertyDescriptorUtils {
-  private val HBaseProperties = HBaseDataStoreFactory.ParameterInfo.toList.map(createPropertyDescriptor)
+  private val HBaseProperties = createPropertyDescriptors(HBaseDataStoreFactory)
 }

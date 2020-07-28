@@ -14,11 +14,21 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.Parameter
+import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory.GeoMesaDataStoreInfo
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
 import scala.util.control.NonFatal
 
 trait PropertyDescriptorUtils extends LazyLogging {
+
+  /**
+   * Create descriptors for a data store
+   *
+   * @param info parameter info
+   * @return
+   */
+  def createPropertyDescriptors(info: GeoMesaDataStoreInfo): List[PropertyDescriptor] =
+    info.ParameterInfo.toList.collect { case p if p.readWrite.append => createPropertyDescriptor(p) }
 
   /**
    * Creates a nifi property descriptor based on a geotools data store parameter

@@ -14,7 +14,9 @@ import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.processor.ProcessContext
 import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
+import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.KafkaDataStoreFactoryParams
+import org.locationtech.geomesa.kafka.data.KafkaDataStoreFactory.KafkaDataStoreFactoryParams.{ProducerConfig, TopicPartitions, TopicReplication}
 
 @Tags(Array("geomesa", "kafka", "streaming", "stream", "geo", "ingest", "convert", "geotools"))
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
@@ -27,13 +29,8 @@ abstract class GeoMesaKafkaProcessor extends AbstractGeoIngestProcessor(GeoMesaK
 }
 
 object GeoMesaKafkaProcessor extends PropertyDescriptorUtils {
-
-  import KafkaDataStoreFactoryParams._
-
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
-  private val KafkaProperties = {
-    val params =
-      Seq(Brokers, Zookeepers, ZkPath, ProducerConfig, SerializationType, TopicPartitions, TopicReplication)
-    params.map(createPropertyDescriptor)
-  }
+  private val KafkaProperties =
+    createPropertyDescriptors(KafkaDataStoreFactory) ++
+        Seq(ProducerConfig, TopicPartitions, TopicReplication).map(createPropertyDescriptor)
 }

@@ -87,9 +87,7 @@ object AccumuloIngestProcessor extends PropertyDescriptorUtils {
         .identifiesControllerService(classOf[DataStoreConfigService])
         .build()
 
-  private val AccumuloProperties = {
-    val params = AccumuloDataStoreFactory.ParameterInfo.toList
+  private val AccumuloProperties =
     // don't require any properties because we are using the controller service
-    params.map(p => unrequired(createPropertyDescriptor(p))) :+ GeoMesaConfigController
-  }
+    createPropertyDescriptors(AccumuloDataStoreFactory).map(unrequired) :+ GeoMesaConfigController
 }
