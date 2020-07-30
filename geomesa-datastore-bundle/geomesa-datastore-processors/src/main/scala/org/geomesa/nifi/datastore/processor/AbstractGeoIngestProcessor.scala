@@ -161,17 +161,8 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
     * @param context context
     * @return
     */
-  protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
-    val seq = dataStoreProperties.flatMap { p =>
-      val property = {
-        val prop = context.getProperty(p.getName)
-        if (p.isExpressionLanguageSupported) { prop.evaluateAttributeExpressions() }  else { prop }
-      }
-      val value = property.getValue
-      if (value == null) { Seq.empty } else { Seq(p.getName -> value) }
-    }
-    seq.toMap
-  }
+  protected def getDataStoreParams(context: ProcessContext): Map[String, _] =
+    AbstractGeoIngestProcessor.getDataStoreParams(context, dataStoreProperties)
 
   protected def decorate(sft: SimpleFeatureType): Unit = {}
 
@@ -335,6 +326,21 @@ object AbstractGeoIngestProcessor {
 
   def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =
     props.toStream.flatMap(p => Option(context.getProperty(p).getValue)).headOption
+
+  def getDataStoreParams(context: ProcessContext, props: Seq[PropertyDescriptor]): Map[String, _] = {
+    val builder = Map.newBuilder[String, AnyRef]
+    props.foreach { p =>
+      val property = {
+        val prop = context.getProperty(p.getName)
+        if (p.isExpressionLanguageSupported) { prop.evaluateAttributeExpressions() }  else { prop }
+      }
+      val value = property.getValue
+      if (value != null) {
+        builder += p.getName -> value
+      }
+    }
+    builder.result
+  }
 
   /**
    * Full name of a flow file
