@@ -308,7 +308,7 @@ object AbstractGeoIngestProcessor {
     * @param existing current feature type
     * @param input input simple feature type
     */
-  def checkCompatibleSchema(existing: SimpleFeatureType, input: SimpleFeatureType): Try[Boolean] = {
+  def checkCompatibleSchema(existing: SimpleFeatureType, input: SimpleFeatureType): Try[Unit] = {
     require(existing != null) // if we're calling this method the schema should have already been created
 
     lazy val exception =
@@ -327,7 +327,7 @@ object AbstractGeoIngestProcessor {
       }
       i += 1
     }
-    Success(true)
+    Success()
   }
 
   def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =

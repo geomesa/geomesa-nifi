@@ -10,6 +10,7 @@ package org.geomesa.nifi.processors.accumulo
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.TestRunners
+import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
 import org.geomesa.nifi.datastore.processor.{AbstractGeoIngestProcessor, AvroIngestProcessor, ConverterIngestProcessor}
 import org.geotools.data.DataStoreFinder
 import org.junit.{Assert, Test}
@@ -203,7 +204,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
       runner.setProperty(AbstractGeoIngestProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(AvroIngestProcessor.AvroMatchMode, "lenient")
+      runner.setProperty(AvroIngestProcessor.AvroMatchMode, LenientMatch)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
 
       runner.run()

@@ -28,26 +28,28 @@ import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 object AvroIngestProcessor {
+  val ExactMatch = "by attribute number and order"
+  val LenientMatch = "by attribute name"
   val AvroMatchMode: PropertyDescriptor =
     new PropertyDescriptor.Builder()
       .name("Avro SFT match mode")
       .description("Determines how Avro SFT mismatches are handled")
       .required(false)
-      .defaultValue("strict")
-      .allowableValues("strict", "lenient")
+      .defaultValue(ExactMatch)
+      .allowableValues(ExactMatch, LenientMatch)
       .build()
 
   def buildWriter(sft1: SimpleFeatureType,
                   sft2: SimpleFeatureType,
                   matchMode: String): (FeatureWriter[SimpleFeatureType, SimpleFeature], SimpleFeature) => Unit = {
     checkCompatibleSchema(sft1, sft2) match {
-      case Success(true) =>
+      case Success(()) =>
         // Schemas match, so use a regular writer.
         // TODO:  Discuss if the useProvidedFid should be true!
         (fw: FeatureWriter[SimpleFeatureType, SimpleFeature], sf: SimpleFeature) =>
           FeatureUtils.write(fw, sf, true)
       case Failure(error) =>
-        if (matchMode == "lenient") {
+        if (matchMode == LenientMatch) {
           val sfConverter = convert(sft1, sft2)
           (fw: FeatureWriter[SimpleFeatureType, SimpleFeature], sf: SimpleFeature) => {
             val sfToWrite = sfConverter(sf)
@@ -62,22 +64,23 @@ object AvroIngestProcessor {
   import scala.collection.JavaConverters._
   // Creates an adapter from one SFT to another
   def convert(in: SimpleFeatureType, out: SimpleFeatureType): SimpleFeature => SimpleFeature = {
-    val out_geometry_ln = out.getGeometryDescriptor.getLocalName
-    val in2out = out.getAttributeDescriptors.asScala.map { out_ad =>
-      val out_ad_ln = out_ad.getLocalName
-      in.indexOf(out_ad_ln) match {
-        case in_index if in_index >= 0 =>
-          val out_ad_tb = out_ad.getType.getBinding
-          if (out_ad_tb.isAssignableFrom(in.getType(in_index).getBinding)) {
-            sf: SimpleFeature => sf.getAttribute(in_index)
+    import RichSimpleFeatureType._
+    val outGeometryLocalName = out.getGeomField
+    val inToOut = out.getAttributeDescriptors.asScala.map { outAttributeDescriptor =>
+      val outLocalName = outAttributeDescriptor.getLocalName
+      in.indexOf(outLocalName) match {
+        case inIndex if inIndex >= 0 =>
+          val outTypeBinding = outAttributeDescriptor.getType.getBinding
+          if (outTypeBinding.isAssignableFrom(in.getType(inIndex).getBinding)) {
+            sf: SimpleFeature => sf.getAttribute(inIndex)
           } else {
-            sf: SimpleFeature => Converters.convert(sf.getAttribute(in_index), out_ad_tb).asInstanceOf[AnyRef]
+            sf: SimpleFeature => Converters.convert(sf.getAttribute(inIndex), outTypeBinding).asInstanceOf[AnyRef]
           }
-        case _ if out_ad_ln.equals(out_geometry_ln) => sf: SimpleFeature => sf.getDefaultGeometry
+        case _ if outLocalName.equals(outGeometryLocalName) => sf: SimpleFeature => sf.getDefaultGeometry
         case _ => _: SimpleFeature => null
       }
     }
-    sf: SimpleFeature => SimpleFeatureBuilder.build(out, in2out.map(_(sf)).asJava, sf.getID)
+    sf: SimpleFeature => SimpleFeatureBuilder.build(out, inToOut.map(_(sf)).asJava, sf.getID)
   }
 }
 
