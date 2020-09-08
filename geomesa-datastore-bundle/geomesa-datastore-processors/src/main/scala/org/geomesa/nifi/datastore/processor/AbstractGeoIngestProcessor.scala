@@ -30,6 +30,7 @@ import org.locationtech.geomesa.utils.geotools._
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 /**
@@ -197,7 +198,11 @@ abstract class AbstractGeoIngestProcessor(dataStoreProperties: Seq[PropertyDescr
             try {
               decorate(sft)
               if (existingSfts.contains(sft.getTypeName)) {
-                AbstractGeoIngestProcessor.checkCompatibleSchema(store.getSchema(sft.getTypeName), sft)
+                AbstractGeoIngestProcessor.checkCompatibleSchema(store.getSchema(sft.getTypeName), sft) match {
+                  case Failure(exception) =>
+                    throw exception
+                  case _ =>
+                }
               } else {
                 logger.info(s"Creating schema '${sft.getTypeName}'. Existing types are: ${existingSfts.mkString(", ")}")
                 store.createSchema(sft)
@@ -303,7 +308,7 @@ object AbstractGeoIngestProcessor {
     * @param existing current feature type
     * @param input input simple feature type
     */
-  def checkCompatibleSchema(existing: SimpleFeatureType, input: SimpleFeatureType): Unit = {
+  def checkCompatibleSchema(existing: SimpleFeatureType, input: SimpleFeatureType): Try[Unit] = {
     require(existing != null) // if we're calling this method the schema should have already been created
 
     lazy val exception =
@@ -312,16 +317,17 @@ object AbstractGeoIngestProcessor {
           s"\n\tExisting: ${SimpleFeatureTypes.encodeType(existing)}")
 
     if (input.getAttributeCount > existing.getAttributeCount) {
-      throw exception
+      return Failure(exception)
     }
 
     var i = 0
     while (i < input.getAttributeCount) {
       if (!existing.getDescriptor(i).getType.getBinding.isAssignableFrom(input.getDescriptor(i).getType.getBinding)) {
-        throw exception
+        return Failure(exception)
       }
       i += 1
     }
+    Success()
   }
 
   def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =

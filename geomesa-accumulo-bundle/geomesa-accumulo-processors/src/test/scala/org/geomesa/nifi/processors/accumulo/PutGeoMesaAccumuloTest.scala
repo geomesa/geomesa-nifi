@@ -10,11 +10,13 @@ package org.geomesa.nifi.processors.accumulo
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.{AbstractGeoIngestProcessor, ConverterIngestProcessor}
+import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
+import org.geomesa.nifi.datastore.processor.{AbstractGeoIngestProcessor, AvroIngestProcessor, ConverterIngestProcessor}
 import org.geotools.data.DataStoreFinder
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
+import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 
 class PutGeoMesaAccumuloTest extends LazyLogging {
@@ -154,6 +156,77 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       val features = SelfClosingIterator(ds.getFeatureSource("renamed").getFeatures.features()).toList
       logger.debug(features.mkString(";"))
       Assert.assertEquals(3, features.length)
+    } finally {
+      ds.dispose()
+    }
+  }
+
+  @Test
+  def testAvroIngest(): Unit = {
+    val catalog = s"${root}AvroIngest"
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(AbstractGeoIngestProcessor.Properties.SftNameKey, "example")
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
+
+      runner.run()
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.FailureRelationship, 0)
+
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("bad-example-csv.avro"))
+      runner.run()
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.FailureRelationship, 1)
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(3, features.length)
+    } finally {
+      ds.dispose()
+    }
+  }
+
+  @Test
+  def testAvroIngestByName(): Unit = {
+    val catalog = s"${root}AvroIngestByName"
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(AbstractGeoIngestProcessor.Properties.SftNameKey, "example")
+      runner.setProperty(AvroIngestProcessor.AvroMatchMode, LenientMatch)
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
+
+      runner.run()
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.FailureRelationship, 0)
+
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("bad-example-csv.avro"))
+      runner.run()
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.SuccessRelationship, 2)
+      runner.assertTransferCount(AbstractGeoIngestProcessor.Relationships.FailureRelationship, 0)
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(6, features.length)
     } finally {
       ds.dispose()
     }
