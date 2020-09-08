@@ -39,7 +39,7 @@ import scala.util.control.NonFatal
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags(Array("kafka", "geomesa", "ingress", "get", "input"))
+@Tags(Array("kafka", "geomesa", "ingress", "get", "input", "record"))
 @CapabilityDescription("Reads Kafka messages from a GeoMesa data source and writes them out as NiFi records")
 @WritesAttributes(
   Array(
@@ -133,7 +133,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val sft = ds.getSchema(typeName)
       require(sft != null,
         s"Feature type '$typeName' does not exist in the store. Available types: ${ds.getTypeNames.mkString(", ")}")
-      converter = SimpleFeatureRecordConverter(sft, encoding)
+      converter = SimpleFeatureRecordConverter.fromSFT(sft, encoding)
       schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
       fs = ds.getFeatureSource(typeName)
       fs.addFeatureListener(listener)

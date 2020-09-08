@@ -41,6 +41,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-record-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
 
@@ -111,7 +115,24 @@
         </dependency>
 
         <!-- test -->
-
+        <dependency>
+            <groupId>org.specs2</groupId>
+            <artifactId>specs2-core_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.specs2</groupId>
+            <artifactId>specs2-junit_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-services</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-processors</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>

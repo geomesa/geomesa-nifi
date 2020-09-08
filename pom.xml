@@ -146,8 +146,25 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-record-utils</artifactId>
+                <version>${nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-schema-registry-service-api</artifactId>
                 <version>${nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-record-serialization-services</artifactId>
+                <version>${nifi.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-processors</artifactId>
+                <version>${nifi.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <!-- managed submodules -->
