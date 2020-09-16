@@ -47,13 +47,13 @@ object AvroIngestProcessor {
         // Schemas match, so use a regular writer.
         // TODO:  Discuss if the useProvidedFid should be true!
         (fw: FeatureWriter[SimpleFeatureType, SimpleFeature], sf: SimpleFeature) =>
-          FeatureUtils.write(fw, sf, true)
+          FeatureUtils.write(fw, sf)
       case Failure(error) =>
         if (matchMode == LenientMatch) {
           val sfConverter = convert(sft1, sft2)
           (fw: FeatureWriter[SimpleFeatureType, SimpleFeature], sf: SimpleFeature) => {
             val sfToWrite = sfConverter(sf)
-            FeatureUtils.write(fw, sfToWrite, true)
+            FeatureUtils.write(fw, sfToWrite)
           }
         } else {
           throw error
