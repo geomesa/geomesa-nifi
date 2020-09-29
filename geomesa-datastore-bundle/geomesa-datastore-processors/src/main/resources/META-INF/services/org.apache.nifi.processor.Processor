@@ -1,3 +1,4 @@
 org.geomesa.nifi.datastore.processor.ConvertToGeoAvro
 org.geomesa.nifi.datastore.processor.geotools.PutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoToolsRecord
 org.geomesa.nifi.datastore.processor.geotools.AvroToPutGeoTools

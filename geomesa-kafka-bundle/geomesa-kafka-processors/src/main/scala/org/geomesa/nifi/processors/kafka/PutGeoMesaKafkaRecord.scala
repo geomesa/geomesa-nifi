@@ -6,8 +6,8 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.processors.hbase
+package org.geomesa.nifi.processors.kafka
 
-import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
+import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor
 
-class AvroToPutGeoMesaHBase extends GeoMesaHBaseProcessor with AvroIngestProcessor
+class PutGeoMesaKafkaRecord extends GeoMesaKafkaProcessor with RecordIngestProcessor

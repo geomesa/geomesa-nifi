@@ -8,6 +8,6 @@
 
 package org.geomesa.nifi.processors.hbase
 
-import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
+import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor
 
-class AvroToPutGeoMesaHBase extends GeoMesaHBaseProcessor with AvroIngestProcessor
+class PutGeoMesaHBaseRecord extends GeoMesaHBaseProcessor with RecordIngestProcessor

@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.csv.CSVRecordSetWriter
 import org.apache.nifi.serialization.DateTimeUtils
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor
+import org.geomesa.nifi.datastore.processor.Relationships
 import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
@@ -89,7 +89,7 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
         dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
         runner.run()
-        val results = runner.getFlowFilesForRelationship(AbstractGeoIngestProcessor.Relationships.SuccessRelationship)
+        val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
         results.size mustEqual 1
         new String(runner.getContentAsByteArray(results.get(0)))
       } finally {
