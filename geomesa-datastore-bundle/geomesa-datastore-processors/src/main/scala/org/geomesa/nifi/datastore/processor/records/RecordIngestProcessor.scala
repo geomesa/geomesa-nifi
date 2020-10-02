@@ -56,13 +56,15 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
           }
         }
       val geomEncoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
+      val jsonCols =
+        Option(context.getProperty(JsonCols).evaluateAttributeExpressions().getValue).toSeq.flatMap(_.split(","))
       val dtgCol = Option(context.getProperty(DefaultDateCol).evaluateAttributeExpressions().getValue)
       val visCol = Option(context.getProperty(VisibilitiesCol).evaluateAttributeExpressions().getValue)
       val userData = Option(context.getProperty(SchemaUserData).evaluateAttributeExpressions().getValue) match {
         case Some(spec) => SimpleFeatureSpecParser.parse(";" + spec).options
         case None => Map.empty[String, AnyRef]
       }
-      RecordConverterOptions(typeName, fidCol, geomCols, geomEncoding, dtgCol, visCol, userData)
+      RecordConverterOptions(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
     }
 
     new RecordIngest(dataStore, writers, factory, options)
@@ -149,6 +151,7 @@ object RecordIngestProcessor {
     FeatureIdCol,
     GeometryCols,
     GeometrySerialization,
+    JsonCols,
     DefaultDateCol,
     VisibilitiesCol,
     SchemaUserData
@@ -207,6 +210,18 @@ object RecordIngestProcessor {
           .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
           .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
           .defaultValue(GeometryEncodingLabels.Wkt)
+          .build()
+
+    val JsonCols: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+          .name("json-cols")
+          .displayName("JSON columns")
+          .description(
+            "Column(s) that contain valid JSON documents, comma-separated. " +
+                "The columns must be STRING type")
+          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+          .required(false)
           .build()
 
     val DefaultDateCol: PropertyDescriptor =

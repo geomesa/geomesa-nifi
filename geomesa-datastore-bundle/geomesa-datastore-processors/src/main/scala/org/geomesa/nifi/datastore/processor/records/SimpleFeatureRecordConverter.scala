@@ -24,6 +24,7 @@ import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.utils.geotools.ObjectType
 import org.locationtech.geomesa.utils.geotools.ObjectType.ObjectType
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.AttributeOptions
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.locationtech.jts.geom.Geometry
 import org.opengis.feature.`type`.AttributeDescriptor
@@ -172,6 +173,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
    * @return
    */
   def apply(schema: RecordSchema, options: RecordConverterOptions): SimpleFeatureRecordConverter = {
+
     val typeName =
       options.typeName
           .orElse(schema.getSchemaName.asScala)
@@ -179,7 +181,13 @@ object SimpleFeatureRecordConverter extends LazyLogging {
           .getOrElse(throw new IllegalArgumentException("No schema name defined in schema or processor"))
 
     // validate options
-    val opts = options.fidField.toSeq ++ options.geomFields.map(_.name) ++ options.dtgField ++ options.visField
+    val opts =
+      options.fidField.toSeq ++
+          options.geomFields.map(_.name) ++
+          options.jsonFields ++
+          options.dtgField ++
+          options.visField
+
     opts.foreach { name =>
       if (!schema.getField(name).isPresent) {
         logger.warn(
@@ -213,7 +221,14 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     val sft: SimpleFeatureType = {
       val builder = new SimpleFeatureTypeBuilder()
       builder.setName(typeName)
-      builder.addAll(converters.map(_.descriptor).asJava)
+      val descriptors = converters.map { c =>
+        val descriptor = c.descriptor
+        if (options.jsonFields.contains(c.name)) {
+          descriptor.getUserData.put(AttributeOptions.OptJson, "true")
+        }
+        descriptor
+      }
+      builder.addAll(descriptors.asJava)
       options.geomFields.find(_.default).foreach(g => builder.setDefaultGeometry(g.name))
       builder.buildFeatureType()
     }

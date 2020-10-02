@@ -57,6 +57,7 @@ package object records {
       fidField: Option[String] = None,
       geomFields: Seq[GeometryColumn] = Seq.empty,
       encoding: GeometryEncoding.GeometryEncoding = GeometryEncoding.Wkt,
+      jsonFields: Seq[String] = Seq.empty,
       dtgField: Option[String] = None,
       visField: Option[String] = None,
       userData: Map[String, AnyRef] = Map.empty

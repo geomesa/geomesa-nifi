@@ -26,6 +26,8 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class SimpleFeatureRecordConverterTest extends Specification with LazyLogging {
 
+  import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
+
   import scala.collection.JavaConverters._
 
   "SimpleFeatureRecordConverter" should {
@@ -56,20 +58,24 @@ class SimpleFeatureRecordConverterTest extends Specification with LazyLogging {
             new RecordField("name", RecordFieldType.STRING.getDataType),
             new RecordField("age", RecordFieldType.INT.getDataType),
             new RecordField("dtg", RecordFieldType.DATE.getDataType),
-            new RecordField("geom", RecordFieldType.STRING.getDataType)
+            new RecordField("geom", RecordFieldType.STRING.getDataType),
+            new RecordField("json", RecordFieldType.STRING.getDataType)
           )
         new SimpleRecordSchema(fields.asJava, id)
       }
 
       val opts = RecordConverterOptions(
         fidField = Some("id"),
-        geomFields = Seq(GeometryColumn("geom", classOf[Point], default = true))
+        geomFields = Seq(GeometryColumn("geom", classOf[Point], default = true)),
+        jsonFields = Seq("json")
       )
       val converter = SimpleFeatureRecordConverter(schema, opts)
       converter.sft.getTypeName mustEqual "test"
-      converter.sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual Seq("name", "age", "dtg", "geom")
+      converter.sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual
+          Seq("name", "age", "dtg", "geom", "json")
       converter.sft.getAttributeDescriptors.asScala.map(_.getType.getBinding) mustEqual
-          Seq(classOf[String], classOf[Integer], classOf[Date], classOf[Point])
+          Seq(classOf[String], classOf[Integer], classOf[Date], classOf[Point], classOf[String])
+      converter.sft.getDescriptor("json").isJson must beTrue
 
       val record = new MapRecord(schema, new java.util.HashMap[String, AnyRef])
       record.setValue("id", "id")
@@ -77,6 +83,7 @@ class SimpleFeatureRecordConverterTest extends Specification with LazyLogging {
       record.setValue("age", 10)
       record.setValue("dtg", FastConverter.convert("2020-01-01T00:00:00.000Z", classOf[Date]))
       record.setValue("geom", "POINT (45 55)")
+      record.setValue("json", "{}")
 
       val feature = converter.convert(record)
       feature.getID mustEqual "id"
@@ -85,6 +92,7 @@ class SimpleFeatureRecordConverterTest extends Specification with LazyLogging {
       feature.getAttribute("dtg") must not(beNull)
       feature.getAttribute("dtg") mustEqual record.getValue("dtg")
       feature.getAttribute("geom") mustEqual WKTUtils.read("POINT (45 55)")
+      feature.getAttribute("json") mustEqual "{}"
     }
 
     "convert nested records to json strings" in {
