@@ -8,14 +8,15 @@
 
 package org.geomesa.nifi.datastore.processor.records
 
-import java.util.{Date, UUID}
+import java.util.{Collections, Date, UUID}
 
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record._
 import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
 import org.locationtech.geomesa.features.ScalaSimpleFeature
-import org.locationtech.geomesa.features.serialization.ObjectType
-import org.locationtech.geomesa.features.serialization.ObjectType.ObjectType
+import org.locationtech.geomesa.security.SecurityUtils
+import org.locationtech.geomesa.utils.geotools.ObjectType
+import org.locationtech.geomesa.utils.geotools.ObjectType.ObjectType
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.locationtech.jts.geom.Geometry
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -34,11 +35,16 @@ object SimpleFeatureRecordConverter {
 
   import scala.collection.JavaConverters._
 
-  def apply(sft: SimpleFeatureType, encoding: GeometryEncoding = GeometryEncoding.Wkt): SimpleFeatureRecordConverter = {
+  val VisibilitiesField = new RecordField("visibilities", RecordFieldType.STRING.getDataType)
+
+  def apply(
+      sft: SimpleFeatureType,
+      encoding: GeometryEncoding = GeometryEncoding.Wkt,
+      includeVisibilities: Boolean = false): SimpleFeatureRecordConverter = {
     val converters = sft.getAttributeDescriptors.asScala.map { descriptor =>
       getConverter(descriptor.getLocalName, ObjectType.selectType(descriptor), encoding)
     }
-    new SimpleFeatureRecordConverterImpl(sft, converters.toArray)
+    new SimpleFeatureRecordConverterImpl(sft, converters.toArray, includeVisibilities)
   }
 
   private def getConverter(
@@ -67,13 +73,17 @@ object SimpleFeatureRecordConverter {
 
   class SimpleFeatureRecordConverterImpl(
       val sft: SimpleFeatureType,
-      converters: Array[AttributeFieldConverter[AnyRef, AnyRef]]
+      converters: Array[AttributeFieldConverter[AnyRef, AnyRef]],
+      includeVis: Boolean
     ) extends SimpleFeatureRecordConverter {
 
     override val schema: RecordSchema = {
       val fields = new java.util.ArrayList[RecordField](converters.length + 1)
       fields.add(FidConverter.field)
       converters.foreach(c => fields.add(c.field))
+      if (includeVis) {
+        fields.add(VisibilitiesField)
+      }
       val schema = new SimpleRecordSchema(fields)
       schema.setSchemaName(sft.getTypeName)
       schema
@@ -87,6 +97,9 @@ object SimpleFeatureRecordConverter {
         values.put(converters(i).field.getFieldName, converters(i).toRecord(feature.getAttribute(i)))
         i += 1
       }
+      if (includeVis) {
+        values.put("visibilities", SecurityUtils.getVisibility(feature))
+      }
       new MapRecord(schema, values, false, false)
     }
 
@@ -98,7 +111,10 @@ object SimpleFeatureRecordConverter {
         values(i) = converters(i).toAttribute(raw(i + 1))
         i += 1
       }
-      new ScalaSimpleFeature(sft, raw(0).asInstanceOf[String], values)
+      val userData = if (i < raw.length + 1) { null } else {
+        Collections.singletonMap[AnyRef, AnyRef](SecurityUtils.FEATURE_VISIBILITY, raw(i + 1))
+      }
+      new ScalaSimpleFeature(sft, raw(0).asInstanceOf[String], values, userData)
     }
   }
 

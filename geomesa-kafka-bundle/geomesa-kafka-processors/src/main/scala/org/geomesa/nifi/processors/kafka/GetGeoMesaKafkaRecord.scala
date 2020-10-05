@@ -93,6 +93,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       case GetGeoMesaKafkaRecord.Wkb => GeometryEncoding.Wkb
       case s => throw new IllegalArgumentException(s"Unexpected value for '${GeometrySerialization.getName}': $s")
     }
+    val vis = java.lang.Boolean.parseBoolean(context.getProperty(IncludeVisibilities).getValue)
 
     factory = context.getProperty(RecordWriter).asControllerService(classOf[RecordSetWriterFactory])
     maxBatchSize = context.getProperty(RecordMaxBatchSize).evaluateAttributeExpressions().asInteger
@@ -133,7 +134,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val sft = ds.getSchema(typeName)
       require(sft != null,
         s"Feature type '$typeName' does not exist in the store. Available types: ${ds.getTypeNames.mkString(", ")}")
-      converter = SimpleFeatureRecordConverter(sft, encoding)
+      converter = SimpleFeatureRecordConverter(sft, encoding, vis)
       schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
       fs = ds.getFeatureSource(typeName)
       fs.addFeatureListener(listener)
@@ -286,6 +287,16 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .defaultValue(Wkt)
         .build
 
+  val IncludeVisibilities: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+        .name("include-visibilities")
+        .displayName("Include Visibilities")
+        .description("Include a column with visibility expressions for each row")
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .allowableValues("false", "true")
+        .defaultValue("false")
+        .build
+
   val RecordMaxBatchSize: PropertyDescriptor =
     new PropertyDescriptor.Builder()
       .name("record-max-batch-size")
@@ -334,6 +345,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     GroupId,
     RecordWriter,
     GeometrySerialization,
+    IncludeVisibilities,
     RecordMaxBatchSize,
     RecordMinBatchSize,
     RecordMaxLatency,

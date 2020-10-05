@@ -19,6 +19,7 @@ import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.kafka.EmbeddedKafka
+import org.locationtech.geomesa.security.SecurityUtils
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
 import org.specs2.mutable.Specification
@@ -44,7 +45,7 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
     "get records" in {
       val sft =
         SimpleFeatureTypes.createType(
-          "example",
+          "get-records",
           "string:String,int:Integer,double:Double,long:Long,float:Float," +
               "boolean:Boolean,uuid:UUID,pt:Point,date:Date,list:List[Int],map:Map[String,Int],bytes:Bytes"
         )
@@ -103,6 +104,60 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
             |2,string2,2,2.2,2,2.2,true,2d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (2 10),2020-02-02T02:00:00Z,"[1, 2, 2]","{2=2, 22=22}",22
             |3,string3,3,2.3,3,2.3,false,3d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (3 10),2020-02-02T03:00:00Z,"[1, 2, 3]","{23=23, 3=3}",33
             |4,string4,4,2.4,4,2.4,true,4d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (4 10),2020-02-02T04:00:00Z,"[1, 2, 4]","{24=24, 4=4}",44
+            |""".stripMargin
+    }
+
+    "get records with visibilities" in {
+      import org.locationtech.geomesa.security.SecureSimpleFeature
+
+      val sft = SimpleFeatureTypes.createType("get-records-vis", "name:String,dtg:Date,*geom:Point:srid=4326")
+
+      val features = Seq.tabulate(5) { i =>
+        val sf = ScalaSimpleFeature.create(sft, s"$i", s"name$i", s"2020-02-02T0$i:00:00.000Z", s"POINT ($i 10)")
+        sf.visibility = i % 3 match {
+          case 0 => "user"
+          case 1 => "admin"
+          case 2 => "user&admin"
+        }
+        sf
+      }
+
+      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
+        ds must not(beNull)
+        ds.createSchema(sft)
+        WithClose(ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
+          features.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
+        }
+      }
+
+      val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
+      val result = try {
+        val service = new CSVRecordSetWriter()
+        runner.addControllerService("csv-record-set-writer", service)
+        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
+        runner.enableControllerService(service)
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
+        runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "true")
+        dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+        runner.run()
+        val results = runner.getFlowFilesForRelationship(AbstractGeoIngestProcessor.Relationships.SuccessRelationship)
+        results.size mustEqual 1
+        new String(runner.getContentAsByteArray(results.get(0)))
+      } finally {
+        runner.shutdown()
+      }
+
+      result mustEqual
+          """id,name,dtg,geom,visibilities
+            |0,name0,2020-02-02T00:00:00Z,POINT (0 10),user
+            |1,name1,2020-02-02T01:00:00Z,POINT (1 10),admin
+            |2,name2,2020-02-02T02:00:00Z,POINT (2 10),user&admin
+            |3,name3,2020-02-02T03:00:00Z,POINT (3 10),user
+            |4,name4,2020-02-02T04:00:00Z,POINT (4 10),admin
             |""".stripMargin
     }
   }
