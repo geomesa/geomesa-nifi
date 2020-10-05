@@ -225,7 +225,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
           gm.checkSchemaCompatibility(sft.getTypeName, sft) match {
             case SchemaCompatibility.Unchanged => // no-op
 
-            case c: SchemaCompatibility.Missing =>
+            case c: SchemaCompatibility.DoesNotExist =>
               logger.info(s"Creating schema ${sft.getTypeName}: ${SimpleFeatureTypes.encodeType(sft)}")
               c.apply() // create the schema
 

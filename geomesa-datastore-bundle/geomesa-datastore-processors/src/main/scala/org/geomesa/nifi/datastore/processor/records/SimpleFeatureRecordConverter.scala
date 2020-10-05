@@ -71,7 +71,9 @@ class SimpleFeatureRecordConverter(
     }
 
     fidField.foreach(values.put(_, feature.getID))
-    visibilityField.foreach(values.put(_, feature.visibility))
+    for { f <- visibilityField; v <- feature.visibility } {
+      values.put(f, v)
+    }
 
     new MapRecord(schema, values, false, false)
   }
@@ -149,7 +151,9 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       }
     }
     val id = new StandardSchemaIdentifier.Builder().name(sft.getTypeName).build()
-    val fields = converters.map(_.field).+:(new RecordField("id", RecordFieldType.STRING.getDataType))
+    val idField = options.fidField.map(name => new RecordField(name, RecordFieldType.STRING.getDataType))
+    val visField = options.visField.map(name => new RecordField(name, RecordFieldType.STRING.getDataType))
+    val fields = idField.toSeq ++ converters.map(_.field) ++ visField
     val schema = new SimpleRecordSchema(fields.asJava, id)
     schema.setSchemaName(sft.getTypeName) // seem to be two separate identifiers??
 
