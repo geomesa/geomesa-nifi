@@ -52,6 +52,18 @@ package object records {
     val BytesType   : DataType = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType)
   }
 
+  trait ConverterOptions {
+    def fidField: Option[String]
+    def encoding: GeometryEncoding.GeometryEncoding
+    def visField: Option[String]
+  }
+
+  case class SimpleFeatureConverterOptions(
+      fidField: Option[String] = Some("id"),
+      encoding: GeometryEncoding.GeometryEncoding = GeometryEncoding.Wkt,
+      visField: Option[String] = None
+    ) extends ConverterOptions
+
   case class RecordConverterOptions(
       typeName: Option[String] = None,
       fidField: Option[String] = None,
@@ -61,7 +73,7 @@ package object records {
       dtgField: Option[String] = None,
       visField: Option[String] = None,
       userData: Map[String, AnyRef] = Map.empty
-  )
+    ) extends ConverterOptions
 
   case class GeometryColumn(name: String, binding: Class[_ <: Geometry], default: Boolean)
 }

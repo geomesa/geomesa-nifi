@@ -112,7 +112,6 @@ class SimpleFeatureRecordConverter(
 
 object SimpleFeatureRecordConverter extends LazyLogging {
 
-  import GeometryEncoding.GeometryEncoding
   import org.locationtech.geomesa.utils.conversions.JavaConverters.OptionalToScala
   import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
 
@@ -126,23 +125,23 @@ object SimpleFeatureRecordConverter extends LazyLogging {
    * @param sft simple feature type
    * @return
    */
-  def apply(sft: SimpleFeatureType): SimpleFeatureRecordConverter = apply(sft, GeometryEncoding.Wkt)
+  def apply(sft: SimpleFeatureType): SimpleFeatureRecordConverter = apply(sft, SimpleFeatureConverterOptions())
 
   /**
    * Create a converter based on a feature type (useful for creating records from features)
    *
    * @param sft simple feature type
-   * @param encoding geometry encoding
+   * @param options converter options
    * @return
    */
-  def apply(sft: SimpleFeatureType, encoding: GeometryEncoding): SimpleFeatureRecordConverter = {
+  def apply(sft: SimpleFeatureType, options: SimpleFeatureConverterOptions): SimpleFeatureRecordConverter = {
     val converters = sft.getAttributeDescriptors.asScala.map { descriptor =>
       val name = descriptor.getLocalName
       if (classOf[Geometry].isAssignableFrom(descriptor.getType.getBinding)) {
-        val converter = encoding match {
+        val converter = options.encoding match {
           case GeometryEncoding.Wkt => new GeometryWktFieldConverter(name, descriptor.getType.getBinding)
           case GeometryEncoding.Wkb => new GeometryWkbFieldConverter(name, descriptor.getType.getBinding)
-          case _ => throw new NotImplementedError(s"Geometry encoding $encoding")
+          case _ => throw new NotImplementedError(s"Geometry encoding ${options.encoding}")
         }
         converter.asInstanceOf[FieldConverter[AnyRef, AnyRef]]
       } else {
@@ -154,7 +153,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     val schema = new SimpleRecordSchema(fields.asJava, id)
     schema.setSchemaName(sft.getTypeName) // seem to be two separate identifiers??
 
-    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, Some("id"), None)
+    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, options.fidField, options.visField)
   }
 
   /**
@@ -465,7 +464,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       new AttributeTypeBuilder().binding(classOf[String]).userData("json", "true").buildDescriptor(name)
 
     override def convertToRecord(value: String): Record =
-      throw new NotImplementedError("Record field converters are only implemented for record -> feature")
+      throw new NotImplementedError("Record field converters are only implemented for record to feature")
 
     override def convertToAttribute(value: Record): String = gson.toJson(value.toMap)
   }
@@ -479,7 +478,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       new AttributeTypeBuilder().binding(classOf[String]).buildDescriptor(name)
 
     override def convertToRecord(value: String): AnyRef =
-      throw new NotImplementedError("Choice converters are only implemented for record -> feature")
+      throw new NotImplementedError("Choice converters are only implemented for record to feature")
 
     override def convertToAttribute(value: AnyRef): String = value.toString
   }
