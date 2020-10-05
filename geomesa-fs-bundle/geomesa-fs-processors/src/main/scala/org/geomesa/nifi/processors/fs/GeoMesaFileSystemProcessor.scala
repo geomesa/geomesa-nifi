@@ -16,7 +16,7 @@ import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.geomesa.nifi.datastore.processor.{AbstractGeoIngestProcessor, AwsGeoIngestProcessor}
+import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, AwsGeoIngestProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.fs.tools.utils.PartitionSchemeArgResolver
@@ -28,7 +28,7 @@ import org.opengis.feature.simple.SimpleFeatureType
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
 abstract class GeoMesaFileSystemProcessor
-    extends AbstractGeoIngestProcessor(GeoMesaFileSystemProcessor.FileSystemProperties) with AwsGeoIngestProcessor {
+    extends AbstractDataStoreProcessor(GeoMesaFileSystemProcessor.FileSystemProperties) with AwsGeoIngestProcessor {
 
   import GeoMesaFileSystemProcessor._
   import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
@@ -43,7 +43,7 @@ abstract class GeoMesaFileSystemProcessor
 
   override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
 
-  override protected def decorate(sft: SimpleFeatureType): Unit = {
+  override protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = {
     partitionScheme.foreach { arg =>
       logger.info(s"Adding partition scheme to ${sft.getTypeName}")
       val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
@@ -53,6 +53,7 @@ abstract class GeoMesaFileSystemProcessor
       sft.setScheme(scheme.name, scheme.options)
       logger.info(s"Updated SFT with partition scheme: ${scheme.name}")
     }
+    sft
   }
 }
 

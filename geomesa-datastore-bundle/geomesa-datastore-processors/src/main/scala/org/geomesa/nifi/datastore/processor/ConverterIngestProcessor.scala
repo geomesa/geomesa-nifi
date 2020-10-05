@@ -17,13 +17,13 @@ import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
-import org.apache.nifi.annotation.lifecycle._
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
 import org.geomesa.nifi.datastore.processor.validators.ConverterValidator
 import org.geotools.data._
 import org.locationtech.geomesa.convert.Modes.ErrorMode
@@ -43,23 +43,19 @@ import scala.util.control.NonFatal
     new ReadsAttribute(attribute = "geomesa.converter", description = "GeoMesa converter name or configuration")
   )
 )
-trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
+trait ConverterIngestProcessor extends AbstractDataStoreProcessor with FeatureTypeProcessor {
 
   import ConverterIngestProcessor._
-  import AbstractGeoIngestProcessor._
+  import FeatureTypeProcessor._
 
   import scala.collection.JavaConverters._
 
   private var converterName: PropertyDescriptor = _
 
-  @OnAdded // reload on add to pick up any sft/converter classpath changes
-  override def initDescriptors(): Unit = {
+  override protected def getProcessorProperties: Seq[PropertyDescriptor] = {
     converterName = ConverterIngestProcessor.converterName(ConverterConfigLoader.listConverterNames)
-    super.initDescriptors()
-  }
-
-  override protected def getProcessorProperties: Seq[PropertyDescriptor] =
     super.getProcessorProperties ++ Seq(converterName, ConverterSpec, ConverterErrorMode)
+  }
 
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
     super.getConfigProperties ++ Seq(ConvertFlowFileAttributes)
@@ -70,7 +66,7 @@ trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
       writers: Writers,
       sftArg: Option[String],
       typeName: Option[String]): IngestProcessor = {
-    val converterArg = AbstractGeoIngestProcessor.getFirst(context, Seq(converterName, ConverterSpec))
+    val converterArg = FeatureTypeProcessor.getFirst(context, Seq(converterName, ConverterSpec))
     val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
     val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
     new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode, attributes)
@@ -94,7 +90,7 @@ trait ConverterIngestProcessor extends AbstractGeoIngestProcessor {
       conf: Option[String],
       error: Option[String],
       exposeAttributes: Boolean
-    ) extends IngestProcessor(store, writers, spec, name) {
+    ) extends IngestProcessorWithSchema(store, writers, spec, name) {
 
     private val converterCache = Caffeine.newBuilder().build(
       new CacheLoader[(SimpleFeatureType, String), Either[Throwable, ObjectPool[SimpleFeatureConverter]]]() {

@@ -24,9 +24,9 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
-import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor
-import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor.Relationships.SuccessRelationship
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureRecordConverter}
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
+import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, GeometryEncodingLabels, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
@@ -88,12 +88,13 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
     logger.info("Initializing")
 
     val typeName = context.getProperty(TypeName).evaluateAttributeExpressions().getValue
-    val encoding = context.getProperty(GeometrySerialization).getValue match {
-      case GetGeoMesaKafkaRecord.Wkt => GeometryEncoding.Wkt
-      case GetGeoMesaKafkaRecord.Wkb => GeometryEncoding.Wkb
-      case s => throw new IllegalArgumentException(s"Unexpected value for '${GeometrySerialization.getName}': $s")
-    }
-    val vis = java.lang.Boolean.parseBoolean(context.getProperty(IncludeVisibilities).getValue)
+    val encoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
+    val vis =
+      if (java.lang.Boolean.parseBoolean(context.getProperty(IncludeVisibilities).getValue)) {
+        Some("visibilities")
+      } else {
+        None
+      }
 
     factory = context.getProperty(RecordWriter).asControllerService(classOf[RecordSetWriterFactory])
     maxBatchSize = context.getProperty(RecordMaxBatchSize).evaluateAttributeExpressions().asInteger
@@ -109,7 +110,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
     ds = {
       val props = {
-        val base = AbstractGeoIngestProcessor.getDataStoreParams(context, descriptors) ++ Map(
+        val base = AbstractDataStoreProcessor.getDataStoreParams(context, descriptors) ++ Map(
           // disable feature caching since we are just using the listeners
           KafkaDataStoreParams.CacheExpiry.key -> "0s"
         )
@@ -134,7 +135,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val sft = ds.getSchema(typeName)
       require(sft != null,
         s"Feature type '$typeName' does not exist in the store. Available types: ${ds.getTypeNames.mkString(", ")}")
-      converter = SimpleFeatureRecordConverter(sft, encoding, vis)
+      converter = SimpleFeatureRecordConverter(sft, SimpleFeatureConverterOptions(encoding = encoding, visField = vis))
       schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
       fs = ds.getFeatureSource(typeName)
       fs.addFeatureListener(listener)
@@ -235,9 +236,6 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
   import org.apache.nifi.components.PropertyDescriptor
   import org.apache.nifi.serialization.RecordSetWriterFactory
 
-  private val Wkt = "WKT (well-known text)"
-  private val Wkb = "WKB (well-known binary)"
-
   val TypeName: PropertyDescriptor =
     new PropertyDescriptor.Builder()
         .name("type-name")
@@ -283,8 +281,8 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .displayName("Geometry Serialization Format")
         .description("The format to use for serializing geometries")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .allowableValues(Wkt, Wkb)
-        .defaultValue(Wkt)
+        .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
+        .defaultValue(GeometryEncodingLabels.Wkt)
         .build
 
   val IncludeVisibilities: PropertyDescriptor =

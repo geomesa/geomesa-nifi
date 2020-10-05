@@ -15,14 +15,15 @@ import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, Valida
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractGeoIngestProcessor
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geotools.data.{DataStoreFactorySpi, DataStoreFinder}
 
 @Tags(Array("geomesa", "geo", "ingest", "geotools", "datastore", "features", "simple feature"))
 @CapabilityDescription("store avro files into geomesa")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching
-abstract class GeoToolsIngestProcessor extends AbstractGeoIngestProcessor(Seq(GeoToolsIngestProcessor.DataStoreName)) {
+abstract class GeoToolsIngestProcessor
+    extends AbstractDataStoreProcessor(Seq(GeoToolsIngestProcessor.DataStoreName)) {
 
   import GeoToolsIngestProcessor.DataStoreName
 

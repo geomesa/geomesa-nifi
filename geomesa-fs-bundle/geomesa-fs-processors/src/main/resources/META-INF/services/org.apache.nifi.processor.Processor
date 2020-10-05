@@ -1,2 +1,3 @@
 org.geomesa.nifi.processors.fs.PutGeoMesaFileSystem
+org.geomesa.nifi.processors.fs.PutGeoMesaFileSystemRecord
 org.geomesa.nifi.processors.fs.AvroToPutGeoMesaFileSystem

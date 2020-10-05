@@ -21,7 +21,7 @@ import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 /**
   * Trait with support for an AWSCredentialsProviderService
   */
-trait AwsGeoIngestProcessor extends AbstractGeoIngestProcessor {
+trait AwsGeoIngestProcessor extends AbstractDataStoreProcessor {
 
   import scala.collection.JavaConverters._
 
