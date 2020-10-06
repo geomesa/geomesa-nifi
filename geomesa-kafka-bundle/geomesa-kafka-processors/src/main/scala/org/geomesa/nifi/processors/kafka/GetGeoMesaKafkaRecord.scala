@@ -39,7 +39,7 @@ import scala.util.control.NonFatal
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags(Array("kafka", "geomesa", "ingress", "get", "input"))
+@Tags(Array("kafka", "geomesa", "ingress", "get", "input", "record"))
 @CapabilityDescription("Reads Kafka messages from a GeoMesa data source and writes them out as NiFi records")
 @WritesAttributes(
   Array(

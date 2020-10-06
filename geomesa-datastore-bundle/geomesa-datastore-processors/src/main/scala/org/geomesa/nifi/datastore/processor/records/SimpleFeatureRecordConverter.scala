@@ -8,13 +8,18 @@
 
 package org.geomesa.nifi.datastore.processor.records
 
+
+import java.util
 import java.math.BigInteger
+
 import java.util.{Date, UUID}
 
 import com.google.gson.GsonBuilder
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record._
+import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.apache.nifi.serialization.record.`type`.{ArrayDataType, ChoiceDataType, MapDataType, RecordDataType}
 import org.geomesa.nifi.datastore.processor.records.SimpleFeatureRecordConverter.FieldConverter
 import org.geotools.feature.AttributeTypeBuilder
@@ -26,8 +31,10 @@ import org.locationtech.geomesa.utils.geotools.ObjectType.ObjectType
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.AttributeOptions
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
+import org.locationtech.jts.geom.{Geometry, GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.geom.Geometry
 import org.opengis.feature.`type`.AttributeDescriptor
+
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.reflect.ClassTag
@@ -118,6 +125,17 @@ object SimpleFeatureRecordConverter extends LazyLogging {
   import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
 
   import scala.collection.JavaConverters._
+
+  private val geometryTypeMap = scala.collection.Map(
+    "Geometry"           -> classOf[Geometry],
+    "Point"              -> classOf[Point],
+    "LineString"         -> classOf[LineString],
+    "Polygon"            -> classOf[Polygon],
+    "MultiPoint"         -> classOf[MultiPoint],
+    "MultiLineString"    -> classOf[MultiLineString],
+    "MultiPolygon"       -> classOf[MultiPolygon],
+    "GeometryCollection" -> classOf[GeometryCollection]
+  )
 
   private val gson = new GsonBuilder().serializeNulls().create()
 
@@ -259,6 +277,12 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       case ObjectType.BOOLEAN  => new BooleanFieldConverter(name)
       case ObjectType.DATE     => new DateFieldConverter(name)
       case ObjectType.UUID     => new UuidFieldConverter(name)
+//<<<<<<< HEAD
+//      case ObjectType.GEOMETRY => GeometryToRecordField(name, encoding, encodings)
+//      case ObjectType.LIST     => new ListToRecordField(name, getConverter("", bindings.tail, encoding, encodings))
+//      case ObjectType.MAP      => new MapToRecordField(name, getConverter("", bindings.drop(2), encoding, encodings))
+//      case ObjectType.BYTES    => new BytesToRecordField(name)
+//=======
       case ObjectType.BYTES    => new BytesFieldConverter(name)
       case ObjectType.LIST     => new ListFieldConverter(name, getConverter("", bindings.tail))
       case ObjectType.MAP      => new MapFieldConverter(name, getConverter("", bindings.drop(2)))
@@ -292,6 +316,36 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       case RecordFieldType.DATE      => Some(new DateFieldConverter(name, dataType))
       case RecordFieldType.CHAR      => Some(new CharFieldConverter(name))
 
+//<<<<<<< HEAD
+//  class SimpleFeatureRecordConverterImpl(
+//      val sft: SimpleFeatureType,
+//      val schema: RecordSchema,
+//      converters: Array[AttributeFieldConverter[AnyRef, AnyRef]]
+//    ) extends SimpleFeatureRecordConverter {
+//
+//    override def convert(feature: SimpleFeature): Record = {
+//      val values = new java.util.LinkedHashMap[String, AnyRef](converters.length + 1)
+//      values.put("id", feature.getID)
+//      var i = 0
+//      while (i < converters.length) {
+//        values.put(converters(i).field.getFieldName, converters(i).toRecord(feature.getAttribute(i)))
+//        i += 1
+//      }
+//      new SimpleFeatureMapRecord(feature, schema, values)
+//    }
+//
+//    override def convert(feature: Record): SimpleFeature = {
+//      val raw = feature.getValues
+//      val values = Array.ofDim[AnyRef](converters.length)
+//      var i = 0
+//      while (i < converters.length) {
+//        // Why is this raw(i+1)?
+//        values(i) = converters(i).toAttribute(raw(i))
+//        i += 1
+//      }
+//      // TODO:  New FID attribute
+//      new ScalaSimpleFeature(sft, raw(0).toString, values)
+//=======
       case RecordFieldType.ARRAY =>
         val subType = dataType.asInstanceOf[ArrayDataType].getElementType
         if (subType.getFieldType == RecordFieldType.BYTE) {
@@ -314,12 +368,26 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       case t =>
         logger.warn(s"Dropping unsupported record field '${(path :+ name).mkString(".")}' of type: $t")
         None
+//>>>>>>> main
     }
     converter.asInstanceOf[Option[FieldConverter[AnyRef, AnyRef]]]
   }
 
+//<<<<<<< HEAD
+//  private def getRecordSchema(sft: SimpleFeatureType, converters: Array[AttributeFieldConverter[AnyRef, AnyRef]]) = {
+//     val fields = new util.ArrayList[RecordField](converters.length + 1)
+//    fields.add(FidConverter.field)
+//    converters.foreach(c => fields.add(c.field))
+//    val schema = new SimpleFeatureTypeRecordSchema(sft, fields)
+//    schema.setSchemaName(sft.getTypeName)
+//    schema
+//  }
+//
+//  trait AttributeFieldConverter[T <: AnyRef, U <: AnyRef] {
+//=======
   trait FieldConverter[T, U] {
     def name: String
+//>>>>>>> main
     def field: RecordField
     def descriptor: AttributeDescriptor
     def convertToRecord(value: T): U
@@ -372,6 +440,31 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     override def convertToAttribute(value: AnyRef): Array[Byte] = fromRecordBytes(value)
   }
 
+//<<<<<<< HEAD
+//  object GeometryToRecordField {
+//    def apply(name: String, encoding: GeometryEncoding, encodings: scala.collection.Map[String, TypeAndEncoding]): AttributeFieldConverter[Geometry, _] = {
+//      // Look up encoding in PropertyDescriptors and then fall back to the encoding passed in.
+//      encodings.get(name).map(_.encoding).getOrElse(encoding) match {
+//        case GeometryEncoding.Wkt => new GeometryToWktRecordField(name)
+//        case GeometryEncoding.Wkb => new GeometryToWkbRecordField(name)
+//        case _ => throw new NotImplementedError(s"Geometry encoding $encoding")
+//      }
+//    }
+//  }
+
+  case class TypeAndEncoding(clazz: Class[_ <: Geometry], encoding: GeometryEncoding)
+
+  object TypeAndEncoding {
+    def apply(clazzString: String, encoding: GeometryEncoding): TypeAndEncoding = {
+      TypeAndEncoding(geometryTypeMap(clazzString), encoding)
+    }
+  }
+//
+//  class GeometryToWktRecordField(name: String) extends AttributeFieldConverter[Geometry, String] {
+//    override val field: RecordField = new RecordField(name, RecordFieldType.STRING.getDataType)
+//    override def toRecord(attribute: Geometry): String = if (attribute == null) { null } else { WKTUtils.write(attribute) }
+//    override def toAttribute(record: String): Geometry = if (record == null) { null } else { WKTUtils.read(record) }
+//=======
   class UuidFieldConverter(name: String)
       extends AbstractFieldConverter[UUID, String](name, RecordDataTypes.StringType) {
     override def convertToAttribute(value: String): UUID = UUID.fromString(value)
@@ -487,3 +580,9 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     override def convertToAttribute(value: AnyRef): String = value.toString
   }
 }
+
+class SimpleFeatureTypeRecordSchema(val sft: SimpleFeatureType, fields: util.List[RecordField])
+  extends SimpleRecordSchema(fields: util.List[RecordField])
+
+class SimpleFeatureMapRecord(val sf: SimpleFeature, schema: RecordSchema, values: util.Map[String, AnyRef])
+  extends MapRecord(schema, values, false, false)
