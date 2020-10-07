@@ -40,8 +40,7 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
 object GeoAvroRecordSetWriterFactory {
   val GEOMETRY_COLUMNS: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("Geometry Columns")
-    .description("Comma-separated list of columns with geometries with type " +
-      "(and optionally the format, (Wkt, Wkb)).  " +
+    .description("Comma-separated list of columns with geometries with type. " +
       "Example: position:Point,line:LineString.  " +
       "Note the first field is used as a the default geometry.")
     .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -51,7 +50,7 @@ object GeoAvroRecordSetWriterFactory {
   val TYPE_NAME: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("SimpleFeature TypeName")
     .description("The type name for the output.")
-    .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .required(false).build
 }
@@ -61,19 +60,18 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
   // Wkt is assumed to be the default GeometryEncoding.
   // TODO:  Extract this as a property?
   private val encodings = getEncodings(map, GeometryEncoding.Wkt)
-  private val defaultGeometryColumn: Option[String] = Option(map.get(GEOMETRY_COLUMNS)).map(_.split(":")(0))
-  val typeName: Option[String] = Option(map.get(TYPE_NAME))
+  private val defaultGeometryColumn = Option(map.get(GEOMETRY_COLUMNS)).map(_.split(":")(0))
+  private val typeName = Option(map.get(TYPE_NAME))
 
-  val geometryColumns: Seq[GeometryColumn] = encodings.map { case (k, v) =>
+  private val geometryColumns= encodings.map { case (k, v) =>
     GeometryColumn(k, v.clazz, defaultGeometryColumn.isDefined && defaultGeometryColumn.get.equals(k))
   }.toSeq
 
-  val recordConverterOptions: RecordConverterOptions = RecordConverterOptions(typeName, None, geometryColumns)
-  lazy val converter: SimpleFeatureRecordConverter =
-    SimpleFeatureRecordConverter(recordSchema, recordConverterOptions)
+  private val recordConverterOptions = RecordConverterOptions(typeName, None, geometryColumns)
+  private val converter = SimpleFeatureRecordConverter(recordSchema, recordConverterOptions)
 
-  private val sft: SimpleFeatureType = converter.sft
-  val writer = new AvroDataFileWriter(outputStream, sft)
+  private val sft = converter.sft
+  private val writer = new AvroDataFileWriter(outputStream, sft)
 
   override def writeRecord(record: Record): util.Map[String, String] = {
     val sf = record match {
