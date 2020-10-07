@@ -11,7 +11,7 @@ package org.geomesa.nifi.processors.kafka
 import java.nio.charset.StandardCharsets
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.nifi.csv.CSVRecordSetWriter
+import org.apache.nifi.csv.{CSVRecordSetWriter, CSVUtils}
 import org.apache.nifi.serialization.DateTimeUtils
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.Relationships
@@ -157,6 +157,56 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
             |2,name2,2020-02-02T02:00:00Z,POINT (2 10),user&admin
             |3,name3,2020-02-02T03:00:00Z,POINT (3 10),user
             |4,name4,2020-02-02T04:00:00Z,POINT (4 10),admin
+            |""".stripMargin
+    }
+
+    "get records with user data" in {
+      val sft = SimpleFeatureTypes.createType("get-records-user-data", "name:String,dtg:Date,*geom:Point:srid=4326")
+
+      val features = Seq.tabulate(5) { i =>
+        val sf = ScalaSimpleFeature.create(sft, s"$i", s"name$i", s"2020-02-02T0$i:00:00.000Z", s"POINT ($i 10)")
+        sf.getUserData.put("foo", Int.box(i % 3))
+        sf.getUserData.put("bar", sf.getAttribute("dtg"))
+        sf
+      }
+
+      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
+        ds must not(beNull)
+        ds.createSchema(sft)
+        WithClose(ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
+          features.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
+        }
+      }
+
+      val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
+      val result = try {
+        val service = new CSVRecordSetWriter()
+        runner.addControllerService("csv-record-set-writer", service)
+        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
+        runner.setProperty(service, CSVUtils.QUOTE_CHAR, "'")
+        runner.enableControllerService(service)
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
+        runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.IncludeUserData, "true")
+        dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+        runner.run()
+        val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
+        results.size mustEqual 1
+        new String(runner.getContentAsByteArray(results.get(0)))
+      } finally {
+        runner.shutdown()
+      }
+
+      result mustEqual
+          """id,name,dtg,geom,user-data
+            |0,name0,2020-02-02T00:00:00Z,POINT (0 10),'{"bar":"2020-02-02T00:00:00.000Z","foo":0}'
+            |1,name1,2020-02-02T01:00:00Z,POINT (1 10),'{"bar":"2020-02-02T01:00:00.000Z","foo":1}'
+            |2,name2,2020-02-02T02:00:00Z,POINT (2 10),'{"bar":"2020-02-02T02:00:00.000Z","foo":2}'
+            |3,name3,2020-02-02T03:00:00Z,POINT (3 10),'{"bar":"2020-02-02T03:00:00.000Z","foo":0}'
+            |4,name4,2020-02-02T04:00:00Z,POINT (4 10),'{"bar":"2020-02-02T04:00:00.000Z","foo":1}'
             |""".stripMargin
     }
   }
