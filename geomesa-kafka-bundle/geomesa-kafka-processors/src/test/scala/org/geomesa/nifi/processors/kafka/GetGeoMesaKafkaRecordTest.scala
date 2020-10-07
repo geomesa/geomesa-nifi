@@ -128,13 +128,13 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       }
 
       result mustEqual
-      """id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes
-        |0,string0,0,2.0,0,2.0,true,0d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (0 10),2020-02-02T00:00:00Z,"[1, 2, 0]","{20=20, 0=0}",00
-        |1,string1,1,2.1,1,2.1,false,1d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (1 10),2020-02-02T01:00:00Z,"[1, 2, 1]","{21=21, 1=1}",11
-        |2,string2,2,2.2,2,2.2,true,2d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (2 10),2020-02-02T02:00:00Z,"[1, 2, 2]","{2=2, 22=22}",22
-        |3,string3,3,2.3,3,2.3,false,3d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (3 10),2020-02-02T03:00:00Z,"[1, 2, 3]","{23=23, 3=3}",33
-        |4,string4,4,2.4,4,2.4,true,4d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (4 10),2020-02-02T04:00:00Z,"[1, 2, 4]","{24=24, 4=4}",44
-        |""".stripMargin
+          """id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes
+            |0,string0,0,2.0,0,2.0,true,0d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (0 10),2020-02-02T00:00:00Z,"[1, 2, 0]","{20=20, 0=0}",00
+            |1,string1,1,2.1,1,2.1,false,1d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (1 10),2020-02-02T01:00:00Z,"[1, 2, 1]","{21=21, 1=1}",11
+            |2,string2,2,2.2,2,2.2,true,2d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (2 10),2020-02-02T02:00:00Z,"[1, 2, 2]","{2=2, 22=22}",22
+            |3,string3,3,2.3,3,2.3,false,3d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (3 10),2020-02-02T03:00:00Z,"[1, 2, 3]","{23=23, 3=3}",33
+            |4,string4,4,2.4,4,2.4,true,4d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (4 10),2020-02-02T04:00:00Z,"[1, 2, 4]","{24=24, 4=4}",44
+            |""".stripMargin
     }
 
     "get records with visibilities" in {
@@ -182,13 +182,13 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       }
 
       result mustEqual
-      """id,name,dtg,geom,visibilities
-        |0,name0,2020-02-02T00:00:00Z,POINT (0 10),user
-        |1,name1,2020-02-02T01:00:00Z,POINT (1 10),admin
-        |2,name2,2020-02-02T02:00:00Z,POINT (2 10),user&admin
-        |3,name3,2020-02-02T03:00:00Z,POINT (3 10),user
-        |4,name4,2020-02-02T04:00:00Z,POINT (4 10),admin
-        |""".stripMargin
+          """id,name,dtg,geom,visibilities
+            |0,name0,2020-02-02T00:00:00Z,POINT (0 10),user
+            |1,name1,2020-02-02T01:00:00Z,POINT (1 10),admin
+            |2,name2,2020-02-02T02:00:00Z,POINT (2 10),user&admin
+            |3,name3,2020-02-02T03:00:00Z,POINT (3 10),user
+            |4,name4,2020-02-02T04:00:00Z,POINT (4 10),admin
+            |""".stripMargin
     }
 
     "get records in GeoAvro format" in {
