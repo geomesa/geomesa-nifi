@@ -250,6 +250,11 @@ object SimpleFeatureRecordConverter extends LazyLogging {
         descriptor
       }
       builder.addAll(descriptors.asJava)
+      if (options.visField.isDefined) {
+        println("Do we need to remove the visibilities from the SFT?")
+        println(s"Added descriptors: ${descriptors.mkString(", ")}")
+        //builder.remove("visibilities")
+      }
       options.geomFields.find(_.default).foreach(g => builder.setDefaultGeometry(g.name))
       builder.buildFeatureType()
     }
@@ -580,9 +585,3 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     override def convertToAttribute(value: AnyRef): String = value.toString
   }
 }
-
-class SimpleFeatureTypeRecordSchema(val sft: SimpleFeatureType, fields: util.List[RecordField])
-  extends SimpleRecordSchema(fields: util.List[RecordField])
-
-class SimpleFeatureMapRecord(val sf: SimpleFeature, schema: RecordSchema, values: util.Map[String, AnyRef])
-  extends MapRecord(schema, values, false, false)

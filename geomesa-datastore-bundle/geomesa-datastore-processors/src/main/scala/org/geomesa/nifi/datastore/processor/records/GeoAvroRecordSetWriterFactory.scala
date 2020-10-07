@@ -2,7 +2,6 @@ package org.geomesa.nifi.datastore.processor.records
 
 import java.io.OutputStream
 import java.util
-import java.util.Collections
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
@@ -13,12 +12,12 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.schema.access.SchemaNameAsAttribute
 import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{AbstractRecordSetWriter, RecordSetWriterFactory}
-import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory.{GEOMETRY_COLUMNS, TYPE_NAME}
+import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory.{GEOMETRY_COLUMNS, IncludeVisibilities, TYPE_NAME}
 import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
 import org.geomesa.nifi.datastore.processor.records.SimpleFeatureRecordConverter.TypeAndEncoding
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
-import org.locationtech.jts.geom.Point
-import org.opengis.feature.simple.SimpleFeatureType
+
+import scala.collection.JavaConverters._
 
 @Tags(Array("avro", "geoavro", "result", "set", "recordset", "record", "writer", "serializer", "row"))
 @CapabilityDescription("Writes the contents of a RecordSet as GeoAvro which AvroToPutGeoMesa* Processors can use.")
@@ -34,10 +33,21 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
   }
 
   override def getSupportedPropertyDescriptors: util.List[PropertyDescriptor] =
-    Collections.singletonList(GEOMETRY_COLUMNS)
+    Seq(GEOMETRY_COLUMNS, IncludeVisibilities).toList.asJava
 }
 
 object GeoAvroRecordSetWriterFactory {
+  // TODO factor out
+  val IncludeVisibilities: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+      .name("include-visibilities")
+      .displayName("Include Visibilities")
+      .description("Include a column with visibility expressions for each row")
+      .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+      .allowableValues("false", "true")
+      .defaultValue("false")
+      .build
+
   val GEOMETRY_COLUMNS: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("Geometry Columns")
     .description("Comma-separated list of columns with geometries with type. " +
@@ -67,17 +77,20 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
     GeometryColumn(k, v.clazz, defaultGeometryColumn.isDefined && defaultGeometryColumn.get.equals(k))
   }.toSeq
 
-  private val recordConverterOptions = RecordConverterOptions(typeName, None, geometryColumns)
+  // TODO Abstract
+  private val visField = if (java.lang.Boolean.parseBoolean(map.get(IncludeVisibilities))) {
+      Some("visibilities")
+    } else {
+      None
+    }
+  private val recordConverterOptions = RecordConverterOptions(typeName, None, geometryColumns, visField = visField)
   private val converter = SimpleFeatureRecordConverter(recordSchema, recordConverterOptions)
 
   private val sft = converter.sft
   private val writer = new AvroDataFileWriter(outputStream, sft)
 
   override def writeRecord(record: Record): util.Map[String, String] = {
-    val sf = record match {
-      case sfmr: SimpleFeatureMapRecord => sfmr.sf
-      case _: Record => converter.convert(record)
-    }
+    val sf = converter.convert(record)
     writer.append(sf)
     schemaAccessWriter.getAttributes(recordSchema)
   }
