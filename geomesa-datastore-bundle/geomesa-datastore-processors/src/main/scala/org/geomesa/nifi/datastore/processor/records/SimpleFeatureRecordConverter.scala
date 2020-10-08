@@ -40,14 +40,17 @@ import scala.reflect.ClassTag
  * @param converters converters
  * @param fidField feature id record field name
  * @param visibilityField visibility record field name
+ * @param userDataField user data record field name
  */
 class SimpleFeatureRecordConverter(
     val sft: SimpleFeatureType,
     val schema: RecordSchema,
     converters: Array[FieldConverter[AnyRef, AnyRef]],
     fidField: Option[String],
-    visibilityField: Option[String]) {
+    visibilityField: Option[String],
+    userDataField: Option[String]) {
 
+  import SimpleFeatureRecordConverter.gson
   import org.locationtech.geomesa.security.SecureSimpleFeature
 
   private val length = converters.length + fidField.size + visibilityField.size
@@ -74,6 +77,7 @@ class SimpleFeatureRecordConverter(
     for { f <- visibilityField; v <- feature.visibility } {
       values.put(f, v)
     }
+    userDataField.foreach(values.put(_, gson.toJson(feature.getUserData)))
 
     new MapRecord(schema, values, false, false)
   }
@@ -107,6 +111,12 @@ class SimpleFeatureRecordConverter(
         feature.visibility = vis
       }
     }
+    userDataField.foreach { name =>
+      val json = record.getAsString(name)
+      if (json != null) {
+        feature.getUserData.putAll(gson.fromJson(json, classOf[java.util.Map[String, AnyRef]]))
+      }
+    }
 
     feature
   }
@@ -119,7 +129,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
-  private val gson = new GsonBuilder().serializeNulls().create()
+  private val gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").create()
 
   /**
    * Create a converter based on a feature type (useful for creating records from features)
@@ -152,12 +162,13 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     }
     val id = new StandardSchemaIdentifier.Builder().name(sft.getTypeName).build()
     val idField = options.fidField.map(name => new RecordField(name, RecordFieldType.STRING.getDataType))
+    val userDataField = options.userDataField.map(name => new RecordField(name, RecordFieldType.STRING.getDataType))
     val visField = options.visField.map(name => new RecordField(name, RecordFieldType.STRING.getDataType))
-    val fields = idField.toSeq ++ converters.map(_.field) ++ visField
+    val fields = idField.toSeq ++ converters.map(_.field) ++ userDataField ++ visField
     val schema = new SimpleRecordSchema(fields.asJava, id)
     schema.setSchemaName(sft.getTypeName) // seem to be two separate identifiers??
 
-    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, options.fidField, options.visField)
+    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, options.fidField, options.visField, options.userDataField)
   }
 
   /**
@@ -239,7 +250,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     options.dtgField.foreach(sft.setDtgField)
     sft.getUserData.putAll(options.userData.asJava)
 
-    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, options.fidField, options.visField)
+    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, options.fidField, options.visField, None)
   }
 
   /**
