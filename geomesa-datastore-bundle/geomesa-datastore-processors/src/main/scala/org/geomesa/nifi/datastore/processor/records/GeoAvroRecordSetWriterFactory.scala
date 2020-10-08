@@ -12,7 +12,7 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.schema.access.SchemaNameAsAttribute
 import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{AbstractRecordSetWriter, RecordSetWriterFactory}
-import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory.{GEOMETRY_COLUMNS, IncludeVisibilities, TYPE_NAME}
+import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory.{GeometryColumns, VisibilitiesColumn, TypeName}
 import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
 import org.geomesa.nifi.datastore.processor.records.SimpleFeatureRecordConverter.TypeAndEncoding
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
@@ -33,22 +33,22 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
   }
 
   override def getSupportedPropertyDescriptors: util.List[PropertyDescriptor] =
-    Seq(GEOMETRY_COLUMNS, IncludeVisibilities).toList.asJava
+    Seq(GeometryColumns, VisibilitiesColumn).toList.asJava
 }
 
 object GeoAvroRecordSetWriterFactory {
   // TODO factor out
-  val IncludeVisibilities: PropertyDescriptor =
+  val VisibilitiesColumn: PropertyDescriptor =
     new PropertyDescriptor.Builder()
-      .name("include-visibilities")
-      .displayName("Include Visibilities")
-      .description("Include a column with visibility expressions for each row")
-      .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-      .allowableValues("false", "true")
-      .defaultValue("false")
-      .build
+      .name("visibilities-column")
+      .displayName("Visibilities Column")
+      .description("The name of a column with visibility expressions for each row.  " +
+        "If used in conjunction with the GetGeoMesaKafkaRecord processor, note that it can be configured to write out " +
+        "visibilities to a column named \"visibilities\".")
+      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+      .required(false).build
 
-  val GEOMETRY_COLUMNS: PropertyDescriptor = new PropertyDescriptor.Builder()
+  val GeometryColumns: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("Geometry Columns")
     .description("Comma-separated list of columns with geometries with type. " +
       "Example: position:Point,line:LineString.  " +
@@ -57,7 +57,7 @@ object GeoAvroRecordSetWriterFactory {
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .required(false).build
 
-  val TYPE_NAME: PropertyDescriptor = new PropertyDescriptor.Builder()
+  val TypeName: PropertyDescriptor = new PropertyDescriptor.Builder()
     .name("SimpleFeature TypeName")
     .description("The type name for the output.")
     .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -70,19 +70,14 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
   // Wkt is assumed to be the default GeometryEncoding.
   // TODO:  Extract this as a property?
   private val encodings = getEncodings(map, GeometryEncoding.Wkt)
-  private val defaultGeometryColumn = Option(map.get(GEOMETRY_COLUMNS)).map(_.split(":")(0))
-  private val typeName = Option(map.get(TYPE_NAME))
+  private val defaultGeometryColumn = Option(map.get(GeometryColumns)).map(_.split(":")(0))
+  private val typeName = Option(map.get(TypeName))
 
   private val geometryColumns= encodings.map { case (k, v) =>
     GeometryColumn(k, v.clazz, defaultGeometryColumn.isDefined && defaultGeometryColumn.get.equals(k))
   }.toSeq
 
-  // TODO Abstract
-  private val visField = if (java.lang.Boolean.parseBoolean(map.get(IncludeVisibilities))) {
-      Some("visibilities")
-    } else {
-      None
-    }
+  private val visField = Some(map.get(VisibilitiesColumn))
   private val recordConverterOptions = RecordConverterOptions(typeName, None, geometryColumns, visField = visField)
   private val converter = SimpleFeatureRecordConverter(recordSchema, recordConverterOptions)
 
@@ -96,7 +91,7 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
   }
 
   private def getEncodings(descriptorToString: util.Map[PropertyDescriptor, String], defaultEncoding: GeometryEncoding): Map[String, TypeAndEncoding] = {
-    val geometryColumns = descriptorToString.get(GEOMETRY_COLUMNS)
+    val geometryColumns = descriptorToString.get(GeometryColumns)
     if (geometryColumns == null) {
       Map()
     } else {
@@ -105,7 +100,7 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
         .map { s =>
           // TODO: Make this exception better!
           val splits = s.split(":")
-          if (splits.size < 2) throw new Exception(s"Improper configuration string: ${map.get(GEOMETRY_COLUMNS)}")
+          if (splits.size < 2) throw new Exception(s"Improper configuration string: ${map.get(GeometryColumns)}")
           val encoding = if (splits.size == 2) {
             defaultEncoding
           } else {

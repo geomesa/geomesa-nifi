@@ -218,7 +218,7 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       val result: Array[Byte] = try {
         val service = new GeoAvroRecordSetWriterFactory()
         runner.addControllerService("avro-record-set-writer", service)
-        runner.setProperty(service, GeoAvroRecordSetWriterFactory.IncludeVisibilities, "true")
+        runner.setProperty(service, GeoAvroRecordSetWriterFactory.VisibilitiesColumn, "visibilities")
         runner.enableControllerService(service)
 
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "avro-record-set-writer")
