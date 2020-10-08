@@ -239,10 +239,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
         results.size mustEqual 1
         runner.getContentAsByteArray(results.get(0))
-      } catch {
-        case t: Throwable =>
-          println(s"Caught $t")
-          throw t
       } finally {
         runner.shutdown()
       }
@@ -250,8 +246,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       val bais = new ByteArrayInputStream(result)
       val avroReader = new AvroDataFileReader(bais)
       val featuresRead: Seq[SimpleFeature] = avroReader.toList
-
-      featuresRead.foreach { println }
       featuresRead.size mustEqual 5
     }
 
@@ -282,10 +276,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
         results.size mustEqual 1
         runner.getContentAsByteArray(results.get(0))
-      } catch {
-        case t: Throwable =>
-          println(s"Caught $t")
-          throw t
       } finally {
         runner.shutdown()
       }
@@ -294,7 +284,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       val avroReader = new AvroDataFileReader(bais)
       val featuresRead: Seq[SimpleFeature] = avroReader.toList
 
-      featuresRead.foreach { println }
       featuresRead.head.visibility.get must not be null
       featuresRead.size mustEqual 5
     }

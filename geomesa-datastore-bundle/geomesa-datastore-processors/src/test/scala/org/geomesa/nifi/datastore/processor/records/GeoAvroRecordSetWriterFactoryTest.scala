@@ -59,8 +59,6 @@ class GeoAvroRecordSetWriterFactoryTest extends Specification with LazyLogging {
       val typeName = "testTypeName"
 
       val featuresRead: Seq[SimpleFeature] = configureAndRun(content, geometryColumns, typeName)
-
-      //featuresRead.foreach { println(_) }
       featuresRead.size mustEqual 3
 
       val feature = featuresRead.head

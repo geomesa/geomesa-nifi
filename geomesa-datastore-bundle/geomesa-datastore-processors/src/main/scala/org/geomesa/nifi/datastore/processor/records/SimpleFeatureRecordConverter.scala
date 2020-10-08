@@ -17,7 +17,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record._
 import org.apache.nifi.serialization.record.`type`.{ArrayDataType, ChoiceDataType, MapDataType, RecordDataType}
-import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
 import org.geomesa.nifi.datastore.processor.records.SimpleFeatureRecordConverter.FieldConverter
 import org.geotools.feature.AttributeTypeBuilder
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
@@ -130,17 +129,6 @@ object SimpleFeatureRecordConverter extends LazyLogging {
   import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
 
   import scala.collection.JavaConverters._
-
-  private val geometryTypeMap = scala.collection.Map(
-    "Geometry"           -> classOf[Geometry],
-    "Point"              -> classOf[Point],
-    "LineString"         -> classOf[LineString],
-    "Polygon"            -> classOf[Polygon],
-    "MultiPoint"         -> classOf[MultiPoint],
-    "MultiLineString"    -> classOf[MultiLineString],
-    "MultiPolygon"       -> classOf[MultiPolygon],
-    "GeometryCollection" -> classOf[GeometryCollection]
-  )
 
   private val gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").create()
 
