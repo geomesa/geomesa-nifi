@@ -47,48 +47,50 @@ object GeoAvroRecordSetWriterFactory {
 
 class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSchema, outputStream: OutputStream, map: util.Map[PropertyDescriptor, String]) extends AbstractRecordSetWriter(outputStream) {
   private val schemaAccessWriter = new SchemaNameAsAttribute()
-  // Wkt is assumed to be the default GeometryEncoding.
-  // TODO:  Extract this as a property?
-  private val encodings = getEncodings(map, GeometryEncoding.Wkt)
-  private val defaultGeometryColumn = Option(map.get(GeometryCols)).map(_.split(":")(0))
-  private val typeName = Option(map.get(TypeName))
 
-  private val geometryColumns= encodings.map { case (k, v) =>
-    GeometryColumn(k, v.clazz, defaultGeometryColumn.isDefined && defaultGeometryColumn.get.equals(k))
-  }.toSeq
+  /// Get Conf
+  private val recordConverterOptions = {
+    def getEncodings(descriptorToString: util.Map[PropertyDescriptor, String], defaultEncoding: GeometryEncoding): Map[String, TypeAndEncoding] = {
+      val geometryColumns = descriptorToString.get(GeometryCols)
+      if (geometryColumns == null) {
+        Map()
+      } else {
+        geometryColumns
+          .split(",")
+          .map { s =>
+            // TODO: Make this exception better!
+            val splits = s.split(":")
+            if (splits.size < 2) throw new Exception(s"Improper configuration string: ${map.get(GeometryCols)}")
+            val encoding = if (splits.size == 2) {
+              defaultEncoding
+            } else {
+              GeometryEncoding(splits(2))
+            }
+            (splits(0), TypeAndEncoding(splits(1), encoding))
+          }.toMap
+      }
+    }
 
-  private val visField = Some(map.get(VisibilitiesCol))
-  private val recordConverterOptions = RecordConverterOptions(typeName, None, geometryColumns, visField = visField)
+    val encodings = getEncodings(map, GeometryEncoding.Wkt)
+    val defaultGeometryColumn = Option(map.get(GeometryCols)).map(_.split(":")(0))
+    val typeName = Option(map.get(TypeName))
+
+    val geometryColumns= encodings.map { case (k, v) =>
+      GeometryColumn(k, v.clazz, defaultGeometryColumn.isDefined && defaultGeometryColumn.get.equals(k))
+    }.toSeq
+
+    val visField = Some(map.get(VisibilitiesCol))
+
+    RecordConverterOptions(typeName, None, geometryColumns, visField = visField)
+  }
+
   private val converter = SimpleFeatureRecordConverter(recordSchema, recordConverterOptions)
-
-  private val sft = converter.sft
-  private val writer = new AvroDataFileWriter(outputStream, sft)
+  private val writer = new AvroDataFileWriter(outputStream, converter.sft)
 
   override def writeRecord(record: Record): util.Map[String, String] = {
     val sf = converter.convert(record)
     writer.append(sf)
     schemaAccessWriter.getAttributes(recordSchema)
-  }
-
-  private def getEncodings(descriptorToString: util.Map[PropertyDescriptor, String], defaultEncoding: GeometryEncoding): Map[String, TypeAndEncoding] = {
-    val geometryColumns = descriptorToString.get(GeometryCols)
-    if (geometryColumns == null) {
-      Map()
-    } else {
-      geometryColumns
-        .split(",")
-        .map { s =>
-          // TODO: Make this exception better!
-          val splits = s.split(":")
-          if (splits.size < 2) throw new Exception(s"Improper configuration string: ${map.get(GeometryCols)}")
-          val encoding = if (splits.size == 2) {
-            defaultEncoding
-          } else {
-            GeometryEncoding(splits(2))
-          }
-          (splits(0), TypeAndEncoding(splits(1), encoding))
-        }.toMap
-    }
   }
 
   override def getMimeType: String = "application/avro-binary"
