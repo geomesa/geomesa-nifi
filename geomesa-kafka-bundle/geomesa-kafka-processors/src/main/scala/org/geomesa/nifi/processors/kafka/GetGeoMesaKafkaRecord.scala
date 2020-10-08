@@ -26,7 +26,7 @@ import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
-import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerialization
+import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
@@ -92,7 +92,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       if (java.lang.Boolean.parseBoolean(context.getProperty(p).getValue)) { Some(name) } else { None }
 
     val typeName = context.getProperty(TypeName).evaluateAttributeExpressions().getValue
-    val encoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
+    val encoding = GeometryEncoding(context.getProperty(GeometrySerializationDefaultWkt).getValue)
     val vis = boolean(IncludeVisibilities, "visibilities")
     val userData = boolean(IncludeUserData, "user-data")
 
@@ -343,7 +343,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     TypeName,
     GroupId,
     RecordWriter,
-    GeometrySerialization,
+    GeometrySerializationDefaultWkt,
     IncludeVisibilities,
     IncludeUserData,
     RecordMaxBatchSize,

@@ -251,7 +251,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.setProperty(Properties.RecordReader, "avro-record-reader")
       runner.setProperty(Properties.FeatureIdCol, "__fid__")
       runner.setProperty(Properties.GeometryCols, "*geom:Point")
-      runner.setProperty(Properties.GeometrySerialization, GeometryEncodingLabels.Wkb)
+      runner.setProperty(Properties.GeometrySerializationDefaultWkt, GeometryEncodingLabels.Wkb)
       runner.setProperty(Properties.VisibilitiesCol, "Vis")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.avro"))
 

@@ -60,15 +60,11 @@ package object records {
         .required(false)
         .build()
 
-    val GeometrySerialization: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-        .name("geometry-serialization")
-        .displayName("Geometry Serialization Format")
-        .description("The format to use for serializing/deserializing geometries")
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
-        .defaultValue(GeometryEncodingLabels.Wkt)
-        .build()
+    val GeometrySerializationDefaultWkt: PropertyDescriptor =
+      buildGeometrySerializationProperty(GeometryEncodingLabels.Wkt)
+
+    val GeometrySerializationDefaultWkb: PropertyDescriptor =
+      buildGeometrySerializationProperty(GeometryEncodingLabels.Wkb)
 
     val JsonCols: PropertyDescriptor =
       new PropertyDescriptor.Builder()
@@ -111,6 +107,17 @@ package object records {
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
+  }
+
+  private def buildGeometrySerializationProperty(defaultSerializationFormat: String) = {
+    new PropertyDescriptor.Builder()
+      .name("geometry-serialization")
+      .displayName("Geometry Serialization Format")
+      .description("The format to use for serializing/deserializing geometries")
+      .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+      .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
+      .defaultValue(defaultSerializationFormat)
+      .build()
   }
 
   def fromRecordBytes(bytes: AnyRef): Array[Byte] = {

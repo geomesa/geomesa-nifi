@@ -53,7 +53,7 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
             case g: GeomAttributeSpec => GeometryColumn(g.name, g.clazz, g.default)
           }
         }
-      val geomEncoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
+      val geomEncoding = GeometryEncoding(context.getProperty(GeometrySerializationDefaultWkt).getValue)
       val jsonCols =
         Option(context.getProperty(JsonCols).evaluateAttributeExpressions().getValue).toSeq.flatMap(_.split(","))
       val dtgCol = Option(context.getProperty(DefaultDateCol).evaluateAttributeExpressions().getValue)
@@ -148,7 +148,7 @@ object RecordIngestProcessor {
     TypeName,
     FeatureIdCol,
     GeometryCols,
-    GeometrySerialization,
+    GeometrySerializationDefaultWkt,
     JsonCols,
     DefaultDateCol,
     VisibilitiesCol,
