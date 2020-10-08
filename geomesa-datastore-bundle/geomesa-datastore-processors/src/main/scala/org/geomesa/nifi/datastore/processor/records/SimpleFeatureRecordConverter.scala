@@ -9,18 +9,15 @@
 package org.geomesa.nifi.datastore.processor.records
 
 
-import java.util
 import java.math.BigInteger
-
 import java.util.{Date, UUID}
 
 import com.google.gson.GsonBuilder
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record._
-import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.apache.nifi.serialization.record.`type`.{ArrayDataType, ChoiceDataType, MapDataType, RecordDataType}
+import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometryEncoding
 import org.geomesa.nifi.datastore.processor.records.SimpleFeatureRecordConverter.FieldConverter
 import org.geotools.feature.AttributeTypeBuilder
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
@@ -31,10 +28,8 @@ import org.locationtech.geomesa.utils.geotools.ObjectType.ObjectType
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.AttributeOptions
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
-import org.locationtech.jts.geom.{Geometry, GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon}
-import org.locationtech.jts.geom.Geometry
+import org.locationtech.jts.geom._
 import org.opengis.feature.`type`.AttributeDescriptor
-
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.reflect.ClassTag
@@ -261,11 +256,6 @@ object SimpleFeatureRecordConverter extends LazyLogging {
         descriptor
       }
       builder.addAll(descriptors.asJava)
-      if (options.visField.isDefined) {
-        println("Do we need to remove the visibilities from the SFT?")
-        println(s"Added descriptors: ${descriptors.mkString(", ")}")
-        //builder.remove("visibilities")
-      }
       options.geomFields.find(_.default).foreach(g => builder.setDefaultGeometry(g.name))
       builder.buildFeatureType()
     }
@@ -404,14 +394,6 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       extends AbstractFieldConverter[Array[Byte], AnyRef](name, RecordDataTypes.BytesType) {
     override def convertToRecord(value: Array[Byte]): AnyRef = value
     override def convertToAttribute(value: AnyRef): Array[Byte] = fromRecordBytes(value)
-  }
-
-  case class TypeAndEncoding(clazz: Class[_ <: Geometry], encoding: GeometryEncoding)
-
-  object TypeAndEncoding {
-    def apply(clazzString: String, encoding: GeometryEncoding): TypeAndEncoding = {
-      TypeAndEncoding(geometryTypeMap(clazzString), encoding)
-    }
   }
 
   class UuidFieldConverter(name: String)

@@ -55,7 +55,7 @@ class GeoAvroRecordSetWriterFactoryTest extends Specification with LazyLogging {
           s"456|Lewis|leader|POINT(-86.9023 4.567)|$geometries\n" +
           s"789|Basie|pianist|POINT(-73.9465 40.8116)|$geometries\n"
 
-      val geometryColumns = "defaultmls:MultiLineString,position:Point,p:Point,ls:LineString,poly:Polygon,mp:MultiPoint,mls:MultiLineString,mpoly:MultiPolygon"
+      val geometryColumns = "*defaultmls:MultiLineString,position:Point,p:Point,ls:LineString,poly:Polygon,mp:MultiPoint,mls:MultiLineString,mpoly:MultiPolygon"
       val typeName = "testTypeName"
 
       val featuresRead: Seq[SimpleFeature] = configureAndRun(content, geometryColumns, typeName)

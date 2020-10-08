@@ -70,40 +70,6 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
       case None => Map.empty[String, AnyRef]
     }
     RecordConverterOptions(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
-
-
-//    def getEncodings(descriptorToString: util.Map[PropertyDescriptor, String], defaultEncoding: GeometryEncoding): Map[String, TypeAndEncoding] = {
-//      val geometryColumns = descriptorToString.get(GeometryCols)
-//      if (geometryColumns == null) {
-//        Map()
-//      } else {
-//        geometryColumns
-//          .split(",")
-//          .map { s =>
-//            // TODO: Make this exception better!
-//            val splits = s.split(":")
-//            if (splits.size < 2) throw new Exception(s"Improper configuration string: ${map.get(GeometryCols)}")
-//            val encoding = if (splits.size == 2) {
-//              defaultEncoding
-//            } else {
-//              GeometryEncoding(splits(2))
-//            }
-//            (splits(0), TypeAndEncoding(splits(1), encoding))
-//          }.toMap
-//      }
-//    }
-//
-//    val encodings = getEncodings(map, GeometryEncoding.Wkt)
-//    val defaultGeometryColumn = Option(map.get(GeometryCols)).map(_.split(":")(0))
-//    val typeName = Option(map.get(TypeName))
-//
-//    val geometryColumns= encodings.map { case (k, v) =>
-//      GeometryColumn(k, v.clazz, defaultGeometryColumn.isDefined && defaultGeometryColumn.get.equals(k))
-//    }.toSeq
-//
-//    val visField = Some(map.get(VisibilitiesCol))
-//
-//    RecordConverterOptions(typeName, None, geometryColumns, visField = visField)
   }
 
   private val converter = SimpleFeatureRecordConverter(recordSchema, recordConverterOptions)
@@ -112,6 +78,9 @@ class GeoAvroRecordSetWriter(componentLog: ComponentLog, recordSchema: RecordSch
   override def writeRecord(record: Record): util.Map[String, String] = {
     val sf = converter.convert(record)
     writer.append(sf)
+
+    // This is the same as the CSV/XML RecordWriters.
+    // It seems like this could be memo-ized.  Those writers do not, so we are not.
     schemaAccessWriter.getAttributes(recordSchema)
   }
 
