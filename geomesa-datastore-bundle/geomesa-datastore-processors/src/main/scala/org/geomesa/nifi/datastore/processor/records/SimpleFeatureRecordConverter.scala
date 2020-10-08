@@ -321,36 +321,6 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       case RecordFieldType.DATE      => Some(new DateFieldConverter(name, dataType))
       case RecordFieldType.CHAR      => Some(new CharFieldConverter(name))
 
-//<<<<<<< HEAD
-//  class SimpleFeatureRecordConverterImpl(
-//      val sft: SimpleFeatureType,
-//      val schema: RecordSchema,
-//      converters: Array[AttributeFieldConverter[AnyRef, AnyRef]]
-//    ) extends SimpleFeatureRecordConverter {
-//
-//    override def convert(feature: SimpleFeature): Record = {
-//      val values = new java.util.LinkedHashMap[String, AnyRef](converters.length + 1)
-//      values.put("id", feature.getID)
-//      var i = 0
-//      while (i < converters.length) {
-//        values.put(converters(i).field.getFieldName, converters(i).toRecord(feature.getAttribute(i)))
-//        i += 1
-//      }
-//      new SimpleFeatureMapRecord(feature, schema, values)
-//    }
-//
-//    override def convert(feature: Record): SimpleFeature = {
-//      val raw = feature.getValues
-//      val values = Array.ofDim[AnyRef](converters.length)
-//      var i = 0
-//      while (i < converters.length) {
-//        // Why is this raw(i+1)?
-//        values(i) = converters(i).toAttribute(raw(i))
-//        i += 1
-//      }
-//      // TODO:  New FID attribute
-//      new ScalaSimpleFeature(sft, raw(0).toString, values)
-//=======
       case RecordFieldType.ARRAY =>
         val subType = dataType.asInstanceOf[ArrayDataType].getElementType
         if (subType.getFieldType == RecordFieldType.BYTE) {
@@ -373,26 +343,12 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       case t =>
         logger.warn(s"Dropping unsupported record field '${(path :+ name).mkString(".")}' of type: $t")
         None
-//>>>>>>> main
     }
     converter.asInstanceOf[Option[FieldConverter[AnyRef, AnyRef]]]
   }
 
-//<<<<<<< HEAD
-//  private def getRecordSchema(sft: SimpleFeatureType, converters: Array[AttributeFieldConverter[AnyRef, AnyRef]]) = {
-//     val fields = new util.ArrayList[RecordField](converters.length + 1)
-//    fields.add(FidConverter.field)
-//    converters.foreach(c => fields.add(c.field))
-//    val schema = new SimpleFeatureTypeRecordSchema(sft, fields)
-//    schema.setSchemaName(sft.getTypeName)
-//    schema
-//  }
-//
-//  trait AttributeFieldConverter[T <: AnyRef, U <: AnyRef] {
-//=======
   trait FieldConverter[T, U] {
     def name: String
-//>>>>>>> main
     def field: RecordField
     def descriptor: AttributeDescriptor
     def convertToRecord(value: T): U
@@ -445,18 +401,6 @@ object SimpleFeatureRecordConverter extends LazyLogging {
     override def convertToAttribute(value: AnyRef): Array[Byte] = fromRecordBytes(value)
   }
 
-//<<<<<<< HEAD
-//  object GeometryToRecordField {
-//    def apply(name: String, encoding: GeometryEncoding, encodings: scala.collection.Map[String, TypeAndEncoding]): AttributeFieldConverter[Geometry, _] = {
-//      // Look up encoding in PropertyDescriptors and then fall back to the encoding passed in.
-//      encodings.get(name).map(_.encoding).getOrElse(encoding) match {
-//        case GeometryEncoding.Wkt => new GeometryToWktRecordField(name)
-//        case GeometryEncoding.Wkb => new GeometryToWkbRecordField(name)
-//        case _ => throw new NotImplementedError(s"Geometry encoding $encoding")
-//      }
-//    }
-//  }
-
   case class TypeAndEncoding(clazz: Class[_ <: Geometry], encoding: GeometryEncoding)
 
   object TypeAndEncoding {
@@ -464,12 +408,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       TypeAndEncoding(geometryTypeMap(clazzString), encoding)
     }
   }
-//
-//  class GeometryToWktRecordField(name: String) extends AttributeFieldConverter[Geometry, String] {
-//    override val field: RecordField = new RecordField(name, RecordFieldType.STRING.getDataType)
-//    override def toRecord(attribute: Geometry): String = if (attribute == null) { null } else { WKTUtils.write(attribute) }
-//    override def toAttribute(record: String): Geometry = if (record == null) { null } else { WKTUtils.read(record) }
-//=======
+
   class UuidFieldConverter(name: String)
       extends AbstractFieldConverter[UUID, String](name, RecordDataTypes.StringType) {
     override def convertToAttribute(value: String): UUID = UUID.fromString(value)
