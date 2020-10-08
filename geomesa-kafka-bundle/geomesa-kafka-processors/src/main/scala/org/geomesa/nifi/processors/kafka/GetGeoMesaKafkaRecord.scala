@@ -26,7 +26,7 @@ import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
-import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.Properties.GeometrySerialization
+import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerialization
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._

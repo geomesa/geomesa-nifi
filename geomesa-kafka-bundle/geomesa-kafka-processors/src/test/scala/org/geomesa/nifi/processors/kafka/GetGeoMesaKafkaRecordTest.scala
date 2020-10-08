@@ -16,7 +16,7 @@ import org.apache.nifi.csv.{CSVRecordSetWriter, CSVUtils}
 import org.apache.nifi.serialization.DateTimeUtils
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.Relationships
-import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory
+import org.geomesa.nifi.datastore.processor.records.{GeoAvroRecordSetWriterFactory, Properties}
 import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
@@ -268,7 +268,7 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       val result: Array[Byte] = try {
         val service = new GeoAvroRecordSetWriterFactory()
         runner.addControllerService("avro-record-set-writer", service)
-        runner.setProperty(service, GeoAvroRecordSetWriterFactory.VisibilitiesColumn, "visibilities")
+        runner.setProperty(service, Properties.VisibilitiesCol, "visibilities")
         runner.enableControllerService(service)
 
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "avro-record-set-writer")

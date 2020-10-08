@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.csv.{CSVReader, CSVUtils}
 import org.apache.nifi.processors.standard.ConvertRecord
 import org.apache.nifi.util.{TestRunner, TestRunners}
-import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory.{GeometryColumns, TypeName}
+import org.geomesa.nifi.datastore.processor.records.Properties.{GeometryCols, TypeName}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.jts.geom.{Geometry, MultiPolygon}
@@ -113,7 +113,7 @@ class GeoAvroRecordSetWriterFactoryTest extends Specification with LazyLogging {
 
     val geoAvroWriter = new GeoAvroRecordSetWriterFactory()
     runner.addControllerService("geo-avro-record-set-writer", geoAvroWriter)
-    runner.setProperty(geoAvroWriter, GeometryColumns, geometryColumns)
+    runner.setProperty(geoAvroWriter, GeometryCols, geometryColumns)
     runner.setProperty(geoAvroWriter, TypeName, typeName)
     runner.enableControllerService(geoAvroWriter)
 

@@ -9,11 +9,109 @@
 package org.geomesa.nifi.datastore.processor
 
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.util.StandardValidators
+import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.{DataType, RecordFieldType}
 import org.locationtech.jts.geom.Geometry
 
 package object records {
+
+  object Properties {
+
+    val RecordReader: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("record-reader")
+        .displayName("Record reader")
+        .description("The Record Reader to use for deserializing the incoming data")
+        .identifiesControllerService(classOf[RecordReaderFactory])
+        .required(true)
+        .build
+
+    val TypeName: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("feature-type-name")
+        .displayName("Feature type name")
+        .description("Name to use for the simple feature type schema")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+
+    val FeatureIdCol: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("feature-id-col")
+        .displayName("Feature ID column")
+        .description("Column that will be used as the feature ID")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+
+    val GeometryCols: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("geometry-cols")
+        .displayName("Geometry columns")
+        .description(
+          "Column(s) that will be deserialized as geometries and their type, as a SimpleFeatureType " +
+            "specification string. A '*' can be used to indicate the default geometry column")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+
+    val GeometrySerialization: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("geometry-serialization")
+        .displayName("Geometry Serialization Format")
+        .description("The format to use for serializing/deserializing geometries")
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
+        .defaultValue(GeometryEncodingLabels.Wkt)
+        .build()
+
+    val JsonCols: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("json-cols")
+        .displayName("JSON columns")
+        .description(
+          "Column(s) that contain valid JSON documents, comma-separated. " +
+            "The columns must be STRING type")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+
+    val DefaultDateCol: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("default-date-col")
+        .displayName("Default date column")
+        .description("Column to use as the default date attribute")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+
+    val VisibilitiesCol: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("visibilities-col")
+        .displayName("Visibilities column")
+        .description("Column to use for the feature visibilities")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+
+    val SchemaUserData: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("schema-user-data")
+        .displayName("Schema user data")
+        .description("User data used to configure the GeoMesa SimpleFeatureType, in the form 'key1=value1,key2=value2'")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build()
+  }
 
   def fromRecordBytes(bytes: AnyRef): Array[Byte] = {
     bytes match {
