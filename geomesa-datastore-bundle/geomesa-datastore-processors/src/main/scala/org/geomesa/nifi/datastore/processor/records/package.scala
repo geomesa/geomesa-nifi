@@ -63,7 +63,8 @@ package object records {
   case class SimpleFeatureConverterOptions(
       fidField: Option[String] = Some("id"),
       encoding: GeometryEncoding.GeometryEncoding = GeometryEncoding.Wkt,
-      visField: Option[String] = None
+      visField: Option[String] = None,
+      userDataField: Option[String] = None
     ) extends ConverterOptions
 
   case class RecordConverterOptions(

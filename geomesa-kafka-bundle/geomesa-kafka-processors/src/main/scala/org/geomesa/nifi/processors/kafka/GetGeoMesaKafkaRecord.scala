@@ -26,9 +26,8 @@ import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
-import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometrySerialization
 import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.Properties.GeometrySerialization
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, GeometryEncodingLabels, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
@@ -89,14 +88,13 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
 
+    def boolean(p: PropertyDescriptor, name: String): Option[String] =
+      if (java.lang.Boolean.parseBoolean(context.getProperty(p).getValue)) { Some(name) } else { None }
+
     val typeName = context.getProperty(TypeName).evaluateAttributeExpressions().getValue
     val encoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
-    val vis =
-      if (java.lang.Boolean.parseBoolean(context.getProperty(IncludeVisibilities).getValue)) {
-        Some("visibilities")
-      } else {
-        None
-      }
+    val vis = boolean(IncludeVisibilities, "visibilities")
+    val userData = boolean(IncludeUserData, "user-data")
 
     factory = context.getProperty(RecordWriter).asControllerService(classOf[RecordSetWriterFactory])
     maxBatchSize = context.getProperty(RecordMaxBatchSize).evaluateAttributeExpressions().asInteger
@@ -137,7 +135,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val sft = ds.getSchema(typeName)
       require(sft != null,
         s"Feature type '$typeName' does not exist in the store. Available types: ${ds.getTypeNames.mkString(", ")}")
-      converter = SimpleFeatureRecordConverter(sft, SimpleFeatureConverterOptions(encoding = encoding, visField = vis))
+      val opts = SimpleFeatureConverterOptions(encoding = encoding, visField = vis, userDataField = userData)
+      converter = SimpleFeatureRecordConverter(sft, opts)
       schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
       fs = ds.getFeatureSource(typeName)
       fs.addFeatureListener(listener)
@@ -282,7 +281,17 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .name("include-visibilities")
         .displayName("Include Visibilities")
         .description("Include a column with visibility expressions for each row")
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues("false", "true")
+        .defaultValue("false")
+        .build
+
+  val IncludeUserData: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+        .name("include-user-data")
+        .displayName("Include User Data")
+        .description("Include a column with user data from the SimpleFeature, serialized as JSON")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("false", "true")
         .defaultValue("false")
         .build
@@ -336,6 +345,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     RecordWriter,
     GeometrySerialization,
     IncludeVisibilities,
+    IncludeUserData,
     RecordMaxBatchSize,
     RecordMinBatchSize,
     RecordMaxLatency,
