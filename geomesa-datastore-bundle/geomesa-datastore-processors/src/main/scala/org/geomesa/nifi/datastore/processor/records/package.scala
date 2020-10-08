@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.datastore.processor
 
+import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.record.{DataType, RecordFieldType}
 import org.locationtech.jts.geom.Geometry
 

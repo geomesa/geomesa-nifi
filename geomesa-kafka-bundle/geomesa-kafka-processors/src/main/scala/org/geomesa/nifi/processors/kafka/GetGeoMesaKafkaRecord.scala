@@ -26,6 +26,8 @@ import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
+import org.geomesa.nifi.datastore.processor.records.GeometryEncoding.GeometrySerialization
+import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.Properties.GeometrySerialization
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, GeometryEncodingLabels, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
@@ -274,16 +276,6 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
       .identifiesControllerService(classOf[RecordSetWriterFactory])
       .required(true)
       .build
-
-  val GeometrySerialization: PropertyDescriptor =
-    new PropertyDescriptor.Builder()
-        .name("geometry-serialization")
-        .displayName("Geometry Serialization Format")
-        .description("The format to use for serializing geometries")
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
-        .defaultValue(GeometryEncodingLabels.Wkt)
-        .build
 
   val IncludeVisibilities: PropertyDescriptor =
     new PropertyDescriptor.Builder()

@@ -33,11 +33,12 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
   }
 
   override def getSupportedPropertyDescriptors: util.List[PropertyDescriptor] =
-    Seq(GeometryColumns, VisibilitiesColumn).toList.asJava
+    Seq(GeometryColumns, VisibilitiesColumn, TypeName, RecordIngestProcessor.Properties.GeometrySerialization).toList.asJava
 }
 
 object GeoAvroRecordSetWriterFactory {
   // TODO factor out
+  // Is this the same as RecordIngestProcessor.Properties.VisibilitiesCol ?
   val VisibilitiesColumn: PropertyDescriptor =
     new PropertyDescriptor.Builder()
       .name("visibilities-column")
