@@ -8,11 +8,17 @@
 
 package org.geomesa.nifi.datastore.processor
 
+import java.util.Collections
+
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.{DataType, RecordFieldType}
+import org.geomesa.nifi.datastore.processor.records.Properties._
+import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpec.GeomAttributeSpec
+import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpecParser
 import org.locationtech.jts.geom.Geometry
 
 package object records {
@@ -33,7 +39,8 @@ package object records {
         .name("feature-type-name")
         .displayName("Feature type name")
         .description("Name to use for the simple feature type schema")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
@@ -43,7 +50,8 @@ package object records {
         .name("feature-id-col")
         .displayName("Feature ID column")
         .description("Column that will be used as the feature ID")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
@@ -55,16 +63,31 @@ package object records {
         .description(
           "Column(s) that will be deserialized as geometries and their type, as a SimpleFeatureType " +
             "specification string. A '*' can be used to indicate the default geometry column")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
 
     val GeometrySerializationDefaultWkt: PropertyDescriptor =
-      buildGeometrySerializationProperty(GeometryEncodingLabels.Wkt)
+      new PropertyDescriptor.Builder()
+          .name("geometry-serialization")
+          .displayName("Geometry Serialization Format")
+          .description(
+            "The format to use for serializing/deserializing geometries - " +
+                "either WKT (well-known text) or WKB (well-known binary)")
+          .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+          .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+          .allowableValues("WKT", "WKB")
+          .defaultValue("WKT")
+          .build()
 
     val GeometrySerializationDefaultWkb: PropertyDescriptor =
-      buildGeometrySerializationProperty(GeometryEncodingLabels.Wkb)
+      new PropertyDescriptor.Builder()
+          .fromPropertyDescriptor(GeometrySerializationDefaultWkt)
+          .defaultValue("WKB")
+          .build()
 
     val JsonCols: PropertyDescriptor =
       new PropertyDescriptor.Builder()
@@ -73,7 +96,8 @@ package object records {
         .description(
           "Column(s) that contain valid JSON documents, comma-separated. " +
             "The columns must be STRING type")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
@@ -83,7 +107,8 @@ package object records {
         .name("default-date-col")
         .displayName("Default date column")
         .description("Column to use as the default date attribute")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
@@ -93,7 +118,8 @@ package object records {
         .name("visibilities-col")
         .displayName("Visibilities column")
         .description("Column to use for the feature visibilities")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
@@ -103,21 +129,11 @@ package object records {
         .name("schema-user-data")
         .displayName("Schema user data")
         .description("User data used to configure the GeoMesa SimpleFeatureType, in the form 'key1=value1,key2=value2'")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
         .build()
-  }
-
-  private def buildGeometrySerializationProperty(defaultSerializationFormat: String) = {
-    new PropertyDescriptor.Builder()
-      .name("geometry-serialization")
-      .displayName("Geometry Serialization Format")
-      .description("The format to use for serializing/deserializing geometries")
-      .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-      .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
-      .defaultValue(defaultSerializationFormat)
-      .build()
   }
 
   def fromRecordBytes(bytes: AnyRef): Array[Byte] = {
@@ -136,16 +152,11 @@ package object records {
 
     def apply(value: String): GeometryEncoding = {
       value match {
-        case GeometryEncodingLabels.Wkt => Wkt
-        case GeometryEncodingLabels.Wkb => Wkb
+        case v if v.equalsIgnoreCase("wkt") => Wkt
+        case v if v.equalsIgnoreCase("wkb") => Wkb
         case s => throw new IllegalArgumentException(s"Unexpected geometry encoding: $s")
       }
     }
-  }
-
-  object GeometryEncodingLabels {
-    val Wkt = "WKT (well-known text)"
-    val Wkb = "WKB (well-known binary)"
   }
 
   object RecordDataTypes {
@@ -184,4 +195,185 @@ package object records {
     ) extends ConverterOptions
 
   case class GeometryColumn(name: String, binding: Class[_ <: Geometry], default: Boolean)
+
+  sealed trait OptionExtractor {
+
+    /**
+     * Create converter options based on the environment
+     *
+     * @param context process/session context
+     * @param variables flow file attributes
+     * @return
+     */
+    def apply(
+        context: PropertyContext,
+        variables: java.util.Map[String, String] = Collections.emptyMap()): RecordConverterOptions
+  }
+
+  object OptionExtractor {
+
+    import GeometryEncoding.GeometryEncoding
+
+    /**
+     * Create an option extractor for the given context
+     *
+     * @param context context
+     * @param encoding default geometry encoding
+     * @return
+     */
+    def apply(context: PropertyContext, encoding: GeometryEncoding): OptionExtractor = {
+
+      val typeName = TypeNameExtractor.static(context)
+      val fidCol = FeatureIdExtractor.static(context)
+      val geomCols = GeometryColsExtractor.static(context)
+      val geomEncoding = encoding match {
+        case GeometryEncoding.Wkt => GeometryEncodingWktExtractor.static(context)
+        case GeometryEncoding.Wkb => GeometryEncodingWkbExtractor.static(context)
+      }
+      val jsonCols = JsonColumnsExtractor.static(context)
+      val dtgCol = DefaultDateExtractor.static(context)
+      val visCol = VisibilitiesExtractor.static(context)
+      val userData = UserDataExtractor.static(context)
+
+      val dynamic =
+        new DynamicConfiguration(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
+
+      val static =
+        Seq(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
+            .forall(_.isInstanceOf[StaticEvaluation[_]])
+
+      if (!static) { dynamic } else {
+        new StaticConfiguration(dynamic.apply(context, Collections.emptyMap()))
+      }
+    }
+
+    /**
+     * A static configuration that doesn't depend on the environment (i.e. no expression language)
+     *
+     * @param opts opts
+     */
+    class StaticConfiguration(opts: RecordConverterOptions) extends OptionExtractor {
+      override def apply(
+          context: PropertyContext,
+          variables: java.util.Map[String, String]): RecordConverterOptions = opts
+    }
+
+    /**
+     * A dynamic configuration that depends on the environment (i.e. has expression language)
+     *
+     * Each individual config value may be static so it's not re-evaluated each time
+     */
+    class DynamicConfiguration(
+        typeName: PropertyExtractor[Option[String]],
+        fidCol: PropertyExtractor[Option[String]],
+        geomCols: PropertyExtractor[Seq[GeometryColumn]],
+        geomEncoding: PropertyExtractor[GeometryEncoding],
+        jsonCols: PropertyExtractor[Seq[String]],
+        dtgCol: PropertyExtractor[Option[String]],
+        visCol: PropertyExtractor[Option[String]],
+        userData: PropertyExtractor[Map[String, AnyRef]]
+      ) extends OptionExtractor {
+
+      override def apply(
+          context: PropertyContext,
+          variables: java.util.Map[String, String]): RecordConverterOptions = {
+        RecordConverterOptions(
+          typeName   = typeName.apply(context, variables),
+          fidField   = fidCol.apply(context, variables),
+          geomFields = geomCols.apply(context, variables),
+          encoding   = geomEncoding.apply(context, variables),
+          jsonFields = jsonCols.apply(context, variables),
+          dtgField   = dtgCol.apply(context, variables),
+          visField   = visCol.apply(context, variables),
+          userData   = userData.apply(context, variables)
+        )
+      }
+    }
+
+    /**
+     * Gets the value for a single property descriptor
+     *
+     * @tparam T type
+     */
+    private sealed trait PropertyExtractor[T] {
+
+      /**
+       * Evaluate the property descriptor
+       *
+       * @param context context
+       * @param variables flow file variables
+       * @return
+       */
+      def apply(context: PropertyContext, variables: java.util.Map[String, String]): T
+
+      /**
+       * Make the extractor static (memoize it), if possible
+       *
+       * @param context context
+       * @return
+       */
+      def static(context: PropertyContext): PropertyExtractor[T]
+    }
+
+    private class StaticEvaluation[T](value: T) extends PropertyExtractor[T] {
+      override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T = value
+      override def static(context: PropertyContext): PropertyExtractor[T] = this
+    }
+
+    private abstract class DynamicEvaluation[T](prop: PropertyDescriptor) extends PropertyExtractor[T] {
+      override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T =
+        wrap(context.getProperty(prop).evaluateAttributeExpressions(variables).getValue)
+      override def static(context: PropertyContext): PropertyExtractor[T] = {
+        if (context.getProperty(prop).isExpressionLanguagePresent) { this } else {
+          new StaticEvaluation(apply(context, Collections.emptyMap()))
+        }
+      }
+
+      protected def wrap(value: String): T
+    }
+
+    private class OptionEvaluation(prop: PropertyDescriptor) extends DynamicEvaluation[Option[String]](prop) {
+      override def wrap(value: String): Option[String] = Option(value)
+    }
+
+    private object TypeNameExtractor extends OptionEvaluation(TypeName)
+    private object FeatureIdExtractor extends OptionEvaluation(FeatureIdCol)
+    private object DefaultDateExtractor extends OptionEvaluation(DefaultDateCol)
+    private object VisibilitiesExtractor extends OptionEvaluation(VisibilitiesCol)
+
+    private object GeometryColsExtractor extends DynamicEvaluation[Seq[GeometryColumn]](GeometryCols) {
+      override protected def wrap(value: String): Seq[GeometryColumn] = {
+        Option(value).toSeq.flatMap { spec =>
+          SimpleFeatureSpecParser.parse(spec).attributes.collect {
+            case g: GeomAttributeSpec => GeometryColumn(g.name, g.clazz, g.default)
+          }
+        }
+      }
+    }
+
+    private object GeometryEncodingWktExtractor
+        extends DynamicEvaluation[GeometryEncoding](GeometrySerializationDefaultWkt) {
+      override protected def wrap(value: String): GeometryEncoding = GeometryEncoding(value)
+    }
+
+    private object GeometryEncodingWkbExtractor
+        extends DynamicEvaluation[GeometryEncoding](GeometrySerializationDefaultWkb) {
+      override protected def wrap(value: String): GeometryEncoding = GeometryEncoding(value)
+    }
+
+    private object JsonColumnsExtractor extends DynamicEvaluation[Seq[String]](JsonCols) {
+      override protected def wrap(value: String): Seq[String] =
+        Option(value).toSeq.flatMap(_.split(",")).map(_.trim())
+    }
+
+    private object UserDataExtractor extends DynamicEvaluation[Map[String, AnyRef]](SchemaUserData) {
+      override protected def wrap(value: String): Map[String, AnyRef] = {
+        value match {
+          case null => Map.empty[String, AnyRef]
+          case spec => SimpleFeatureSpecParser.parse(";" + spec).options
+        }
+      }
+    }
+
+  }
 }

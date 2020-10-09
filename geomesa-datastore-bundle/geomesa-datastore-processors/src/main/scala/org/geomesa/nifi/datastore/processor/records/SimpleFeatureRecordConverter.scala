@@ -11,6 +11,7 @@ package org.geomesa.nifi.datastore.processor.records
 import java.math.BigInteger
 import java.util.{Date, UUID}
 
+import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import com.google.gson.GsonBuilder
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.serialization.SimpleRecordSchema
@@ -31,6 +32,7 @@ import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.reflect.ClassTag
+import scala.util.control.NonFatal
 
 /**
  * Converts between simple features and nifi records
@@ -131,6 +133,86 @@ object SimpleFeatureRecordConverter extends LazyLogging {
 
   private val gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").create()
 
+  private val cache = Caffeine.newBuilder().build(
+    new CacheLoader[(RecordSchema, RecordConverterOptions), Either[Throwable, SimpleFeatureRecordConverter]] {
+      override def load(
+          key: (RecordSchema, RecordConverterOptions)): Either[Throwable, SimpleFeatureRecordConverter] = {
+        try {
+          val (schema, options) = key
+
+          val typeName =
+            options.typeName
+                .orElse(schema.getSchemaName.asScala)
+                .orElse(schema.getIdentifier.getName.asScala)
+                .getOrElse(throw new IllegalArgumentException("No schema name defined in schema or processor"))
+
+          // validate options
+          val opts =
+            options.fidField.toSeq ++
+                options.geomFields.map(_.name) ++
+                options.jsonFields ++
+                options.dtgField ++
+                options.visField
+
+          opts.foreach { name =>
+            if (!schema.getField(name).isPresent) {
+              logger.warn(
+                s"Schema does not contain configured field '$name': " +
+                    schema.getFieldNames.asScala.mkString(", "))
+            }
+          }
+
+          val converters = schema.getFields.asScala.flatMap { field =>
+            val name = field.getFieldName
+            if (options.fidField.contains(name) || options.visField.contains(name)) {
+              Seq.empty
+            } else {
+              options.geomFields.find(_.name == name) match {
+                case Some(geom) =>
+                  val converter = field.getDataType match {
+                    case d if d == RecordDataTypes.StringType => new GeometryWktFieldConverter(name, geom.binding)
+                    case d if d == RecordDataTypes.BytesType  => new GeometryWkbFieldConverter(name, geom.binding)
+                    case d =>
+                      throw new IllegalArgumentException(
+                        s"Invalid field type '$d' for geometry field $name, expected String or Byte Array")
+                  }
+                  Seq(converter.asInstanceOf[FieldConverter[AnyRef, AnyRef]])
+
+                case None =>
+                  getConverter(name, field.getDataType).toSeq
+              }
+            }
+          }
+
+          val sft: SimpleFeatureType = {
+            val builder = new SimpleFeatureTypeBuilder()
+            builder.setName(typeName)
+            val descriptors = converters.map { c =>
+              val descriptor = c.descriptor
+              if (options.jsonFields.contains(c.name)) {
+                descriptor.getUserData.put(AttributeOptions.OptJson, "true")
+              }
+              descriptor
+            }
+            builder.addAll(descriptors.asJava)
+            options.geomFields.find(_.default).foreach(g => builder.setDefaultGeometry(g.name))
+            builder.buildFeatureType()
+          }
+
+          options.dtgField.foreach(sft.setDtgField)
+          sft.getUserData.putAll(options.userData.asJava)
+
+          val fidField = options.fidField
+          val visField = options.visField
+
+          Right(new SimpleFeatureRecordConverter(sft, schema, converters.toArray, fidField, visField, None))
+        } catch {
+          case NonFatal(e) => Left(e)
+        }
+      }
+    }
+  )
+
   /**
    * Create a converter based on a feature type (useful for creating records from features)
    *
@@ -187,70 +269,11 @@ object SimpleFeatureRecordConverter extends LazyLogging {
    * @return
    */
   def apply(schema: RecordSchema, options: RecordConverterOptions): SimpleFeatureRecordConverter = {
-
-    val typeName =
-      options.typeName
-          .orElse(schema.getSchemaName.asScala)
-          .orElse(schema.getIdentifier.getName.asScala)
-          .getOrElse(throw new IllegalArgumentException("No schema name defined in schema or processor"))
-
-    // validate options
-    val opts =
-      options.fidField.toSeq ++
-          options.geomFields.map(_.name) ++
-          options.jsonFields ++
-          options.dtgField ++
-          options.visField
-
-    opts.foreach { name =>
-      if (!schema.getField(name).isPresent) {
-        logger.warn(
-          s"Schema does not contain configured field '$name': " +
-              schema.getFieldNames.asScala.mkString(", "))
-      }
+    cache.get((schema, options)) match {
+      case Right(c) => c
+      case Left(e)  => throw e
+      case null     => throw new RuntimeException("Unexpected error creating record converter")
     }
-
-    val converters: Seq[FieldConverter[AnyRef, AnyRef]] = schema.getFields.asScala.flatMap { field =>
-      val name = field.getFieldName
-      if (options.fidField.contains(name) || options.visField.contains(name)) {
-        Seq.empty
-      } else {
-        options.geomFields.find(_.name == name) match {
-          case Some(geom) =>
-            val converter = field.getDataType match {
-              case d if d == RecordDataTypes.StringType => new GeometryWktFieldConverter(name, geom.binding)
-              case d if d == RecordDataTypes.BytesType  => new GeometryWkbFieldConverter(name, geom.binding)
-              case d =>
-                throw new IllegalArgumentException(
-                  s"Invalid field type '$d' for geometry field $name, expected String or Byte Array")
-            }
-            Seq(converter.asInstanceOf[FieldConverter[AnyRef, AnyRef]])
-
-          case None =>
-            getConverter(name, field.getDataType).toSeq
-        }
-      }
-    }
-
-    val sft: SimpleFeatureType = {
-      val builder = new SimpleFeatureTypeBuilder()
-      builder.setName(typeName)
-      val descriptors = converters.map { c =>
-        val descriptor = c.descriptor
-        if (options.jsonFields.contains(c.name)) {
-          descriptor.getUserData.put(AttributeOptions.OptJson, "true")
-        }
-        descriptor
-      }
-      builder.addAll(descriptors.asJava)
-      options.geomFields.find(_.default).foreach(g => builder.setDefaultGeometry(g.name))
-      builder.buildFeatureType()
-    }
-
-    options.dtgField.foreach(sft.setDtgField)
-    sft.getUserData.putAll(options.userData.asJava)
-
-    new SimpleFeatureRecordConverter(sft, schema, converters.toArray, options.fidField, options.visField, None)
   }
 
   /**

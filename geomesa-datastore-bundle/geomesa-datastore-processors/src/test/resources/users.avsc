@@ -1,0 +1,12 @@
+{
+  "namespace": "org.geomesa.example",
+  "type": "record",
+  "name": "User",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "favorite_number", "type": [ "int", "null" ] },
+    { "name": "favorite_color", "type": [ "string", "null" ] },
+    { "name": "birthday", "type": "long", "logicalType": "timestamp-millis" },
+    { "name": "home", "type": "string" }
+  ]
+}

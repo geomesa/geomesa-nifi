@@ -1,0 +1,3 @@
+{"name":"Alyssa","favorite_number":{"int":256},"favorite_color":null,"birthday":1577836800000,"home":"POINT (45 55)"}
+{"name":"Ben","favorite_number":{"int":7},"favorite_color":{"string":"red"},"birthday":1577923200000,"home":"POINT (45 56)"}
+{"name":"Charlie","favorite_number":null,"favorite_color":{"string":"blue"},"birthday":1578009600000,"home":"POINT (45 57)"}
