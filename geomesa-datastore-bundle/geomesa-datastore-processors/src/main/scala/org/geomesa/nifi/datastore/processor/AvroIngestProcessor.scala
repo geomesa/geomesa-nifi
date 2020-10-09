@@ -51,18 +51,18 @@ object AvroIngestProcessor {
         .build()
 
   def buildWriter(
-      sft1: SimpleFeatureType,
-      sft2: SimpleFeatureType,
-      matchMode: String,
-      useProvidedFid: Boolean): (SimpleFeatureWriter, SimpleFeature) => Unit = {
-    FeatureTypeProcessor.checkCompatibleSchema(sft1, sft2) match {
+                   inputSFT: SimpleFeatureType,
+                   outputSFT: SimpleFeatureType,
+                   matchMode: String,
+                   useProvidedFid: Boolean): (SimpleFeatureWriter, SimpleFeature) => Unit = {
+    FeatureTypeProcessor.checkCompatibleSchema(inputSFT, outputSFT) match {
       case None =>
         // schemas match, so use a regular writer
         (fw: SimpleFeatureWriter, sf: SimpleFeature) =>
           FeatureUtils.write(fw, sf, useProvidedFid = useProvidedFid)
 
       case Some(_) if matchMode == LenientMatch =>
-        val sfConverter = convert(sft1, sft2)
+        val sfConverter = convert(inputSFT, outputSFT)
         (fw: SimpleFeatureWriter, sf: SimpleFeature) =>
           FeatureUtils.write(fw, sfConverter(sf), useProvidedFid = useProvidedFid)
 
@@ -147,7 +147,7 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
         override def process(in: InputStream): Unit = {
           val reader = new AvroDataFileReader(in)
           try {
-            val writer = buildWriter(sft, reader.getSft, matchMode, useProvidedFid)
+            val writer = buildWriter(reader.getSft, sft, matchMode, useProvidedFid)
             reader.foreach { sf =>
               try {
                 writer(fw, sf)

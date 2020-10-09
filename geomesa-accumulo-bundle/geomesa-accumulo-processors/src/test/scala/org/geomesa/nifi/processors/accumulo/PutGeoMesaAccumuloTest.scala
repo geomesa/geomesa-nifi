@@ -8,20 +8,24 @@
 
 package org.geomesa.nifi.processors.accumulo
 
-import java.util.Collections
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.util.{Collections, Date}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncodingLabels, Properties, RecordIngestProcessor}
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncodingLabels, Properties}
 import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, ConverterIngestProcessor, FeatureTypeProcessor, Relationships}
 import org.geotools.data.DataStoreFinder
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
+import org.locationtech.geomesa.features.ScalaSimpleFeature
+import org.locationtech.geomesa.features.avro.AvroDataFileWriter
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 
 class PutGeoMesaAccumuloTest extends LazyLogging {
@@ -204,6 +208,22 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testAvroIngestByName(): Unit = {
     val catalog = s"${root}AvroIngestByName"
+
+    // This should be the "Good SFT" for the example-csv.avro
+    val sft = SimpleFeatureTypes.createType("test", "fid:Int,name:String,age:Int,lastseen:Date,*geom:Point:srid=4326")
+
+    // Let's make a new Avro file
+    val sft2 = SimpleFeatureTypes.createType("test2", "lastseen:Date,newField:Double,age:Int,name:String,*geom:Point:srid=4326")
+
+    val baos = new ByteArrayOutputStream()
+    val writer = new AvroDataFileWriter(baos, sft2)
+    val sf = new ScalaSimpleFeature(sft2, "sf2-record", Array(new Date(), new java.lang.Double(2.34), new Integer(34), "Ray", WKTUtils.read("POINT(1.2 3.4)")))
+    writer.append(sf)
+    writer.flush()
+    writer.close()
+
+    val is = new ByteArrayInputStream(baos.toByteArray)
+
     val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
@@ -220,6 +240,11 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 2)
       runner.assertTransferCount(Relationships.FailureRelationship, 0)
+
+      runner.enqueue(is)
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 3)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
     } finally {
       runner.shutdown()
     }
@@ -231,7 +256,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       Assert.assertNotNull(sft)
       val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
       logger.debug(features.mkString(";"))
-      Assert.assertEquals(6, features.length)
+      Assert.assertEquals(7, features.length)
     } finally {
       ds.dispose()
     }
