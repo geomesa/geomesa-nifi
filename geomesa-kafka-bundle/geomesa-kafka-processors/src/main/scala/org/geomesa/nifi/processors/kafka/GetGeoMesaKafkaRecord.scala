@@ -26,7 +26,8 @@ import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, GeometryEncodingLabels, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
+import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
@@ -39,7 +40,7 @@ import scala.util.control.NonFatal
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags(Array("kafka", "geomesa", "ingress", "get", "input"))
+@Tags(Array("kafka", "geomesa", "ingress", "get", "input", "record"))
 @CapabilityDescription("Reads Kafka messages from a GeoMesa data source and writes them out as NiFi records")
 @WritesAttributes(
   Array(
@@ -91,7 +92,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       if (java.lang.Boolean.parseBoolean(context.getProperty(p).getValue)) { Some(name) } else { None }
 
     val typeName = context.getProperty(TypeName).evaluateAttributeExpressions().getValue
-    val encoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
+    val encoding = GeometryEncoding(context.getProperty(GeometrySerializationDefaultWkt).getValue)
     val vis = boolean(IncludeVisibilities, "visibilities")
     val userData = boolean(IncludeUserData, "user-data")
 
@@ -275,16 +276,6 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
       .required(true)
       .build
 
-  val GeometrySerialization: PropertyDescriptor =
-    new PropertyDescriptor.Builder()
-        .name("geometry-serialization")
-        .displayName("Geometry Serialization Format")
-        .description("The format to use for serializing geometries")
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
-        .defaultValue(GeometryEncodingLabels.Wkt)
-        .build
-
   val IncludeVisibilities: PropertyDescriptor =
     new PropertyDescriptor.Builder()
         .name("include-visibilities")
@@ -352,7 +343,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     TypeName,
     GroupId,
     RecordWriter,
-    GeometrySerialization,
+    GeometrySerializationDefaultWkt,
     IncludeVisibilities,
     IncludeUserData,
     RecordMaxBatchSize,

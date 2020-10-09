@@ -15,7 +15,7 @@ import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncodingLabels, RecordIngestProcessor}
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncodingLabels, Properties, RecordIngestProcessor}
 import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, ConverterIngestProcessor, FeatureTypeProcessor, Relationships}
 import org.geotools.data.DataStoreFinder
 import org.junit.{Assert, Test}
@@ -248,11 +248,11 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.addControllerService("avro-record-reader", service)
       runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "embedded-avro-schema")
       runner.enableControllerService(service)
-      runner.setProperty(RecordIngestProcessor.Properties.RecordReader, "avro-record-reader")
-      runner.setProperty(RecordIngestProcessor.Properties.FeatureIdCol, "__fid__")
-      runner.setProperty(RecordIngestProcessor.Properties.GeometryCols, "*geom:Point")
-      runner.setProperty(RecordIngestProcessor.Properties.GeometrySerialization, GeometryEncodingLabels.Wkb)
-      runner.setProperty(RecordIngestProcessor.Properties.VisibilitiesCol, "Vis")
+      runner.setProperty(Properties.RecordReader, "avro-record-reader")
+      runner.setProperty(Properties.FeatureIdCol, "__fid__")
+      runner.setProperty(Properties.GeometryCols, "*geom:Point")
+      runner.setProperty(Properties.GeometrySerializationDefaultWkt, GeometryEncodingLabels.Wkb)
+      runner.setProperty(Properties.VisibilitiesCol, "Vis")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.avro"))
 
       runner.run()

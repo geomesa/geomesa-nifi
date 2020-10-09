@@ -21,7 +21,7 @@ import org.apache.nifi.serialization.record.Record
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
 import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.CountHolder
-import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.Properties._
+import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geotools.data._
 import org.locationtech.geomesa.utils.geotools.FeatureUtils
 import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpec.GeomAttributeSpec
@@ -35,8 +35,6 @@ import scala.util.control.NonFatal
   * Record-based ingest processor for geotools data stores
   */
 trait RecordIngestProcessor extends AbstractDataStoreProcessor {
-
-  import RecordIngestProcessor.Properties._
 
   override protected def getProcessorProperties: Seq[PropertyDescriptor] =
     super.getProcessorProperties ++ RecordIngestProcessor.Props
@@ -55,7 +53,7 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
             case g: GeomAttributeSpec => GeometryColumn(g.name, g.clazz, g.default)
           }
         }
-      val geomEncoding = GeometryEncoding(context.getProperty(GeometrySerialization).getValue)
+      val geomEncoding = GeometryEncoding(context.getProperty(GeometrySerializationDefaultWkt).getValue)
       val jsonCols =
         Option(context.getProperty(JsonCols).evaluateAttributeExpressions().getValue).toSeq.flatMap(_.split(","))
       val dtgCol = Option(context.getProperty(DefaultDateCol).evaluateAttributeExpressions().getValue)
@@ -150,7 +148,7 @@ object RecordIngestProcessor {
     TypeName,
     FeatureIdCol,
     GeometryCols,
-    GeometrySerialization,
+    GeometrySerializationDefaultWkt,
     JsonCols,
     DefaultDateCol,
     VisibilitiesCol,
@@ -158,100 +156,4 @@ object RecordIngestProcessor {
   )
 
   class CountHolder(var success: Long = 0L, var failure: Long = 0L)
-
-  object Properties {
-
-    val RecordReader: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("record-reader")
-          .displayName("Record reader")
-          .description("The Record Reader to use for deserializing the incoming data")
-          .identifiesControllerService(classOf[RecordReaderFactory])
-          .required(true)
-          .build
-
-    val TypeName: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("feature-type-name")
-          .displayName("Feature type name")
-          .description("Name to use for the simple feature type schema")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-
-    val FeatureIdCol: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("feature-id-col")
-          .displayName("Feature ID column")
-          .description("Column that will be used as the feature ID")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-
-    val GeometryCols: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("geometry-cols")
-          .displayName("Geometry columns")
-          .description(
-            "Column(s) that will be deserialized as geometries and their type, as a SimpleFeatureType " +
-                "specification string. A '*' can be used to indicate the default geometry column")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-
-    val GeometrySerialization: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("geometry-serialization")
-          .displayName("Geometry Serialization Format")
-          .description("The format to use for serializing/deserializing geometries")
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .allowableValues(GeometryEncodingLabels.Wkt, GeometryEncodingLabels.Wkb)
-          .defaultValue(GeometryEncodingLabels.Wkt)
-          .build()
-
-    val JsonCols: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("json-cols")
-          .displayName("JSON columns")
-          .description(
-            "Column(s) that contain valid JSON documents, comma-separated. " +
-                "The columns must be STRING type")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-
-    val DefaultDateCol: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("default-date-col")
-          .displayName("Default date column")
-          .description("Column to use as the default date attribute")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-
-    val VisibilitiesCol: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("visibilities-col")
-          .displayName("Visibilities column")
-          .description("Column to use for the feature visibilities")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-
-    val SchemaUserData: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("schema-user-data")
-          .displayName("Schema user data")
-          .description("User data used to configure the GeoMesa SimpleFeatureType, in the form 'key1=value1,key2=value2'")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-          .required(false)
-          .build()
-  }
 }
