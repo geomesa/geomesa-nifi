@@ -81,7 +81,7 @@
         <avro.version>1.8.1</avro.version> <!-- matches version in nifi 1.11 -->
 
         <specs2.version>4.3.2</specs2.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit</maven.test.jvmargs>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
