@@ -92,7 +92,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       if (java.lang.Boolean.parseBoolean(context.getProperty(p).getValue)) { Some(name) } else { None }
 
     val typeName = context.getProperty(TypeName).evaluateAttributeExpressions().getValue
-    val encoding = GeometryEncoding(context.getProperty(GeometrySerializationDefaultWkt).getValue)
+    val encoding =
+      GeometryEncoding(context.getProperty(GeometrySerializationDefaultWkt).evaluateAttributeExpressions().getValue)
     val vis = boolean(IncludeVisibilities, "visibilities")
     val userData = boolean(IncludeUserData, "user-data")
 

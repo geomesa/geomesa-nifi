@@ -112,7 +112,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
       flowFiles.asScala.foreach { f =>
         try {
           logger.debug(s"Processing file ${fullName(f)}")
-          ingest.ingest(session, f)
+          ingest.ingest(context, session, f)
           session.transfer(f, SuccessRelationship)
         } catch {
           case NonFatal(e) =>
@@ -187,14 +187,15 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
     /**
      * Ingest a flow file
      *
+     * @param context context
      * @param session session
      * @param file flow file
      */
-    def ingest(session: ProcessSession, file: FlowFile): Unit = {
+    def ingest(context: ProcessContext, session: ProcessSession, file: FlowFile): Unit = {
       val fullFlowFileName = fullName(file)
       logger.debug(s"Running ${getClass.getName} on file $fullFlowFileName")
 
-      val (success, failure) = ingest(session, file, fullFlowFileName)
+      val (success, failure) = ingest(context, session, file, fullFlowFileName)
 
       session.putAttribute(file, "geomesa.ingest.successes", success.toString)
       session.putAttribute(file, "geomesa.ingest.failures", failure.toString)
@@ -206,13 +207,17 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
     /**
      * Ingest a flow file
      *
+     * @param context context
      * @param session session
      * @param file flow file
      * @param fileName file name
      * @return (success count, failure count)
      */
-    protected def ingest(session: ProcessSession, file: FlowFile, fileName: String): (Long, Long)
-
+    protected def ingest(
+        context: ProcessContext,
+        session: ProcessSession,
+        file: FlowFile,
+        fileName: String): (Long, Long)
 
     /**
      * Check and update the schema in the data store, as needed

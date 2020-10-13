@@ -99,7 +99,11 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
       }
     )
 
-    override def ingest(session: ProcessSession, file: FlowFile, flowFileName: String): (Long, Long) = {
+    override def ingest(
+        context: ProcessContext,
+        session: ProcessSession,
+        file: FlowFile,
+        flowFileName: String): (Long, Long) = {
       val sftSpec = Option(file.getAttribute(Attributes.SftSpecAttribute)).orElse(spec).getOrElse {
         throw new IllegalArgumentException(
           s"SimpleFeatureType not specified: configure '$SftNameKey', 'SftSpec' " +
