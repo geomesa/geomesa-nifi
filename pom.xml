@@ -82,6 +82,7 @@
 
         <specs2.version>4.3.2</specs2.version>
         <junit.version>4.13.1</junit.version>
+        <slf4j.version>1.7.5</slf4j.version>
         <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit</maven.test.jvmargs>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -543,6 +544,12 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
                 <version>${nifi.version}</version>
@@ -750,12 +757,12 @@
                         <dependency>
                             <groupId>org.slf4j</groupId>
                             <artifactId>slf4j-jdk14</artifactId>
-                            <version>1.7.5</version>
+                            <version>${slf4j.version}</version>
                         </dependency>
                         <dependency>
                             <groupId>org.slf4j</groupId>
                             <artifactId>jcl-over-slf4j</artifactId>
-                            <version>1.7.5</version>
+                            <version>${slf4j.version}</version>
                         </dependency>
                     </dependencies>
                 </plugin>
