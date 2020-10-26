@@ -24,6 +24,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.validators.ConverterValidator
 import org.geotools.data._
 import org.locationtech.geomesa.convert.Modes.ErrorMode
@@ -43,10 +44,11 @@ import scala.util.control.NonFatal
     new ReadsAttribute(attribute = "geomesa.converter", description = "GeoMesa converter name or configuration")
   )
 )
-trait ConverterIngestProcessor extends AbstractDataStoreProcessor with FeatureTypeProcessor {
+trait ConverterIngestProcessor extends FeatureTypeProcessor {
 
   import ConverterIngestProcessor._
   import FeatureTypeProcessor._
+  import AbstractDataStoreProcessor.Properties.SchemaCompatibilityMode
 
   import scala.collection.JavaConverters._
 
@@ -58,7 +60,7 @@ trait ConverterIngestProcessor extends AbstractDataStoreProcessor with FeatureTy
   }
 
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
-    super.getConfigProperties ++ Seq(ConvertFlowFileAttributes)
+    super.getConfigProperties ++ Seq(ConvertFlowFileAttributes, SchemaCompatibilityMode)
 
   override protected def createIngest(
       context: ProcessContext,
@@ -69,7 +71,9 @@ trait ConverterIngestProcessor extends AbstractDataStoreProcessor with FeatureTy
     val converterArg = FeatureTypeProcessor.getFirst(context, Seq(converterName, ConverterSpec))
     val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
     val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
-    new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode, attributes)
+    val mode = CompatibilityMode.withName(
+      context.getProperty(SchemaCompatibilityMode).evaluateAttributeExpressions().getValue)
+    new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode, attributes, mode)
   }
 
   /**
@@ -89,8 +93,9 @@ trait ConverterIngestProcessor extends AbstractDataStoreProcessor with FeatureTy
       name: Option[String],
       conf: Option[String],
       error: Option[String],
-      exposeAttributes: Boolean
-    ) extends IngestProcessorWithSchema(store, writers, spec, name) {
+      exposeAttributes: Boolean,
+      mode: CompatibilityMode
+    ) extends IngestProcessorWithSchema(store, writers, spec, name, mode) {
 
     private val converterCache = Caffeine.newBuilder().build(
       new CacheLoader[(SimpleFeatureType, String), Either[Throwable, ObjectPool[SimpleFeatureConverter]]]() {

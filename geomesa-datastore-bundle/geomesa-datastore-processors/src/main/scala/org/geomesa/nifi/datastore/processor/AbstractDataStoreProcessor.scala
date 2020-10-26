@@ -24,6 +24,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.{PooledWriters, SingletonWriters, Writers}
+import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geotools.data._
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
@@ -182,7 +183,8 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
    * @param store data store
    * @param writers feature writers
    */
-  abstract class IngestProcessor(store: DataStore, writers: Writers) extends Closeable {
+  abstract class IngestProcessor(store: DataStore, writers: Writers, mode: CompatibilityMode)
+      extends Closeable {
 
     /**
      * Ingest a flow file
@@ -235,12 +237,29 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
               c.apply() // create the schema
 
             case c: SchemaCompatibility.Compatible =>
-              logger.info(
-                s"Updating schema ${sft.getTypeName}:" +
-                    s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
-                    s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
-              c.apply() // update the schema
-              writers.invalidate(sft.getTypeName) // invalidate the writer cache
+              mode match {
+                case CompatibilityMode.Exact =>
+                  logger.error(
+                    s"Detected schema change ${sft.getTypeName}:" +
+                        s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                        s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                  throw new RuntimeException(
+                    s"Detected schema change for ${sft.getTypeName} but compatibility mode is set to 'exact'")
+
+                case CompatibilityMode.Existing =>
+                  logger.warn(
+                    s"Detected schema change ${sft.getTypeName}:" +
+                        s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                        s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+
+                case CompatibilityMode.Update =>
+                  logger.info(
+                    s"Updating schema ${sft.getTypeName}:" +
+                        s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                        s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                  c.apply() // update the schema
+                  writers.invalidate(sft.getTypeName) // invalidate the writer cache
+              }
 
             case c: SchemaCompatibility.Incompatible =>
               logger.error(s"Incompatible schema change detected for schema ${sft.getTypeName}")
@@ -255,12 +274,29 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
 
             case Success(existing) =>
               if (SimpleFeatureTypes.compare(existing, sft) != 0) {
-                logger.info(
-                  s"Updating schema ${sft.getTypeName}:" +
-                      s"\n  from ${SimpleFeatureTypes.encodeType(existing)} " +
-                      s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
-                store.updateSchema(sft.getTypeName, sft)
-                writers.invalidate(sft.getTypeName)
+                mode match {
+                  case CompatibilityMode.Exact =>
+                    logger.error(
+                      s"Detected schema change ${sft.getTypeName}:" +
+                          s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                          s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                    throw new RuntimeException(
+                      s"Detected schema change for ${sft.getTypeName} but compatibility mode is set to 'exact'")
+
+                  case CompatibilityMode.Existing =>
+                    logger.warn(
+                      s"Detected schema change ${sft.getTypeName}:" +
+                          s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                          s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+
+                  case CompatibilityMode.Update =>
+                    logger.info(
+                      s"Updating schema ${sft.getTypeName}:" +
+                          s"\n  from ${SimpleFeatureTypes.encodeType(existing)} " +
+                          s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                    store.updateSchema(sft.getTypeName, sft)
+                    writers.invalidate(sft.getTypeName)
+                }
               }
           }
       }
@@ -416,6 +452,22 @@ object AbstractDataStoreProcessor {
           .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .defaultValue("5 minutes")
+          .build()
+
+    val SchemaCompatibilityMode: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+          .name("schema-compatibility")
+          .displayName("Schema Compatibility")
+          .required(false)
+          .description(
+            s"Defines how schema changes will be handled. '${CompatibilityMode.Existing}' will use " +
+                s"the existing schema and drop any additional fields. '${CompatibilityMode.Update}' will " +
+                s"update the existing schema to match the input schema. '${CompatibilityMode.Exact}' requires" +
+                "the input schema to match the existing schema.")
+          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .allowableValues(CompatibilityMode.Existing.toString, CompatibilityMode.Update.toString, CompatibilityMode.Exact.toString)
+          .defaultValue(CompatibilityMode.Existing.toString)
           .build()
   }
 }

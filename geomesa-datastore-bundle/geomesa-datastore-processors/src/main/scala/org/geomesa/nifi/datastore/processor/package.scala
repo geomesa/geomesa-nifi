@@ -38,4 +38,16 @@ package object processor {
     val SuccessRelationship: Relationship = new Relationship.Builder().name("success").description("Success").build()
     val FailureRelationship: Relationship = new Relationship.Builder().name("failure").description("Failure").build()
   }
+
+  /**
+   * Compatibility mode for schemas
+   *
+   * * Exact - schemas must match exactly
+   * * Existing - use the existing schema, any non-matching input schema fields will be dropped
+   * * Update - update the schema to match the input schema
+   */
+  object CompatibilityMode extends Enumeration {
+    type CompatibilityMode = Value
+    val Exact, Existing, Update = Value
+  }
 }

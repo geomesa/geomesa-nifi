@@ -16,6 +16,7 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.validators.SimpleFeatureTypeValidator
 import org.geotools.data._
 import org.locationtech.geomesa.utils.geotools._
@@ -81,8 +82,9 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
       store: DataStore,
       writers: Writers,
       spec: Option[String],
-      name: Option[String]
-    ) extends IngestProcessor(store, writers) {
+      name: Option[String],
+      mode: CompatibilityMode
+    ) extends IngestProcessor(store, writers, mode) {
 
     private val sftCache = Caffeine.newBuilder().build(
       new CacheLoader[SftArgs, Either[Throwable, SimpleFeatureType]]() {
