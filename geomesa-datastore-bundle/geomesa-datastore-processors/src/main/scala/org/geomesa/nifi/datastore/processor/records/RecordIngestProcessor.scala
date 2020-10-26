@@ -47,8 +47,7 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
       writers: Writers): IngestProcessor = {
     val factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
     val options = OptionExtractor(context, GeometryEncoding.Wkt)
-    val mode = CompatibilityMode.withName(
-      context.getProperty(SchemaCompatibilityMode).evaluateAttributeExpressions().getValue)
+    val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
     new RecordIngest(dataStore, writers, factory, options, mode)
   }
 

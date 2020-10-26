@@ -71,8 +71,7 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
     val converterArg = FeatureTypeProcessor.getFirst(context, Seq(converterName, ConverterSpec))
     val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
     val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
-    val mode = CompatibilityMode.withName(
-      context.getProperty(SchemaCompatibilityMode).evaluateAttributeExpressions().getValue)
+    val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
     new ConverterIngest(dataStore, writers, sftArg, typeName, converterArg, errorMode, attributes, mode)
   }
 

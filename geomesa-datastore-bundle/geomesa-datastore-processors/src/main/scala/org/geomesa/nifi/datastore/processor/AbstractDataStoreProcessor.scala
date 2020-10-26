@@ -465,7 +465,6 @@ object AbstractDataStoreProcessor {
                 s"update the existing schema to match the input schema. '${CompatibilityMode.Exact}' requires" +
                 "the input schema to match the existing schema.")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .allowableValues(CompatibilityMode.Existing.toString, CompatibilityMode.Update.toString, CompatibilityMode.Exact.toString)
           .defaultValue(CompatibilityMode.Existing.toString)
           .build()
