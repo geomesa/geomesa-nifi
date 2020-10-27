@@ -16,10 +16,11 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.CountHolder
+import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, CompatibilityMode}
 import org.geotools.data._
 import org.locationtech.geomesa.utils.geotools.FeatureUtils
 import org.locationtech.geomesa.utils.io.WithClose
@@ -32,8 +33,13 @@ import scala.util.control.NonFatal
   */
 trait RecordIngestProcessor extends AbstractDataStoreProcessor {
 
+  import AbstractDataStoreProcessor.Properties.SchemaCompatibilityMode
+
   override protected def getProcessorProperties: Seq[PropertyDescriptor] =
     super.getProcessorProperties ++ RecordIngestProcessor.Props
+
+  override protected def getConfigProperties: Seq[PropertyDescriptor] =
+    super.getConfigProperties ++ Seq(SchemaCompatibilityMode)
 
   override protected def createIngest(
       context: ProcessContext,
@@ -41,7 +47,8 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
       writers: Writers): IngestProcessor = {
     val factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
     val options = OptionExtractor(context, GeometryEncoding.Wkt)
-    new RecordIngest(dataStore, writers, factory, options)
+    val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
+    new RecordIngest(dataStore, writers, factory, options, mode)
   }
 
   /**
@@ -56,8 +63,9 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
       store: DataStore,
       writers: Writers,
       recordReaderFactory: RecordReaderFactory,
-      options: OptionExtractor
-    ) extends IngestProcessor(store, writers) {
+      options: OptionExtractor,
+      mode: CompatibilityMode
+    ) extends IngestProcessor(store, writers, mode) {
 
     import scala.collection.JavaConverters._
 

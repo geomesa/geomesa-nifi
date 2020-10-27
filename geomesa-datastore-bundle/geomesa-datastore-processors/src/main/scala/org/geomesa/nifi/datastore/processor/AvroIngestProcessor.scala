@@ -131,7 +131,7 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
       name: Option[String],
       matchMode: String,
       useProvidedFid: Boolean
-    ) extends IngestProcessorWithSchema(store, writers, spec, name) {
+    ) extends IngestProcessorWithSchema(store, writers, spec, name, CompatibilityMode.Existing) {
 
     override protected def ingest(
         session: ProcessSession,
