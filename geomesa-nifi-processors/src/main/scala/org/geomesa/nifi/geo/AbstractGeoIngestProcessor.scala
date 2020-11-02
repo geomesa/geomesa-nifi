@@ -21,8 +21,10 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Properties._
 import org.geomesa.nifi.geo.AbstractGeoIngestProcessor.Relationships._
+import org.geomesa.nifi.geo.AvroIngest.{AvroMatchMode, LenientMatch, UseProvidedFid, convert}
 import org.geomesa.nifi.geo.validators.{ConverterValidator, SimpleFeatureTypeValidator}
 import org.geotools.data.{DataStore, DataUtilities, FeatureWriter, Transaction}
+import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
@@ -49,7 +51,9 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       FeatureNameOverride,
       SftSpec,
       ConverterSpec,
-      NifiBatchSize
+      NifiBatchSize,
+      UseProvidedFid,
+      AvroMatchMode
     ).asJava
   }
 
@@ -63,11 +67,13 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
   protected var sft: SimpleFeatureType = null
 
   @volatile
-  protected var mode: String = null
+  protected var ingestMode: String = null
 
   @volatile
   protected var dataStore: DataStore = null
 
+  @volatile
+  protected var matchMode: String = null
 
   @OnScheduled
   protected def initialize(context: ProcessContext): Unit = {
@@ -79,11 +85,12 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
     createTypeIfNeeded(this.dataStore, this.sft)
 
-    mode = context.getProperty(IngestModeProp).getValue
-    if(IngestMode.Converter == mode) {
+    ingestMode = context.getProperty(IngestModeProp).getValue
+    if(IngestMode.Converter == ingestMode) {
       initializeConverterPool(context)
     }
-    getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $mode")
+    matchMode = context.getProperty(AvroMatchMode).getValue
+    getLogger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with SFT ${sft.getTypeName} in mode $ingestMode")
   }
 
   private def initializeConverterPool(context: ProcessContext) = {
@@ -129,7 +136,7 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
     if (flowFiles != null && flowFiles.size > 0) {
       val fw: SFW = createFeatureWriter(sft, context)
       try {
-        val fn: ProcessFn = mode match {
+        val fn: ProcessFn = ingestMode match {
           case IngestMode.Converter => converterIngester(fw)
           case IngestMode.AvroDataFile => avroIngester(fw)
           case o: String =>
@@ -176,16 +183,25 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
 
   protected def avroIngester(fw: SFW): ProcessFn =
     (context: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
+      val useProvidedFid =
+        Option(context.getProperty(UseProvidedFid).asBoolean()).getOrElse(boolean2Boolean(false))
       val fullFlowFileName = fullName(flowFile)
       session.read(flowFile, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           val reader = new AvroDataFileReader(in)
           try {
-            reader.foreach { sf =>
+            val features = buildConverter(reader.getSft, sft) match {
+              case None => reader
+              case Some(converter) => reader.map(converter.apply)
+            }
+            features.foreach { sf =>
               val toWrite = fw.next()
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
+              if (useProvidedFid) {
+                toWrite.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+              }
               try {
                 fw.write()
               } catch {
@@ -201,9 +217,22 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
       getLogger.debug(s"Ingested avro file $fullFlowFileName")
     }
 
+
+  def buildConverter(input: SimpleFeatureType, output: SimpleFeatureType): Option[SimpleFeature => SimpleFeature] = {
+    AvroIngest.checkCompatibleSchema(input, output).map { error =>
+      if (matchMode == LenientMatch) {
+        convert(input, output)
+      } else {
+        throw error
+      }
+    }
+  }
+
   protected def converterIngester(fw: SFW): ProcessFn =
     (context: ProcessContext, session: ProcessSession, flowFile: FlowFile) => {
       getLogger.debug("Running converter based ingest")
+      val useProvidedFid =
+        Option(context.getProperty("UseProvidedFID").asBoolean()).getOrElse(boolean2Boolean(false))
       val converter = converterPool.borrowObject()
       try {
         val fullFlowFileName = fullName(flowFile)
@@ -216,6 +245,9 @@ abstract class AbstractGeoIngestProcessor extends AbstractProcessor {
               toWrite.setAttributes(sf.getAttributes)
               toWrite.getIdentifier.asInstanceOf[FeatureIdImpl].setID(sf.getID)
               toWrite.getUserData.putAll(sf.getUserData)
+              if (useProvidedFid) {
+                toWrite.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+              }
               try {
                 fw.write()
               } catch {
