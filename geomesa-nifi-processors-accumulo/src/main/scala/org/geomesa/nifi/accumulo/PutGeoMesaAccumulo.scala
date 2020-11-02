@@ -12,7 +12,6 @@ package org.geomesa.nifi.accumulo
 
 import java.util
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
