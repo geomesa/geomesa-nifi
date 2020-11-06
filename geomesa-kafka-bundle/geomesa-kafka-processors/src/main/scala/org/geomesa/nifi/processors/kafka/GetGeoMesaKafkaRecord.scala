@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.kafka
 
+import java.io.Closeable
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{SynchronousQueue, TimeUnit}
 import java.util.{Collections, Properties}
 
@@ -66,10 +68,10 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   private var maxLatencyMillis: Option[Long] = None
   private var pollTimeout = 1000L
   private var factory: RecordSetWriterFactory = _
+  private var listener: RecordFeatureListener = _
 
   // we use a synchronous queue to ensure the consumer tracks offsets correctly
   private val queue = new SynchronousQueue[SimpleFeature]()
-  private val listener = new RecordFeatureListener()
 
   private def logger: ComponentLog = getLogger
 
@@ -139,6 +141,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val opts = SimpleFeatureConverterOptions(encoding = encoding, visField = vis, userDataField = userData)
       converter = SimpleFeatureRecordConverter(sft, opts)
       schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
+      listener = new RecordFeatureListener()
       fs = ds.getFeatureSource(typeName)
       fs.addFeatureListener(listener)
     } catch {
@@ -213,23 +216,35 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
     logger.info("Processor shutting down")
     val start = System.currentTimeMillis()
     if (ds != null) {
+      CloseWithLogging(ds) // stop the consumers first
+      CloseWithLogging(listener)
       fs.removeFeatureListener(listener)
-      CloseWithLogging(ds)
+      listener = null
       fs = null
       ds = null
     }
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
-  class RecordFeatureListener extends FeatureListener {
+  class RecordFeatureListener extends FeatureListener with Closeable {
+
+    private val closed = new AtomicBoolean(false)
+
     override def changed(event: FeatureEvent): Unit = {
       event match {
-        case e: KafkaFeatureChanged => queue.put(e.feature)
+        case e: KafkaFeatureChanged =>
+          while (!queue.offer(e.feature, pollTimeout, TimeUnit.MILLISECONDS)) {
+            if (closed.get) {
+              throw new RuntimeException("Processor has been stopped")
+            }
+          }
+
         case _: KafkaFeatureRemoved => // no-op
         case _: KafkaFeatureCleared => // no-op
         case e                      => logger.error(s"Unknown event $e")
       }
     }
+    override def close(): Unit = closed.set(true)
   }
 }
 
