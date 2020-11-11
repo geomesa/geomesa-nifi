@@ -399,7 +399,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     val catalog = s"${root}UpdateIngest"
     val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
 
-    def checkResults(names: Seq[String], dates: Seq[Date], geoms: Seq[String]): Unit = {
+    def checkResults(ids: Seq[String], names: Seq[String], dates: Seq[Date], geoms: Seq[String]): Unit = {
       val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
       Assert.assertNotNull(ds)
       try {
@@ -408,6 +408,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
         logger.debug(features.mkString(";"))
         Assert.assertEquals(3, features.length)
+        Assert.assertEquals(ids, features.map(_.getID))
         Assert.assertEquals(names, features.map(_.getAttribute("name")))
         Assert.assertEquals(dates, features.map(_.getAttribute("dtg")))
         Assert.assertEquals(geoms, features.map(_.getAttribute("geom").toString))
@@ -427,6 +428,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.assertTransferCount(Relationships.SuccessRelationship, 1)
       runner.assertTransferCount(Relationships.FailureRelationship, 0)
       checkResults(
+        Seq("23623", "26236", "3233"),
         Seq("Harry", "Hermione", "Severus"),
         Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
         Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
@@ -437,7 +439,20 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.assertTransferCount(Relationships.SuccessRelationship, 2)
       runner.assertTransferCount(Relationships.FailureRelationship, 0)
       checkResults(
+        Seq("23623", "26236", "3233"),
         Seq("Harry Potter", "Hermione Granger", "Severus Snape"),
+        Seq("2016-05-06", "2016-06-07", "2016-10-23").map(df.parse),
+        Seq("POINT (-100.2365 33)", "POINT (40.232 -43.2356)", "POINT (3 -52.23)")
+      )
+      // verify update by attribute
+      runner.setProperty(AbstractDataStoreProcessor.Properties.ModifyAttribute, "age")
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-update-2.csv"))
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 3)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      checkResults(
+        Seq("23624", "26236", "3233"),
+        Seq("Harry", "Hermione Granger", "Severus Snape"),
         Seq("2016-05-06", "2016-06-07", "2016-10-23").map(df.parse),
         Seq("POINT (-100.2365 33)", "POINT (40.232 -43.2356)", "POINT (3 -52.23)")
       )

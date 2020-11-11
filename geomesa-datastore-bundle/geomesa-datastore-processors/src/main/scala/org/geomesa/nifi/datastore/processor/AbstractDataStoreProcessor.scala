@@ -13,6 +13,7 @@ import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.lifecycle._
@@ -24,9 +25,11 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.{AppendWriter, ModifyWriter, SimpleWriter}
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.{PooledWriters, SingletonWriters, ModifyWriters, FeatureWriters}
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.{FeatureWriters, ModifyWriters, PooledWriters, SingletonWriters}
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geotools.data._
+import org.geotools.filter.text.ecql.ECQL
+import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.filter.FilterHelper
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
@@ -99,7 +102,8 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
 
       val writers =
         if (context.getProperty(WriteMode).getValue == FeatureWriters.Modify) {
-          new ModifyWriters(dataStore, appender)
+          val attribute = Option(context.getProperty(ModifyAttribute).evaluateAttributeExpressions().getValue)
+          new ModifyWriters(dataStore, attribute, appender)
         } else {
           appender
         }
@@ -169,7 +173,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
    * @return
    */
   protected def getConfigProperties: Seq[PropertyDescriptor] =
-    Seq(WriteMode, NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
+    Seq(WriteMode, ModifyAttribute, NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
 
   /**
    * Get params for configuration services - these will come fourth in the UI, after config params
@@ -374,15 +378,23 @@ object AbstractDataStoreProcessor {
       override def close(): Unit = CloseWithLogging(writer)
     }
 
-    case class ModifyWriter(ds: DataStore, typeName: String, append: SimpleWriter) extends SimpleWriter {
+    case class ModifyWriter(ds: DataStore, typeName: String, attribute: Option[String], append: SimpleWriter)
+        extends SimpleWriter with LazyLogging  {
       override def apply(f: SimpleFeature): Unit = {
-        val filter = FilterHelper.ff.id(FilterHelper.ff.featureId(f.getID))
+        val filter = attribute match {
+          case None => FilterHelper.ff.id(FilterHelper.ff.featureId(f.getID))
+          case Some(a) => FilterHelper.ff.equals(FilterHelper.ff.property(a), FilterHelper.ff.literal(f.getAttribute(a)))
+        }
         WithClose(ds.getFeatureWriter(typeName, filter, Transaction.AUTO_COMMIT)) { writer =>
           if (writer.hasNext) {
             val toWrite = writer.next()
             toWrite.setAttributes(f.getAttributes)
             toWrite.getUserData.putAll(f.getUserData)
+            toWrite.getUserData.put(Hints.PROVIDED_FID, f.getID)
             writer.write()
+            if (writer.hasNext) {
+              logger.warn(s"Filter '${ECQL.toCQL(filter)}' matched multiple records, only updating the first one")
+            }
           } else {
             append.apply(f)
           }
@@ -453,13 +465,14 @@ object AbstractDataStoreProcessor {
    * Each record gets an updating writer
    *
    * @param ds datastore
+   * @param attribute the unique attribute used to identify the record to update
    * @param appender appending writer factory
    */
-  class ModifyWriters(ds: DataStore, appender: FeatureWriters) extends FeatureWriters {
+  class ModifyWriters(ds: DataStore, attribute: Option[String], appender: FeatureWriters) extends FeatureWriters {
     override def borrowWriter(typeName: String): SimpleWriter =
-      ModifyWriter(ds, typeName, appender.borrowWriter(typeName))
+      ModifyWriter(ds, typeName, attribute, appender.borrowWriter(typeName))
     override def returnWriter(writer: SimpleWriter): Unit = {
-      val ModifyWriter(_, _, append) = writer
+      val ModifyWriter(_, _, _, append) = writer
       appender.returnWriter(append)
       CloseWithLogging(writer)
     }
@@ -489,6 +502,17 @@ object AbstractDataStoreProcessor {
           .description("Use an appending writer (for new features) or a modifying writer (to update existing features)")
           .allowableValues(FeatureWriters.Append, FeatureWriters.Modify)
           .defaultValue(FeatureWriters.Append)
+          .build()
+
+    val ModifyAttribute: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+          .name("unique-modify-attribute")
+          .displayName("Unique Modify Attribute")
+          .description(
+            "When using a modifying writer, the attribute used to uniquely identify the feature. " +
+              "If not specified, will use the feature ID")
+          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
     val NifiBatchSize: PropertyDescriptor =
