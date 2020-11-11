@@ -23,7 +23,8 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.validators.ConverterValidator
 import org.geotools.data._
@@ -65,7 +66,7 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
   override protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       sftArg: Option[String],
       typeName: Option[String]): IngestProcessor = {
     val converterArg = FeatureTypeProcessor.getFirst(context, Seq(converterName, ConverterSpec))
@@ -87,7 +88,7 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
    */
   class ConverterIngest(
       store: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       spec: Option[String],
       name: Option[String],
       conf: Option[String],
@@ -132,7 +133,7 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
         file: FlowFile,
         name: String,
         sft: SimpleFeatureType,
-        fw: SimpleFeatureWriter): (Long, Long) = {
+        writer: SimpleWriter): (Long, Long) = {
 
       val config = Option(file.getAttribute(Attributes.ConverterAttribute)).orElse(conf).getOrElse {
         throw new IllegalArgumentException(
@@ -154,7 +155,7 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
         session.read(file, new InputStreamCallback {
           override def process(in: InputStream): Unit = {
             converter.process(in, ec).foreach { sf =>
-              try { FeatureUtils.write(fw, sf) } catch {
+              try { writer.apply(sf) } catch {
                 case NonFatal(e) =>
                   ec.success.inc(-1)
                   ec.failure.inc(1)

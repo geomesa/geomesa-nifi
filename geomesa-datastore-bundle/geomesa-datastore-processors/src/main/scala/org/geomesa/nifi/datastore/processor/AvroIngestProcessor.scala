@@ -16,10 +16,13 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.SimpleWriter
+import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.{LenientMatch, convert}
 import org.geotools.data._
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.util.Converters
+import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -27,6 +30,8 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.util.control.NonFatal
 
 object AvroIngestProcessor {
+
+  import scala.collection.JavaConverters._
 
   val ExactMatch = "by attribute number and order"
   val LenientMatch = "by attribute name"
@@ -50,28 +55,13 @@ object AvroIngestProcessor {
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .build()
 
-  def buildWriter(
-                   inputSFT: SimpleFeatureType,
-                   outputSFT: SimpleFeatureType,
-                   matchMode: String,
-                   useProvidedFid: Boolean): (SimpleFeatureWriter, SimpleFeature) => Unit = {
-    FeatureTypeProcessor.checkCompatibleSchema(inputSFT, outputSFT) match {
-      case None =>
-        // schemas match, so use a regular writer
-        (fw: SimpleFeatureWriter, sf: SimpleFeature) =>
-          FeatureUtils.write(fw, sf, useProvidedFid = useProvidedFid)
-
-      case Some(_) if matchMode == LenientMatch =>
-        val sfConverter = convert(inputSFT, outputSFT)
-        (fw: SimpleFeatureWriter, sf: SimpleFeature) =>
-          FeatureUtils.write(fw, sfConverter(sf), useProvidedFid = useProvidedFid)
-
-      case Some(error) => throw error
-    }
-  }
-
-  import scala.collection.JavaConverters._
-  // Creates an adapter from one SFT to another
+  /**
+   * Creates an adapter from one SFT to another
+   *
+   * @param in input sft
+   * @param out output sft
+   * @return
+   */
   def convert(in: SimpleFeatureType, out: SimpleFeatureType): SimpleFeature => SimpleFeature = {
     import RichSimpleFeatureType._
     val outGeometryLocalName = out.getGeomField
@@ -98,7 +88,7 @@ object AvroIngestProcessor {
   */
 trait AvroIngestProcessor extends FeatureTypeProcessor {
 
-  import AvroIngestProcessor.{AvroMatchMode, UseProvidedFid, buildWriter}
+  import AvroIngestProcessor.{AvroMatchMode, UseProvidedFid}
 
   override protected def getProcessorProperties: Seq[PropertyDescriptor] =
     super.getProcessorProperties ++ Seq(AvroMatchMode, UseProvidedFid)
@@ -106,7 +96,7 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
   override protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       sftArg: Option[String],
       typeName: Option[String]): IngestProcessor = {
     val matchMode = context.getProperty(AvroMatchMode).getValue
@@ -126,7 +116,7 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
    */
   class AvroIngest(
       store: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       spec: Option[String],
       name: Option[String],
       matchMode: String,
@@ -138,7 +128,7 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
         file: FlowFile,
         name: String,
         sft: SimpleFeatureType,
-        fw: SimpleFeatureWriter): (Long, Long) = {
+        writer: SimpleWriter): (Long, Long) = {
 
       var success = 0L
       var failure = 0L
@@ -147,10 +137,16 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
         override def process(in: InputStream): Unit = {
           val reader = new AvroDataFileReader(in)
           try {
-            val writer = buildWriter(reader.getSft, sft, matchMode, useProvidedFid)
-            reader.foreach { sf =>
+            val features = buildConverter(reader.getSft, sft) match {
+              case None => reader
+              case Some(converter) => reader.map(converter.apply)
+            }
+            features.foreach { sf =>
               try {
-                writer(fw, sf)
+                if (useProvidedFid) {
+                  sf.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+                }
+                writer.apply(sf)
                 success += 1L
               } catch {
                 case NonFatal(e) =>
@@ -165,6 +161,16 @@ trait AvroIngestProcessor extends FeatureTypeProcessor {
       })
 
       (success, failure)
+    }
+
+    def buildConverter(input: SimpleFeatureType, output: SimpleFeatureType): Option[SimpleFeature => SimpleFeature] = {
+      FeatureTypeProcessor.checkCompatibleSchema(input, output).map { error =>
+        if (matchMode == LenientMatch) {
+          convert(input, output)
+        } else {
+          throw error
+        }
+      }
     }
   }
 }

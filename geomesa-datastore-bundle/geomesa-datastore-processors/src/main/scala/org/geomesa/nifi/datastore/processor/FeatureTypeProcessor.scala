@@ -15,7 +15,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.validators.SimpleFeatureTypeValidator
 import org.geotools.data._
@@ -42,13 +43,13 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
 
   override protected def getProcessorProperties: Seq[PropertyDescriptor] = {
     sftName = FeatureTypeProcessor.Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
-    Seq(sftName, SftSpec, FeatureNameOverride) ++ super.getProcessorProperties
+    super.getProcessorProperties ++ Seq(sftName, SftSpec, FeatureNameOverride)
   }
 
   override protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
-      writers: Writers): IngestProcessor = {
+      writers: FeatureWriters): IngestProcessor = {
     val sftArg = FeatureTypeProcessor.getFirst(context, Seq(sftName, SftSpec))
     val typeName = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
     createIngest(context, dataStore, writers, sftArg, typeName)
@@ -57,7 +58,7 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
   protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       sftArg: Option[String],
       typeName: Option[String]): IngestProcessor
 
@@ -80,7 +81,7 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
    */
   abstract class IngestProcessorWithSchema(
       store: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       spec: Option[String],
       name: Option[String],
       mode: CompatibilityMode
@@ -131,7 +132,7 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
      * @param file flow file
      * @param name file name
      * @param sft simple feature type
-     * @param fw feature writer
+     * @param writer feature writer
      * @return (success count, failure count)
      */
     protected def ingest(
@@ -139,7 +140,7 @@ trait FeatureTypeProcessor extends AbstractDataStoreProcessor {
         file: FlowFile,
         name: String,
         sft: SimpleFeatureType,
-        fw: SimpleFeatureWriter): (Long, Long)
+        writer: SimpleWriter): (Long, Long)
   }
 }
 

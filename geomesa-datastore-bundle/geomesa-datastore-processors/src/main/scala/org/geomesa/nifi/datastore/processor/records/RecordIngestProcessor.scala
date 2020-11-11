@@ -16,13 +16,12 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.Writers
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.CountHolder
 import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, CompatibilityMode}
 import org.geotools.data._
-import org.locationtech.geomesa.utils.geotools.FeatureUtils
 import org.locationtech.geomesa.utils.io.WithClose
 
 import scala.annotation.tailrec
@@ -44,7 +43,7 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
   override protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
-      writers: Writers): IngestProcessor = {
+      writers: FeatureWriters): IngestProcessor = {
     val factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
     val options = OptionExtractor(context, GeometryEncoding.Wkt)
     val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
@@ -61,7 +60,7 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
    */
   class RecordIngest(
       store: DataStore,
-      writers: Writers,
+      writers: FeatureWriters,
       recordReaderFactory: RecordReaderFactory,
       options: OptionExtractor,
       mode: CompatibilityMode
@@ -104,7 +103,7 @@ trait RecordIngestProcessor extends AbstractDataStoreProcessor {
                 try {
                   val sf = converter.convert(record)
                   try {
-                    FeatureUtils.write(writer, sf)
+                    writer.apply(sf)
                     counts.success += 1L
                   } catch {
                     case NonFatal(e) =>
