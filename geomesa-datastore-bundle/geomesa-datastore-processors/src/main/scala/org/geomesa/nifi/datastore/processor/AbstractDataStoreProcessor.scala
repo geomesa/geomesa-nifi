@@ -506,8 +506,8 @@ object AbstractDataStoreProcessor {
 
     val ModifyAttribute: PropertyDescriptor =
       new PropertyDescriptor.Builder()
-          .name("unique-modify-attribute")
-          .displayName("Unique Modify Attribute")
+          .name("identifying-attribute")
+          .displayName("Identifying Attribute")
           .description(
             "When using a modifying writer, the attribute used to uniquely identify the feature. " +
               "If not specified, will use the feature ID")
