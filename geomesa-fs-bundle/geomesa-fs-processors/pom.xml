@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.geomesa.nifi</groupId>
         <artifactId>geomesa-fs-bundle</artifactId>
-        <version>3.1.0</version>
+        <version>3.1.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>geomesa-fs-processors</artifactId>
