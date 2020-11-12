@@ -220,6 +220,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     val baos = new ByteArrayOutputStream()
     val writer = new AvroDataFileWriter(baos, sft2)
     val sf = new ScalaSimpleFeature(sft2, "sf2-record", Array(new Date(), new java.lang.Double(2.34), new Integer(34), "Ray", WKTUtils.read("POINT(1.2 3.4)")))
+    sf.getUserData().put("geomesa.feature.visibility", "admin")
     writer.append(sf)
     writer.flush()
     writer.close()
@@ -251,12 +252,17 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.shutdown()
     }
 
-    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    val ds = DataStoreFinder.getDataStore(
+      (dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog) +
+        (AccumuloDataStoreParams.AuthsParam.key -> "admin")).asJava
+    )
     Assert.assertNotNull(ds)
     try {
       val sft = ds.getSchema("example")
       Assert.assertNotNull(sft)
       val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      val ray = features.find(sf => sf.getAttribute("name") == "Ray")
+      Assert.assertTrue(ray.map(!_.getUserData.isEmpty).get)
       logger.debug(features.mkString(";"))
       Assert.assertEquals(7, features.length)
     } finally {
