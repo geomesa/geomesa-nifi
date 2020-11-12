@@ -89,7 +89,11 @@ object AvroIngestProcessor {
         case _ => _: SimpleFeature => null
       }
     }
-    sf: SimpleFeature => SimpleFeatureBuilder.build(out, inToOut.map(_(sf)).asJava, sf.getID)
+    sf: SimpleFeature => {
+      val o = SimpleFeatureBuilder.build(out, inToOut.map(_(sf)).asJava, sf.getID)
+      o.getUserData.putAll(sf.getUserData)
+      o
+    }
   }
 }
 
