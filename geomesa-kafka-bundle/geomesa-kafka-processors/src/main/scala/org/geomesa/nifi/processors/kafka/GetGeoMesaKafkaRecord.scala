@@ -61,7 +61,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
   private var converter: SimpleFeatureRecordConverter = _
   private var schema: RecordSchema = _
-  private var maxBatchSize = 1000
+  private var maxBatchSize = 10000
   private var minBatchSize = 1
   private var maxLatencyMillis: Option[Long] = None
   private var pollTimeout = 1000L
@@ -230,13 +230,24 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val features = records.collect { case GeoMessage.Change(f) => f }
       if (features.size < minBatchSize && maxLatencyMillis.forall(_ > System.currentTimeMillis() - lastSuccess)) {
         logger.debug(s"Received ${features.size} records but waiting for larger batch")
-        false
-      } else if (!ready.offer(features, 10, TimeUnit.SECONDS)) {
-        logger.warn(s"Received ${features.size} records but onTrigger was not invoked")
-        false
-      } else if (!done.take) {
-        false
+        false // retry after checking for more messages
+      } else if (features.size < maxBatchSize * 10) {
+        // offer features, wait for onTrigger to read them
+        if (!ready.offer(features, 10, TimeUnit.SECONDS)) {
+          false // onTrigger was not invoked, retry after checking for more messages
+        } else if (!done.take) {
+          false // error in onTrigger, retry after checking for more messages
+        } else {
+          lastSuccess = System.currentTimeMillis()
+          true // update offsets since we've successfully processed the messages
+        }
       } else {
+        // we've gotten backed up - don't consume any more messages until onTrigger is called
+        logger.warn(s"Received ${features.size} records - waiting for onTrigger")
+        do {
+          ready.put(features)
+          logger.debug("onTrigger was invoked, waiting on result")
+        } while (!done.take)
         lastSuccess = System.currentTimeMillis()
         true
       }
@@ -315,7 +326,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
       .description("The maximum number of records to write to a single FlowFile")
       .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-      .defaultValue("1000")
+      .defaultValue("10000")
       .build()
 
   val RecordMinBatchSize: PropertyDescriptor =
