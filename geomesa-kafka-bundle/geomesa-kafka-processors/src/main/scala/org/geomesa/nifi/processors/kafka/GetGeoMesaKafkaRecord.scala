@@ -32,6 +32,8 @@ import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializa
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
+import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
+import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
 import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreParams}
 import org.locationtech.geomesa.kafka.utils.{GeoMessage, GeoMessageProcessor}
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
@@ -64,7 +66,6 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   private var maxBatchSize = 10000
   private var minBatchSize = 1
   private var maxLatencyMillis: Option[Long] = None
-  private var pollTimeout = 1000L
   private var factory: RecordSetWriterFactory = _
   private var consumer: Closeable = _
 
@@ -103,7 +104,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val prop = context.getProperty(RecordMaxLatency)
       Option(prop.evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS)).map(_.longValue)
     }
-    pollTimeout = {
+    val pollTimeout = {
       val prop = context.getProperty(PollTimeout)
       prop.evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).longValue
     }
@@ -116,14 +117,19 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
         // override/set auto.offset.reset
         val config = KafkaDataStoreParams.ConsumerConfig.lookupOpt(base.asJava).getOrElse(new Properties())
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offset)
-        base + (KafkaDataStoreParams.ConsumerConfig.key -> KafkaDataStoreParams.ConsumerConfig.text(config))
+        base ++ Map(KafkaDataStoreParams.ConsumerConfig.key -> KafkaDataStoreParams.ConsumerConfig.text(config))
       }
       lazy val safeToLog = {
         val sensitive = context.getProperties.keySet().asScala.collect { case p if p.isSensitive => p.getName }
         props.map { case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}" }
       }
       logger.trace(s"DataStore properties: ${safeToLog.mkString(", ")}")
-      DataStoreFinder.getDataStore(props.asJava).asInstanceOf[KafkaDataStore]
+      KafkaDataStore.LoadIntervalProperty.threadLocalValue.set(s"$pollTimeout ms")
+      try {
+        DataStoreFinder.getDataStore(props.asJava).asInstanceOf[KafkaDataStore]
+      } finally {
+        KafkaDataStore.LoadIntervalProperty.threadLocalValue.remove()
+      }
     }
     require(ds != null, "Could not load datastore using provided parameters")
 
@@ -143,7 +149,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
-    val records = processor.ready.poll(pollTimeout, TimeUnit.MILLISECONDS)
+    val records = processor.ready.poll(1, TimeUnit.SECONDS)
     if (records == null) {
       context.`yield`()
     } else {
@@ -226,30 +232,30 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
     private var lastSuccess = System.currentTimeMillis()
 
-    override def consume(records: Seq[GeoMessage]): Boolean = {
+    // note: this needs to complete before max.poll.interval.ms, which defaults to 5 minutes
+    override def consume(records: Seq[GeoMessage]): BatchResult = {
       val features = records.collect { case GeoMessage.Change(f) => f }
+
+      def continueOrPause: BatchResult = {
+        if (features.size < maxBatchSize * 10) { BatchResult.Continue } else {
+          logger.warn(s"Received ${features.size} records - pausing consumers while waiting for onTrigger")
+          BatchResult.Pause
+        }
+      }
+
       if (features.size < minBatchSize && maxLatencyMillis.forall(_ > System.currentTimeMillis() - lastSuccess)) {
         logger.debug(s"Received ${features.size} records but waiting for larger batch")
-        false // retry after checking for more messages
-      } else if (features.size < maxBatchSize * 10) {
-        // offer features, wait for onTrigger to read them
+        BatchResult.Continue // retry after checking for more messages
+      } else {
+        // offer features, wait for onTrigger to read them, then wait for onTrigger to finish
         if (!ready.offer(features, 10, TimeUnit.SECONDS)) {
-          false // onTrigger was not invoked, retry after checking for more messages
+          continueOrPause // onTrigger was not invoked, retry the batch later
         } else if (!done.take) {
-          false // error in onTrigger, retry after checking for more messages
+          continueOrPause // error in onTrigger, retry the batch later
         } else {
           lastSuccess = System.currentTimeMillis()
-          true // update offsets since we've successfully processed the messages
+          BatchResult.Commit // commit offsets since we've successfully processed the messages
         }
-      } else {
-        // we've gotten backed up - don't consume any more messages until onTrigger is called
-        logger.warn(s"Received ${features.size} records - waiting for onTrigger")
-        do {
-          ready.put(features)
-          logger.debug("onTrigger was invoked, waiting on result")
-        } while (!done.take)
-        lastSuccess = System.currentTimeMillis()
-        true
       }
     }
   }
