@@ -227,6 +227,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
   class RecordProcessor extends GeoMessageProcessor {
 
+    // synchronous queues for passing data to onTrigger and back
     val ready = new SynchronousQueue[Seq[SimpleFeature]]()
     val done = new SynchronousQueue[Boolean]()
 
@@ -236,6 +237,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
     override def consume(records: Seq[GeoMessage]): BatchResult = {
       val features = records.collect { case GeoMessage.Change(f) => f }
 
+      // if we've read too many messages but haven't processed them (e.g. due to back-pressure),
+      // pause the kafka consumers so that we don't pile up results in memory
       def continueOrPause: BatchResult = {
         if (features.size < maxBatchSize * 10) { BatchResult.Continue } else {
           logger.warn(s"Received ${features.size} records - pausing consumers while waiting for onTrigger")
@@ -243,19 +246,23 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
         }
       }
 
+      // 1. offer features with `ready.offer` and wait for onTrigger to read them
+      // 2. wait for onTrigger to finish with `done.take`
+
       if (features.size < minBatchSize && maxLatencyMillis.forall(_ > System.currentTimeMillis() - lastSuccess)) {
         logger.debug(s"Received ${features.size} records but waiting for larger batch")
         BatchResult.Continue // retry after checking for more messages
+      } else if (!ready.offer(features, 10, TimeUnit.SECONDS)) {
+        // onTrigger was not invoked, retry the batch later
+        logger.warn(s"Received ${features.size} records but onTrigger was not invoked")
+        continueOrPause
+      } else if (!done.take) {
+        // error in onTrigger, retry the batch later
+        continueOrPause
       } else {
-        // offer features, wait for onTrigger to read them, then wait for onTrigger to finish
-        if (!ready.offer(features, 10, TimeUnit.SECONDS)) {
-          continueOrPause // onTrigger was not invoked, retry the batch later
-        } else if (!done.take) {
-          continueOrPause // error in onTrigger, retry the batch later
-        } else {
-          lastSuccess = System.currentTimeMillis()
-          BatchResult.Commit // commit offsets since we've successfully processed the messages
-        }
+        // commit offsets since we've successfully processed the messages
+        lastSuccess = System.currentTimeMillis()
+        BatchResult.Commit
       }
     }
   }
