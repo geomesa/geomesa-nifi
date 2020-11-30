@@ -13,6 +13,7 @@ import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.lifecycle._
@@ -23,14 +24,18 @@ import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.{PooledWriters, SingletonWriters, Writers}
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.{AppendWriter, ModifyWriter, SimpleWriter}
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.{FeatureWriters, ModifyWriters, PooledWriters, SingletonWriters}
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geotools.data._
+import org.geotools.filter.text.ecql.ECQL
+import org.geotools.util.factory.Hints
+import org.locationtech.geomesa.filter.FilterHelper
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.locationtech.geomesa.utils.io.CloseWithLogging
-import org.opengis.feature.simple.SimpleFeatureType
+import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
+import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -88,12 +93,21 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
     require(dataStore != null, "Could not load datastore using provided parameters")
 
     try {
-      val writers = if (context.getProperty(FeatureWriterCaching).getValue.toBoolean) {
+      val appender = if (context.getProperty(FeatureWriterCaching).getValue.toBoolean) {
         val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
         new PooledWriters(dataStore, FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS).toLong)
       } else {
         new SingletonWriters(dataStore)
       }
+
+      val writers =
+        if (context.getProperty(WriteMode).getValue == FeatureWriters.Modify) {
+          val attribute = Option(context.getProperty(ModifyAttribute).evaluateAttributeExpressions().getValue)
+          new ModifyWriters(dataStore, attribute, appender)
+        } else {
+          appender
+        }
+
       try {
         ingest = createIngest(context, dataStore, writers)
       } catch {
@@ -159,7 +173,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
    * @return
    */
   protected def getConfigProperties: Seq[PropertyDescriptor] =
-    Seq(NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
+    Seq(WriteMode, ModifyAttribute, NifiBatchSize, FeatureWriterCaching, FeatureWriterCacheTimeout)
 
   /**
    * Get params for configuration services - these will come fourth in the UI, after config params
@@ -175,7 +189,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
    */
   protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = sft
 
-  protected def createIngest(context: ProcessContext, dataStore: DataStore, writers: Writers): IngestProcessor
+  protected def createIngest(context: ProcessContext, dataStore: DataStore, writers: FeatureWriters): IngestProcessor
 
   /**
    * Abstraction over ingest methods
@@ -183,7 +197,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
    * @param store data store
    * @param writers feature writers
    */
-  abstract class IngestProcessor(store: DataStore, writers: Writers, mode: CompatibilityMode)
+  abstract class IngestProcessor(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
       extends Closeable {
 
     /**
@@ -326,7 +340,7 @@ object AbstractDataStoreProcessor {
   /**
    * Abstraction over feature writers
    */
-  sealed trait Writers extends Closeable {
+  sealed trait FeatureWriters extends Closeable {
 
     /**
      * Get a feature writer for the given file
@@ -334,12 +348,12 @@ object AbstractDataStoreProcessor {
      * @param typeName simple feature type name
      * @return
      */
-    def borrowWriter(typeName: String): SimpleFeatureWriter
+    def borrowWriter(typeName: String): SimpleWriter
 
     /**
      *
      */
-    def returnWriter(writer: SimpleFeatureWriter): Unit
+    def returnWriter(writer: SimpleWriter): Unit
 
     /**
      * Invalidate any cached writers
@@ -349,23 +363,64 @@ object AbstractDataStoreProcessor {
     def invalidate(typeName: String): Unit
   }
 
+  object FeatureWriters {
+
+    val Append = "append"
+    val Modify = "modify"
+
+    trait SimpleWriter extends Closeable {
+      def typeName: String
+      def apply(f: SimpleFeature): Unit
+    }
+
+    case class AppendWriter(typeName: String, writer: SimpleFeatureWriter) extends SimpleWriter {
+      override def apply(f: SimpleFeature): Unit = FeatureUtils.write(writer, f)
+      override def close(): Unit = CloseWithLogging(writer)
+    }
+
+    case class ModifyWriter(ds: DataStore, typeName: String, attribute: Option[String], append: SimpleWriter)
+        extends SimpleWriter with LazyLogging  {
+      override def apply(f: SimpleFeature): Unit = {
+        val filter = attribute match {
+          case None => FilterHelper.ff.id(FilterHelper.ff.featureId(f.getID))
+          case Some(a) => FilterHelper.ff.equals(FilterHelper.ff.property(a), FilterHelper.ff.literal(f.getAttribute(a)))
+        }
+        WithClose(ds.getFeatureWriter(typeName, filter, Transaction.AUTO_COMMIT)) { writer =>
+          if (writer.hasNext) {
+            val toWrite = writer.next()
+            toWrite.setAttributes(f.getAttributes)
+            toWrite.getUserData.putAll(f.getUserData)
+            toWrite.getUserData.put(Hints.PROVIDED_FID, f.getID)
+            writer.write()
+            if (writer.hasNext) {
+              logger.warn(s"Filter '${ECQL.toCQL(filter)}' matched multiple records, only updating the first one")
+            }
+          } else {
+            append.apply(f)
+          }
+        }
+      }
+      override def close(): Unit = append.close()
+    }
+  }
+
   /**
    * Pooled feature writers, re-used between flow files
    *
    * @param ds datastore
    * @param timeout how long to wait between flushes of cached feature writers, in millis
    */
-  class PooledWriters(ds: DataStore, timeout: Long) extends Writers {
+  class PooledWriters(ds: DataStore, timeout: Long) extends FeatureWriters {
 
     private val cache = Caffeine.newBuilder().build(
-      new CacheLoader[String, ObjectPool[SimpleFeatureWriter]] {
-        override def load(key: String): ObjectPool[SimpleFeatureWriter] = {
-          val factory = new BasePooledObjectFactory[SimpleFeatureWriter] {
-            override def create(): SimpleFeatureWriter = ds.getFeatureWriterAppend(key, Transaction.AUTO_COMMIT)
-            override def wrap(obj: SimpleFeatureWriter): PooledObject[SimpleFeatureWriter] = new DefaultPooledObject(obj)
-            override def destroyObject(p: PooledObject[SimpleFeatureWriter]): Unit = CloseWithLogging(p.getObject)
+      new CacheLoader[String, ObjectPool[SimpleWriter]] {
+        override def load(key: String): ObjectPool[SimpleWriter] = {
+          val factory = new BasePooledObjectFactory[SimpleWriter] {
+            override def create(): SimpleWriter = AppendWriter(key, ds.getFeatureWriterAppend(key, Transaction.AUTO_COMMIT))
+            override def wrap(obj: SimpleWriter): PooledObject[SimpleWriter] = new DefaultPooledObject(obj)
+            override def destroyObject(p: PooledObject[SimpleWriter]): Unit = CloseWithLogging(p.getObject)
           }
-          val config = new GenericObjectPoolConfig[SimpleFeatureWriter]()
+          val config = new GenericObjectPoolConfig[SimpleWriter]()
           config.setMaxTotal(-1)
           config.setMaxIdle(-1)
           config.setMinIdle(0)
@@ -378,10 +433,8 @@ object AbstractDataStoreProcessor {
       }
     )
 
-    override def borrowWriter(typeName: String): SimpleFeatureWriter = cache.get(typeName).borrowObject()
-
-    override def returnWriter(writer: SimpleFeatureWriter): Unit =
-      cache.get(writer.getFeatureType.getTypeName).returnObject(writer)
+    override def borrowWriter(typeName: String): SimpleWriter = cache.get(typeName).borrowObject()
+    override def returnWriter(writer: SimpleWriter): Unit = cache.get(writer.typeName).returnObject(writer)
 
     override def invalidate(typeName: String): Unit = {
       val cur = cache.get(typeName)
@@ -400,14 +453,32 @@ object AbstractDataStoreProcessor {
    *
    * @param ds datastore
    */
-  class SingletonWriters(ds: DataStore) extends Writers {
-    override def borrowWriter(typeName: String): SimpleFeatureWriter =
-      ds.getFeatureWriterAppend(typeName, Transaction.AUTO_COMMIT)
-    override def returnWriter(writer: SimpleFeatureWriter): Unit = CloseWithLogging(writer)
+  class SingletonWriters(ds: DataStore) extends FeatureWriters {
+    override def borrowWriter(typeName: String): SimpleWriter =
+      AppendWriter(typeName, ds.getFeatureWriterAppend(typeName, Transaction.AUTO_COMMIT))
+    override def returnWriter(writer: SimpleWriter): Unit = CloseWithLogging(writer)
     override def invalidate(typeName: String): Unit = {}
     override def close(): Unit = ds.dispose()
   }
 
+  /**
+   * Each record gets an updating writer
+   *
+   * @param ds datastore
+   * @param attribute the unique attribute used to identify the record to update
+   * @param appender appending writer factory
+   */
+  class ModifyWriters(ds: DataStore, attribute: Option[String], appender: FeatureWriters) extends FeatureWriters {
+    override def borrowWriter(typeName: String): SimpleWriter =
+      ModifyWriter(ds, typeName, attribute, appender.borrowWriter(typeName))
+    override def returnWriter(writer: SimpleWriter): Unit = {
+      val ModifyWriter(_, _, _, append) = writer
+      appender.returnWriter(append)
+      CloseWithLogging(writer)
+    }
+    override def invalidate(typeName: String): Unit = appender.invalidate(typeName)
+    override def close(): Unit = CloseWithLogging(appender) // note: also disposes of the datastore
+  }
 
   /**
    * Processor configuration properties
@@ -422,6 +493,26 @@ object AbstractDataStoreProcessor {
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .dynamicallyModifiesClasspath(true)
+          .build()
+
+    val WriteMode: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+          .name("write-mode")
+          .displayName("Write Mode")
+          .description("Use an appending writer (for new features) or a modifying writer (to update existing features)")
+          .allowableValues(FeatureWriters.Append, FeatureWriters.Modify)
+          .defaultValue(FeatureWriters.Append)
+          .build()
+
+    val ModifyAttribute: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+          .name("identifying-attribute")
+          .displayName("Identifying Attribute")
+          .description(
+            "When using a modifying writer, the attribute used to uniquely identify the feature. " +
+              "If not specified, will use the feature ID")
+          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
     val NifiBatchSize: PropertyDescriptor =

@@ -1,0 +1,4 @@
+ID,Name,Age,LastSeen,Friends,Skills,Lon,Lat,Vis
+23623,Harry Potter,20,2016-05-06,"Will, Mark, Suzan","patronus->10,expelliarmus->9",-100.2365,33,user
+26236,Hermione Granger,25,2016-06-07,"Edward, Bill, Harry","accio->10",40.232,-43.2356,user
+3233,Severus Snape,30,2016-10-23,"Tom, Riddle, Voldemort","potions->10",3,-52.23,user&admin

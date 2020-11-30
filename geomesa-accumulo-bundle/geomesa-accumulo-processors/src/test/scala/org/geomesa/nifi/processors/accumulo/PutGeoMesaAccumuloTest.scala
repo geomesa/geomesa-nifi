@@ -9,15 +9,17 @@
 package org.geomesa.nifi.processors.accumulo
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.text.SimpleDateFormat
 import java.util.{Collections, Date}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.util.TestRunners
+import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
 import org.geomesa.nifi.datastore.processor.records.Properties
-import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, ConverterIngestProcessor, FeatureTypeProcessor, Relationships}
+import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, AvroIngestProcessor, ConverterIngestProcessor, FeatureTypeProcessor, Relationships}
 import org.geotools.data.DataStoreFinder
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
@@ -395,6 +397,73 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       )
     } finally {
       ds.dispose()
+    }
+  }
+
+  @Test
+  def testUpdateIngest(): Unit = {
+    val catalog = s"${root}UpdateIngest"
+    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+
+    def checkResults(ids: Seq[String], names: Seq[String], dates: Seq[Date], geoms: Seq[String]): Unit = {
+      val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+      Assert.assertNotNull(ds)
+      try {
+        val sft = ds.getSchema("example")
+        Assert.assertNotNull(sft)
+        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+        logger.debug(features.mkString(";"))
+        Assert.assertEquals(3, features.length)
+        Assert.assertEquals(ids, features.map(_.getID))
+        Assert.assertEquals(names, features.map(_.getAttribute("name")))
+        Assert.assertEquals(dates, features.map(_.getAttribute("dtg")))
+        Assert.assertEquals(geoms, features.map(_.getAttribute("geom").toString))
+      } finally {
+        ds.dispose()
+      }
+    }
+
+    val df = new SimpleDateFormat("yyyy-MM-dd")
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
+      runner.setProperty(ConverterIngestProcessor.ConverterNameKey, "example-csv")
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      checkResults(
+        Seq("23623", "26236", "3233"),
+        Seq("Harry", "Hermione", "Severus"),
+        Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
+        Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
+      )
+      runner.setProperty(AbstractDataStoreProcessor.Properties.WriteMode, FeatureWriters.Modify)
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-update.csv"))
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 2)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      checkResults(
+        Seq("23623", "26236", "3233"),
+        Seq("Harry Potter", "Hermione Granger", "Severus Snape"),
+        Seq("2016-05-06", "2016-06-07", "2016-10-23").map(df.parse),
+        Seq("POINT (-100.2365 33)", "POINT (40.232 -43.2356)", "POINT (3 -52.23)")
+      )
+      // verify update by attribute
+      runner.setProperty(AbstractDataStoreProcessor.Properties.ModifyAttribute, "age")
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-update-2.csv"))
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 3)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      checkResults(
+        Seq("23624", "26236", "3233"),
+        Seq("Harry", "Hermione Granger", "Severus Snape"),
+        Seq("2016-05-06", "2016-06-07", "2016-10-23").map(df.parse),
+        Seq("POINT (-100.2365 33)", "POINT (40.232 -43.2356)", "POINT (3 -52.23)")
+      )
+    } finally {
+      runner.shutdown()
     }
   }
 }
