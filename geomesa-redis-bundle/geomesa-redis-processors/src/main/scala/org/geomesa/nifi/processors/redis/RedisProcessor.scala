@@ -8,19 +8,12 @@
 
 package org.geomesa.nifi.processors.redis
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
+import org.geomesa.nifi.datastore.processor.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 
-@Tags(Array("geomesa", "geo", "ingest", "convert", "redis", "geotools"))
-@CapabilityDescription("Convert and ingest data files into GeoMesa Redis")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-abstract class GeoMesaRedisProcessor extends AbstractDataStoreProcessor(GeoMesaRedisProcessor.RedisProperties)
+abstract class RedisProcessor extends DataStoreProcessor(RedisProcessor.RedisProperties)
 
-object GeoMesaRedisProcessor extends PropertyDescriptorUtils {
+object RedisProcessor extends PropertyDescriptorUtils {
   private val RedisProperties = createPropertyDescriptors(RedisDataStoreFactory)
 }

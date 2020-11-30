@@ -24,7 +24,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
+import org.geomesa.nifi.datastore.processor.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
 import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
@@ -111,7 +111,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
     ds = {
       val props = {
-        val base = AbstractDataStoreProcessor.getDataStoreParams(context, descriptors) ++ Map(
+        val base = DataStoreProcessor.getDataStoreParams(context, descriptors) ++ Map(
           // disable feature caching since we are just using the listeners
           KafkaDataStoreParams.CacheExpiry.key -> "0s"
         )

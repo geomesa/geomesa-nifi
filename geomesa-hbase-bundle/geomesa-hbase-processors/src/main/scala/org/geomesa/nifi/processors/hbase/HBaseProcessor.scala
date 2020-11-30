@@ -8,23 +8,15 @@
 
 package org.geomesa.nifi.processors.hbase
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, AwsGeoIngestProcessor}
+import org.geomesa.nifi.datastore.processor.{AwsDataStoreProcessor, DataStoreProcessor}
 import org.locationtech.geomesa.hbase.data.{HBaseDataStoreFactory, HBaseDataStoreParams}
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
-@Tags(Array("geomesa", "geo", "ingest", "convert", "hbase", "geotools"))
-@CapabilityDescription("Convert and ingest data files into GeoMesa HBase")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-abstract class GeoMesaHBaseProcessor
-    extends AbstractDataStoreProcessor(GeoMesaHBaseProcessor.HBaseProperties) with AwsGeoIngestProcessor {
+abstract class HBaseProcessor extends DataStoreProcessor(HBaseProcessor.HBaseProperties) with AwsDataStoreProcessor {
   override protected def configParam: GeoMesaParam[String] = HBaseDataStoreParams.ConfigsParam
 }
 
-object GeoMesaHBaseProcessor extends PropertyDescriptorUtils {
+object HBaseProcessor extends PropertyDescriptorUtils {
   private val HBaseProperties = createPropertyDescriptors(HBaseDataStoreFactory)
 }

@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.accumulo
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-class PutGeoMesaAccumulo extends AccumuloIngestProcessor with ConverterIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo", "geotools"))
+class PutGeoMesaAccumulo extends AccumuloProcessor with ConverterIngestProcessor

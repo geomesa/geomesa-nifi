@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.kafka
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-class PutGeoMesaKafka extends GeoMesaKafkaProcessor with ConverterIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "convert", "kafka", "stream", "streaming", "geotools"))
+class PutGeoMesaKafka extends KafkaProcessor with ConverterIngestProcessor

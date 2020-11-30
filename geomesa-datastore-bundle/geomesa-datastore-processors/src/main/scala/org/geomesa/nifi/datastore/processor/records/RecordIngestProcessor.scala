@@ -10,17 +10,18 @@ package org.geomesa.nifi.datastore.processor.records
 
 import java.io.InputStream
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.CountHolder
-import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, CompatibilityMode}
+import org.geomesa.nifi.datastore.processor.{CompatibilityMode, DataStoreIngestProcessor}
 import org.geotools.data._
 import org.locationtech.geomesa.utils.io.WithClose
 
@@ -30,9 +31,10 @@ import scala.util.control.NonFatal
 /**
   * Record-based ingest processor for geotools data stores
   */
-trait RecordIngestProcessor extends AbstractDataStoreProcessor {
+@CapabilityDescription("Ingest records into GeoMesa")
+trait RecordIngestProcessor extends DataStoreIngestProcessor {
 
-  import AbstractDataStoreProcessor.Properties.SchemaCompatibilityMode
+  import DataStoreIngestProcessor.Properties.SchemaCompatibilityMode
 
   override protected def getProcessorProperties: Seq[PropertyDescriptor] =
     super.getProcessorProperties ++ RecordIngestProcessor.Props

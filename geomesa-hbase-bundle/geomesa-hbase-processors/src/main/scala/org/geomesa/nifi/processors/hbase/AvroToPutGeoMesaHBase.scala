@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.hbase
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
 
-class AvroToPutGeoMesaHBase extends GeoMesaHBaseProcessor with AvroIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "avro", "hbase", "geotools"))
+class AvroToPutGeoMesaHBase extends HBaseProcessor with AvroIngestProcessor

@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.hbase
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-class PutGeoMesaHBase extends GeoMesaHBaseProcessor with ConverterIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "convert", "hbase", "geotools"))
+class PutGeoMesaHBase extends HBaseProcessor with ConverterIngestProcessor

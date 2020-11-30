@@ -29,7 +29,7 @@ package object records {
       new PropertyDescriptor.Builder()
         .name("record-reader")
         .displayName("Record reader")
-        .description("The Record Reader to use for deserializing the incoming data")
+        .description("The record reader to use for deserializing incoming data")
         .identifiesControllerService(classOf[RecordReaderFactory])
         .required(true)
         .build
@@ -72,7 +72,7 @@ package object records {
     val GeometrySerializationDefaultWkt: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("geometry-serialization")
-          .displayName("Geometry Serialization Format")
+          .displayName("Geometry serialization format")
           .description(
             "The format to use for serializing/deserializing geometries - " +
                 "either WKT (well-known text) or WKB (well-known binary)")
@@ -321,10 +321,13 @@ package object records {
     }
 
     private abstract class DynamicEvaluation[T](prop: PropertyDescriptor) extends PropertyExtractor[T] {
-      override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T =
-        wrap(context.getProperty(prop).evaluateAttributeExpressions(variables).getValue)
+      override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T = {
+        val p = context.getProperty(prop)
+        wrap(if (p.isSet) { p.evaluateAttributeExpressions(variables).getValue } else { null })
+      }
       override def static(context: PropertyContext): PropertyExtractor[T] = {
-        if (context.getProperty(prop).isExpressionLanguagePresent) { this } else {
+        val p = context.getProperty(prop)
+        if (p.isSet && p.isExpressionLanguagePresent) { this } else {
           new StaticEvaluation(apply(context, Collections.emptyMap()))
         }
       }

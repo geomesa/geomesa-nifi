@@ -8,24 +8,16 @@
 
 package org.geomesa.nifi.datastore.processor.geotools
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
+import org.geomesa.nifi.datastore.processor.DataStoreProcessor
 import org.geotools.data.{DataStoreFactorySpi, DataStoreFinder}
 
-@Tags(Array("geomesa", "geo", "ingest", "geotools", "datastore", "features", "simple feature"))
-@CapabilityDescription("store avro files into geomesa")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-abstract class GeoToolsIngestProcessor
-    extends AbstractDataStoreProcessor(Seq(GeoToolsIngestProcessor.DataStoreName)) {
+abstract class GeoToolsProcessor extends DataStoreProcessor(Seq(GeoToolsProcessor.DataStoreName)) {
 
-  import GeoToolsIngestProcessor.DataStoreName
+  import GeoToolsProcessor.DataStoreName
 
   import scala.collection.JavaConverters._
 
@@ -39,7 +31,7 @@ abstract class GeoToolsIngestProcessor
     new PropertyDescriptor.Builder()
         .name(propertyDescriptorName)
         .description("Sets the value on the DataStore")
-        .sensitive(GeoToolsIngestProcessor.sensitiveProps().contains(propertyDescriptorName))
+        .sensitive(GeoToolsProcessor.sensitiveProps().contains(propertyDescriptorName))
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .dynamic(true)
@@ -67,7 +59,7 @@ abstract class GeoToolsIngestProcessor
       result.add(invalid(DataStoreName.getName, "Must define available DataSore name"))
     } else {
       logger.debug(s"Attempting to validate params for DataSore $dsName")
-      val dsParams = GeoToolsIngestProcessor.listDataStores().find(_.getDisplayName == dsName).toSeq.flatMap(_.getParametersInfo)
+      val dsParams = GeoToolsProcessor.listDataStores().find(_.getDisplayName == dsName).toSeq.flatMap(_.getParametersInfo)
       val required = dsParams.filter(_.isRequired)
       logger.debug(s"Required props for DataSore $dsName are ${required.mkString(", ")}")
 
@@ -85,7 +77,7 @@ abstract class GeoToolsIngestProcessor
   }
 }
 
-object GeoToolsIngestProcessor {
+object GeoToolsProcessor {
 
   import scala.collection.JavaConverters._
 

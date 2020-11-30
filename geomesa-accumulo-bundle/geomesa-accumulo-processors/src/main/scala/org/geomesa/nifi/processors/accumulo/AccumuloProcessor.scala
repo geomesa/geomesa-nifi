@@ -8,25 +8,17 @@
 
 package org.geomesa.nifi.processors.accumulo
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
+import org.geomesa.nifi.datastore.processor.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreConfigService
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams}
 
-@Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo", "geotools"))
-@CapabilityDescription("Convert and ingest data files into GeoMesa")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-abstract class AccumuloIngestProcessor
-    extends AbstractDataStoreProcessor(AccumuloIngestProcessor.AccumuloProperties) {
+abstract class AccumuloProcessor extends DataStoreProcessor(AccumuloProcessor.AccumuloProperties) {
 
   import AccumuloDataStoreParams._
-  import AccumuloIngestProcessor._
+  import AccumuloProcessor._
 
   import scala.collection.JavaConverters._
 
@@ -78,7 +70,7 @@ abstract class AccumuloIngestProcessor
   }
 }
 
-object AccumuloIngestProcessor extends PropertyDescriptorUtils {
+object AccumuloProcessor extends PropertyDescriptorUtils {
 
   val GeoMesaConfigController: PropertyDescriptor =
     new PropertyDescriptor.Builder()

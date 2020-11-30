@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.accumulo
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
 
-class AvroToPutGeoMesaAccumulo extends AccumuloIngestProcessor with AvroIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "avro", "accumulo", "geotools"))
+class AvroToPutGeoMesaAccumulo extends AccumuloProcessor with AvroIngestProcessor

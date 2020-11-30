@@ -6,10 +6,10 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.processors.kafka
+package org.geomesa.nifi.processors.accumulo
 
 import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor
+import org.geomesa.nifi.datastore.processor.records.RecordUpdateProcessor
 
-@Tags(Array("geomesa", "geo", "ingest", "records", "kafka", "stream", "streaming", "geotools"))
-class PutGeoMesaKafkaRecord extends KafkaProcessor with RecordIngestProcessor
+@Tags(Array("geomesa", "geo", "update", "records", "accumulo", "geotools"))
+class UpdateGeoMesaAccumuloRecord extends AccumuloProcessor with RecordUpdateProcessor

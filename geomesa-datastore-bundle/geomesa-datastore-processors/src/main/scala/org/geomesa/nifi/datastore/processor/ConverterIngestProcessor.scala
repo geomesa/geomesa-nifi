@@ -17,21 +17,21 @@ import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
+import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
+import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.validators.ConverterValidator
 import org.geotools.data._
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
-import org.locationtech.geomesa.utils.geotools._
 import org.locationtech.geomesa.utils.io.CloseQuietly
 import org.opengis.feature.simple.SimpleFeatureType
 
@@ -45,11 +45,11 @@ import scala.util.control.NonFatal
     new ReadsAttribute(attribute = "geomesa.converter", description = "GeoMesa converter name or configuration")
   )
 )
+@CapabilityDescription("Convert and ingest data files into GeoMesa")
 trait ConverterIngestProcessor extends FeatureTypeProcessor {
 
   import ConverterIngestProcessor._
-  import FeatureTypeProcessor._
-  import AbstractDataStoreProcessor.Properties.SchemaCompatibilityMode
+  import DataStoreIngestProcessor.Properties.SchemaCompatibilityMode
 
   import scala.collection.JavaConverters._
 
@@ -97,6 +97,8 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
       mode: CompatibilityMode
     ) extends IngestProcessorWithSchema(store, writers, spec, name, mode) {
 
+    import FeatureTypeProcessor.Attributes.ConverterAttribute
+
     private val converterCache = Caffeine.newBuilder().build(
       new CacheLoader[(SimpleFeatureType, String), Either[Throwable, ObjectPool[SimpleFeatureConverter]]]() {
         override def load(key: (SimpleFeatureType, String)): Either[Throwable, ObjectPool[SimpleFeatureConverter]] = {
@@ -135,10 +137,10 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
         sft: SimpleFeatureType,
         writer: SimpleWriter): (Long, Long) = {
 
-      val config = Option(file.getAttribute(Attributes.ConverterAttribute)).orElse(conf).getOrElse {
+      val config = Option(file.getAttribute(ConverterAttribute)).orElse(conf).getOrElse {
         throw new IllegalArgumentException(
           s"Converter not specified: configure '$ConverterNameKey', '${ConverterSpec.getName}' " +
-              s"or flow-file attribute '${Attributes.ConverterAttribute}'")
+              s"or flow-file attribute '$ConverterAttribute'")
       }
 
       val converters = converterCache.get(sft -> config) match {
@@ -148,9 +150,14 @@ trait ConverterIngestProcessor extends FeatureTypeProcessor {
 
       val converter = converters.borrowObject()
       try {
-        val globalParams =
-          EvaluationContext.inputFileParam(name) ++
-              (if (exposeAttributes) { file.getAttributes.asScala -- Attributes.all } else { Map.empty })
+        val globalParams = {
+          val inputFile = EvaluationContext.inputFileParam(name)
+          if (exposeAttributes) {
+            inputFile ++ file.getAttributes.asScala -- FeatureTypeProcessor.Attributes.all
+          } else {
+            inputFile
+          }
+        }
         val ec = converter.createEvaluationContext(globalParams)
         session.read(file, new InputStreamCallback {
           override def process(in: InputStream): Unit = {

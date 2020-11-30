@@ -8,29 +8,24 @@
 
 package org.geomesa.nifi.processors.fs
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, AwsGeoIngestProcessor}
-import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory
+import org.geomesa.nifi.datastore.processor.{AwsDataStoreProcessor, DataStoreIngestProcessor, DataStoreProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.fs.tools.utils.PartitionSchemeArgResolver
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 import org.opengis.feature.simple.SimpleFeatureType
 
-@Tags(Array("geomesa", "geo", "ingest", "convert", "hdfs", "s3", "geotools"))
-@CapabilityDescription("Convert and ingest data files into a GeoMesa FileSystem Datastore")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-abstract class GeoMesaFileSystemProcessor
-    extends AbstractDataStoreProcessor(GeoMesaFileSystemProcessor.FileSystemProperties) with AwsGeoIngestProcessor {
+abstract class FileSystemIngestProcessor
+    extends DataStoreProcessor(FileSystemIngestProcessor.FileSystemProperties)
+        with DataStoreIngestProcessor
+        with AwsDataStoreProcessor {
 
-  import GeoMesaFileSystemProcessor._
+  override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
+
+  import FileSystemIngestProcessor.PartitionSchemeParam
   import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
 
   private var partitionScheme: Option[String] = None
@@ -40,8 +35,6 @@ abstract class GeoMesaFileSystemProcessor
     super.initialize(context)
     partitionScheme = Option(context.getProperty(PartitionSchemeParam).getValue)
   }
-
-  override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
 
   override protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = {
     partitionScheme.foreach { arg =>
@@ -57,7 +50,7 @@ abstract class GeoMesaFileSystemProcessor
   }
 }
 
-object GeoMesaFileSystemProcessor extends PropertyDescriptorUtils {
+object FileSystemIngestProcessor {
 
   val PartitionSchemeParam: PropertyDescriptor =
     new PropertyDescriptor.Builder()
@@ -67,5 +60,5 @@ object GeoMesaFileSystemProcessor extends PropertyDescriptorUtils {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build()
 
-  private val FileSystemProperties = createPropertyDescriptors(FileSystemDataStoreFactory) :+ PartitionSchemeParam
+  private val FileSystemProperties = FileSystemProcessor.FileSystemProperties :+ PartitionSchemeParam
 }
