@@ -8,6 +8,9 @@
 
 package org.geomesa.nifi.datastore.processor.geotools
 
+import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
 
-class AvroToPutGeoTools extends GeoToolsIngestProcessor with AvroIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "avro", "geotools"))
+@CapabilityDescription("Ingest GeoAvro files into a GeoTools data store")
+class AvroToPutGeoTools extends GeoToolsProcessor with AvroIngestProcessor

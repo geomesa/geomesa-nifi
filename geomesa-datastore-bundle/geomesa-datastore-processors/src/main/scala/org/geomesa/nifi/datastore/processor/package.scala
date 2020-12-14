@@ -11,12 +11,8 @@ package org.geomesa.nifi.datastore
 import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.Relationship
-import org.geotools.data.FeatureWriter
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 package object processor {
-
-  type SimpleFeatureWriter = FeatureWriter[SimpleFeatureType, SimpleFeature]
 
   /**
    * Full name of a flow file
@@ -49,5 +45,10 @@ package object processor {
   object CompatibilityMode extends Enumeration {
     type CompatibilityMode = Value
     val Exact, Existing, Update = Value
+  }
+
+  object Attributes {
+    val IngestSuccessCount = "geomesa.ingest.successes"
+    val IngestFailureCount = "geomesa.ingest.failures"
   }
 }

@@ -27,8 +27,11 @@ trait PropertyDescriptorUtils extends LazyLogging {
    * @param info parameter info
    * @return
    */
-  def createPropertyDescriptors(info: GeoMesaDataStoreInfo): List[PropertyDescriptor] =
-    info.ParameterInfo.toList.collect { case p if p.readWrite.append => createPropertyDescriptor(p) }
+  def createPropertyDescriptors(info: GeoMesaDataStoreInfo): List[PropertyDescriptor] = {
+    info.ParameterInfo.toList.collect {
+      case p if p.readWrite.append || p.readWrite.update => createPropertyDescriptor(p)
+    }
+  }
 
   /**
    * Creates a nifi property descriptor based on a geotools data store parameter

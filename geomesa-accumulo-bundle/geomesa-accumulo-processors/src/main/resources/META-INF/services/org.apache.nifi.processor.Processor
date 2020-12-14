@@ -1,3 +1,4 @@
+org.geomesa.nifi.processors.accumulo.AvroToPutGeoMesaAccumulo
 org.geomesa.nifi.processors.accumulo.PutGeoMesaAccumulo
 org.geomesa.nifi.processors.accumulo.PutGeoMesaAccumuloRecord
-org.geomesa.nifi.processors.accumulo.AvroToPutGeoMesaAccumulo
+org.geomesa.nifi.processors.accumulo.UpdateGeoMesaAccumuloRecord

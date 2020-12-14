@@ -21,7 +21,7 @@ import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 /**
   * Trait with support for an AWSCredentialsProviderService
   */
-trait AwsGeoIngestProcessor extends AbstractDataStoreProcessor {
+trait AwsDataStoreProcessor extends DataStoreProcessor {
 
   import scala.collection.JavaConverters._
 
@@ -33,11 +33,11 @@ trait AwsGeoIngestProcessor extends AbstractDataStoreProcessor {
   protected def configParam: GeoMesaParam[String]
 
   override protected def getServiceProperties: Seq[PropertyDescriptor] =
-    super.getServiceProperties ++ Seq(AwsGeoIngestProcessor.CredentialsServiceProperty)
+    super.getServiceProperties ++ Seq(AwsDataStoreProcessor.CredentialsServiceProperty)
 
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
     val base = super.getDataStoreParams(context)
-    val prop = context.getProperty(AwsGeoIngestProcessor.CredentialsServiceProperty)
+    val prop = context.getProperty(AwsDataStoreProcessor.CredentialsServiceProperty)
     val credentials = for {
       service  <- Option(prop.asControllerService(classOf[AWSCredentialsProviderService]))
       provider <- Option(service.getCredentialsProvider)
@@ -68,7 +68,7 @@ trait AwsGeoIngestProcessor extends AbstractDataStoreProcessor {
   }
 }
 
-object AwsGeoIngestProcessor {
+object AwsDataStoreProcessor {
   private val CredentialsServiceProperty =
     new PropertyDescriptor.Builder()
         .name("AWS Credentials Provider service")

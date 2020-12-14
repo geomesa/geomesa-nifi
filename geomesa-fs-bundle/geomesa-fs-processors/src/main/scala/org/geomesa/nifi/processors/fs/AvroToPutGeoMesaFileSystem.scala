@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.fs
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
 
-class AvroToPutGeoMesaFileSystem extends GeoMesaFileSystemProcessor with AvroIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "avro", "hdfs", "s3", "geotools"))
+class AvroToPutGeoMesaFileSystem extends FileSystemIngestProcessor with AvroIngestProcessor

@@ -1,3 +1,4 @@
+org.geomesa.nifi.processors.hbase.AvroToPutGeoMesaHBase
 org.geomesa.nifi.processors.hbase.PutGeoMesaHBase
 org.geomesa.nifi.processors.hbase.PutGeoMesaHBaseRecord
-org.geomesa.nifi.processors.hbase.AvroToPutGeoMesaHBase
+org.geomesa.nifi.processors.hbase.UpdateGeoMesaHBaseRecord

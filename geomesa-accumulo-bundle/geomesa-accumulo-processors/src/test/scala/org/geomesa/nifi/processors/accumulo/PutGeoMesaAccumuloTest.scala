@@ -9,25 +9,31 @@
 package org.geomesa.nifi.processors.accumulo
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.{Collections, Date}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.avro.AvroReader
+import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
+import org.apache.nifi.schema.inference.SchemaInferenceUtil
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
-import org.geomesa.nifi.datastore.processor.records.Properties
-import org.geomesa.nifi.datastore.processor.{AbstractDataStoreProcessor, AvroIngestProcessor, ConverterIngestProcessor, FeatureTypeProcessor, Relationships}
-import org.geotools.data.DataStoreFinder
+import org.geomesa.nifi.datastore.processor.records.{Properties, RecordUpdateProcessor}
+import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, ConverterIngestProcessor, DataStoreIngestProcessor, FeatureTypeProcessor, Relationships}
+import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
+import org.locationtech.geomesa.convert.ConverterConfigLoader
+import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.avro.AvroDataFileWriter
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypeLoader, SimpleFeatureTypes}
+import org.locationtech.geomesa.utils.io.WithClose
 import org.locationtech.geomesa.utils.text.WKTUtils
 
 class PutGeoMesaAccumuloTest extends LazyLogging {
@@ -439,7 +445,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
         Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
       )
-      runner.setProperty(AbstractDataStoreProcessor.Properties.WriteMode, FeatureWriters.Modify)
+      runner.setProperty(DataStoreIngestProcessor.Properties.WriteMode, FeatureWriters.Modify)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-update.csv"))
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 2)
@@ -451,7 +457,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         Seq("POINT (-100.2365 33)", "POINT (40.232 -43.2356)", "POINT (3 -52.23)")
       )
       // verify update by attribute
-      runner.setProperty(AbstractDataStoreProcessor.Properties.ModifyAttribute, "age")
+      runner.setProperty(DataStoreIngestProcessor.Properties.ModifyAttribute, "age")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-update-2.csv"))
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 3)
@@ -462,6 +468,89 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         Seq("2016-05-06", "2016-06-07", "2016-10-23").map(df.parse),
         Seq("POINT (-100.2365 33)", "POINT (40.232 -43.2356)", "POINT (3 -52.23)")
       )
+    } finally {
+      runner.shutdown()
+    }
+  }
+
+  @Test
+  def testUpdateRecord(): Unit = {
+    val catalog = s"${root}UpdateRecord"
+    val runner = TestRunners.newTestRunner(new UpdateGeoMesaAccumuloRecord())
+
+    val df = new SimpleDateFormat("yyyy-MM-dd")
+    try {
+      val params = dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)
+      WithClose(DataStoreFinder.getDataStore(params.asJava)) { ds =>
+        // create the sft and ingest 3 features
+        val sft = SimpleFeatureTypeLoader.sftForName("example").get
+        ds.createSchema(sft)
+        val converterConf = ConverterConfigLoader.configForName("example-csv")
+        val features = WithClose(SimpleFeatureConverter(sft, converterConf.get)) { converter =>
+          WithClose(converter.process(getClass.getClassLoader.getResourceAsStream("example.csv")))(_.toList)
+        }
+        WithClose(ds.getFeatureWriterAppend("example", Transaction.AUTO_COMMIT)) { writer =>
+          features.foreach(FeatureUtils.write(writer, _))
+        }
+
+        def checkResults(ids: Seq[String], names: Seq[String], dates: Seq[Date], geoms: Seq[String]): Unit = {
+          val results = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+          logger.debug(results.mkString(";"))
+          Assert.assertEquals(3, results.length)
+          Assert.assertEquals(ids, results.map(_.getID))
+          Assert.assertEquals(names, results.map(_.getAttribute("name")))
+          Assert.assertEquals(dates, results.map(_.getAttribute("dtg")))
+          Assert.assertEquals(geoms, results.map(_.getAttribute("geom").toString))
+        }
+
+        // verify initial write
+        checkResults(
+          Seq("23623", "26236", "3233"),
+          Seq("Harry", "Hermione", "Severus"),
+          Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
+          Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
+        )
+
+        // configure the processor to use json
+        val service = new JsonTreeReader()
+        runner.addControllerService("json-record-reader", service)
+        runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA)
+        runner.enableControllerService(service)
+        params.foreach { case (k, v) => runner.setProperty(k, v) }
+        runner.setProperty(Properties.RecordReader, "json-record-reader")
+        runner.setProperty(Properties.TypeName, "${type-name}")
+        runner.setProperty(Properties.FeatureIdCol, "${id-col}")
+        runner.setProperty(RecordUpdateProcessor.Properties.LookupCol, "${id-col}")
+
+        // update one name
+        runner.enqueue(
+          new ByteArrayInputStream("""{"fid":"23623","name":"Harry Potter"}""".getBytes(StandardCharsets.UTF_8)),
+          Map("type-name"-> "example", "id-col" -> "fid").asJava)
+        runner.run()
+        runner.assertTransferCount(Relationships.SuccessRelationship, 1)
+        runner.assertTransferCount(Relationships.FailureRelationship, 0)
+        checkResults(
+          Seq("23623", "26236", "3233"),
+          Seq("Harry Potter", "Hermione", "Severus"),
+          Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
+          Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
+        )
+
+        // update the name and feature id based on matching on age
+        runner.setProperty(RecordUpdateProcessor.Properties.LookupCol, "${match-col}")
+        runner.enqueue(
+          new ByteArrayInputStream("""{"fid":"26237","name":"Hermione Granger","age":25}""".getBytes(StandardCharsets.UTF_8)),
+          Map("type-name"-> "example", "id-col" -> "fid", "match-col" -> "age").asJava)
+        runner.run()
+        runner.assertTransferCount(Relationships.SuccessRelationship, 2)
+        runner.assertTransferCount(Relationships.FailureRelationship, 0)
+        checkResults(
+          Seq("23623", "26237", "3233"),
+          Seq("Harry Potter", "Hermione Granger", "Severus"),
+          Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
+          Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
+        )
+      }
     } finally {
       runner.shutdown()
     }

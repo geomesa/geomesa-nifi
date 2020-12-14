@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.fs
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-class PutGeoMesaFileSystem extends GeoMesaFileSystemProcessor with ConverterIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "convert", "hdfs", "s3", "geotools"))
+class PutGeoMesaFileSystem extends FileSystemIngestProcessor with ConverterIngestProcessor

@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.redis
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
 
-class PutGeoMesaRedis extends GeoMesaRedisProcessor with ConverterIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "convert", "redis", "geotools"))
+class PutGeoMesaRedis extends RedisProcessor with ConverterIngestProcessor

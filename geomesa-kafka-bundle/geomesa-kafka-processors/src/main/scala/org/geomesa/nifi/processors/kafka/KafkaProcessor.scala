@@ -8,26 +8,19 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching}
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
+import org.geomesa.nifi.datastore.processor.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams.{ProducerConfig, TopicPartitions, TopicReplication}
 import org.locationtech.geomesa.kafka.data.{KafkaDataStoreFactory, KafkaDataStoreParams}
 
-@Tags(Array("geomesa", "kafka", "streaming", "stream", "geo", "ingest", "convert", "geotools"))
-@CapabilityDescription("Convert and ingest data files into GeoMesa")
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@SupportsBatching
-abstract class GeoMesaKafkaProcessor extends AbstractDataStoreProcessor(GeoMesaKafkaProcessor.KafkaProperties) {
+abstract class KafkaProcessor extends DataStoreProcessor(KafkaProcessor.KafkaProperties) {
   // set consumer count to zero to disable consuming
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] =
     super.getDataStoreParams(context) ++ Map(KafkaDataStoreParams.ConsumerCount.getName -> Int.box(0))
 }
 
-object GeoMesaKafkaProcessor extends PropertyDescriptorUtils {
+object KafkaProcessor extends PropertyDescriptorUtils {
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
   private val KafkaProperties =
     createPropertyDescriptors(KafkaDataStoreFactory) ++

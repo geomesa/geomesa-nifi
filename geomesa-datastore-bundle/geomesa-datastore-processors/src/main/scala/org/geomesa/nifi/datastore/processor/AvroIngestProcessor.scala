@@ -11,13 +11,14 @@ package org.geomesa.nifi.datastore.processor
 
 import java.io.InputStream
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor.FeatureWriters.SimpleWriter
+import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.{LenientMatch, convert}
 import org.geotools.data._
 import org.geotools.feature.simple.SimpleFeatureBuilder
@@ -90,6 +91,7 @@ object AvroIngestProcessor {
 /**
   * Avro ingest processor for geotools data stores
   */
+@CapabilityDescription("Ingest GeoAvro files into GeoMesa")
 trait AvroIngestProcessor extends FeatureTypeProcessor {
 
   import AvroIngestProcessor.{AvroMatchMode, UseProvidedFid}

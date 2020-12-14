@@ -8,6 +8,8 @@
 
 package org.geomesa.nifi.processors.redis
 
+import org.apache.nifi.annotation.documentation.Tags
 import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
 
-class AvroToPutGeoMesaRedis extends GeoMesaRedisProcessor with AvroIngestProcessor
+@Tags(Array("geomesa", "geo", "ingest", "avro", "redis", "geotools"))
+class AvroToPutGeoMesaRedis extends RedisProcessor with AvroIngestProcessor

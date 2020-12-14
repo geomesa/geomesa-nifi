@@ -1,3 +1,4 @@
+org.geomesa.nifi.processors.redis.AvroToPutGeoMesaRedis
 org.geomesa.nifi.processors.redis.PutGeoMesaRedis
 org.geomesa.nifi.processors.redis.PutGeoMesaRedisRecord
-org.geomesa.nifi.processors.redis.AvroToPutGeoMesaRedis
+org.geomesa.nifi.processors.redis.UpdateGeoMesaRedisRecord
