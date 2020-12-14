@@ -8,6 +8,7 @@
 
 package org.geomesa.nifi.processors.kafka
 
+import java.io.Closeable
 import java.util.concurrent.{SynchronousQueue, TimeUnit}
 import java.util.{Collections, Properties}
 
@@ -18,25 +19,28 @@ import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled, OnShutdown, OnStopped}
 import org.apache.nifi.components.{PropertyDescriptor, Validator}
 import org.apache.nifi.expression.ExpressionLanguageScope
+import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.flowfile.attributes.CoreAttributes
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.apache.nifi.serialization.record.{Record, RecordSchema}
-import org.apache.nifi.serialization.{RecordSetWriter, RecordSetWriterFactory}
+import org.apache.nifi.serialization.RecordSetWriterFactory
+import org.apache.nifi.serialization.record.RecordSchema
 import org.geomesa.nifi.datastore.processor.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
 import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
-import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
-import org.locationtech.geomesa.kafka.utils.KafkaFeatureEvent.{KafkaFeatureChanged, KafkaFeatureCleared, KafkaFeatureRemoved}
+import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
+import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
+import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreParams}
+import org.locationtech.geomesa.kafka.utils.{GeoMessage, GeoMessageProcessor}
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.opengis.feature.simple.SimpleFeature
 
-import scala.annotation.tailrec
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -57,19 +61,15 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   private var descriptors: Seq[PropertyDescriptor] = _
   private var relationships: Set[Relationship] = _
 
-  private var ds: DataStore = _
-  private var fs: FeatureSource[SimpleFeatureType, SimpleFeature] = _
   private var converter: SimpleFeatureRecordConverter = _
   private var schema: RecordSchema = _
-  private var maxBatchSize = 1000
+  private var maxBatchSize = 10000
   private var minBatchSize = 1
   private var maxLatencyMillis: Option[Long] = None
-  private var pollTimeout = 1000L
   private var factory: RecordSetWriterFactory = _
+  private var consumer: Closeable = _
 
-  // we use a synchronous queue to ensure the consumer tracks offsets correctly
-  private val queue = new SynchronousQueue[SimpleFeature]()
-  private val listener = new RecordFeatureListener()
+  private val processor = new RecordProcessor()
 
   private def logger: ComponentLog = getLogger
 
@@ -104,31 +104,32 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val prop = context.getProperty(RecordMaxLatency)
       Option(prop.evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS)).map(_.longValue)
     }
-    pollTimeout = {
+    val pollTimeout = {
       val prop = context.getProperty(PollTimeout)
       prop.evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).longValue
     }
+    val groupId = context.getProperty(GroupId).evaluateAttributeExpressions().getValue
 
-    ds = {
+    val ds = {
       val props = {
-        val base = AbstractDataStoreProcessor.getDataStoreParams(context, descriptors) ++ Map(
-          // disable feature caching since we are just using the listeners
-          KafkaDataStoreParams.CacheExpiry.key -> "0s"
-        )
-        val groupId = context.getProperty(GroupId).evaluateAttributeExpressions().getValue
+        val base = AbstractDataStoreProcessor.getDataStoreParams(context, descriptors)
         val offset = context.getProperty(InitialOffset).getValue
-        // override/set group id and auto.offset.reset
+        // override/set auto.offset.reset
         val config = KafkaDataStoreParams.ConsumerConfig.lookupOpt(base.asJava).getOrElse(new Properties())
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offset)
-        base + (KafkaDataStoreParams.ConsumerConfig.key -> KafkaDataStoreParams.ConsumerConfig.text(config))
+        base ++ Map(KafkaDataStoreParams.ConsumerConfig.key -> KafkaDataStoreParams.ConsumerConfig.text(config))
       }
       lazy val safeToLog = {
         val sensitive = context.getProperties.keySet().asScala.collect { case p if p.isSensitive => p.getName }
         props.map { case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}" }
       }
       logger.trace(s"DataStore properties: ${safeToLog.mkString(", ")}")
-      DataStoreFinder.getDataStore(props.asJava)
+      KafkaDataStore.LoadIntervalProperty.threadLocalValue.set(s"$pollTimeout ms")
+      try {
+        DataStoreFinder.getDataStore(props.asJava).asInstanceOf[KafkaDataStore]
+      } finally {
+        KafkaDataStore.LoadIntervalProperty.threadLocalValue.remove()
+      }
     }
     require(ds != null, "Could not load datastore using provided parameters")
 
@@ -139,70 +140,75 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       val opts = SimpleFeatureConverterOptions(encoding = encoding, visField = vis, userDataField = userData)
       converter = SimpleFeatureRecordConverter(sft, opts)
       schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
-      fs = ds.getFeatureSource(typeName)
-      fs.addFeatureListener(listener)
-    } catch {
-      case NonFatal(e) => CloseWithLogging(ds); ds = null; throw e
+      consumer = ds.createConsumer(typeName, groupId, processor)
+    } finally {
+      CloseWithLogging(ds)
     }
 
     logger.info("Initialized datastore for Kafka ingress")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
-    val record = readNextRecord()
-    if (record != null) {
-      val flowFile = session.create()
-      try {
-        val result = WithClose(session.write(flowFile)) { out =>
-          WithClose(factory.createWriter(logger, schema, out, flowFile)) { writer =>
-            writer.beginRecordSet()
-            val count = writer.write(record).getRecordCount
-            if (count < maxBatchSize) {
-              val timeout = maxLatencyMillis.map(_ + System.currentTimeMillis()).getOrElse(Long.MaxValue)
-              writeRemaining(writer, timeout, count)
+    val records = processor.ready.poll(1, TimeUnit.SECONDS)
+    if (records == null) {
+      context.`yield`()
+    } else {
+      val results = records.grouped(maxBatchSize).toSeq.map { group =>
+        var flowFile: FlowFile = null
+        try {
+          flowFile = session.create()
+          val result = WithClose(session.write(flowFile)) { out =>
+            WithClose(factory.createWriter(logger, schema, out, flowFile)) { writer =>
+              writer.beginRecordSet()
+              group.foreach { feature =>
+                writer.write(converter.convert(feature))
+              }
+              val result = writer.finishRecordSet()
+              WriteResult(result.getRecordCount, writer.getMimeType, result.getAttributes)
             }
-            val result = writer.finishRecordSet()
-            writer.flush()
-            WriteResult(result.getRecordCount, writer.getMimeType, result.getAttributes)
           }
-        }
-
-        if (result.count <= 0) {
-          logger.debug("Removing flow file, no records were written")
-          session.remove(flowFile)
-        } else {
           val attributes = new java.util.HashMap[String, String](result.attributes)
           attributes.put(CoreAttributes.MIME_TYPE.key, result.mimeType)
           attributes.put("record.count", String.valueOf(result.count))
-          session.transfer(session.putAllAttributes(flowFile, attributes), SuccessRelationship)
+          Success(session.putAllAttributes(flowFile, attributes))
+        } catch {
+          case NonFatal(e) =>
+            if (flowFile != null) {
+              Try(session.remove(flowFile)).failed.foreach(e.addSuppressed)
+            }
+            Failure(e)
         }
-      } catch {
-        case NonFatal(e) =>
-          logger.error("Error onTrigger:", e)
-          session.remove(flowFile)
       }
-    }
-  }
 
-  @tailrec
-  private def writeRemaining(writer: RecordSetWriter, timeout: Long, count: Int): Unit = {
-    if (timeout > System.currentTimeMillis()) {
-      val record = readNextRecord()
-      if (record != null) {
-        val count = writer.write(record).getRecordCount
-        if (count < maxBatchSize) {
-          writeRemaining(writer, timeout, count)
+      val errors = results.collect { case Failure(e) => e }
+      if (errors.nonEmpty) {
+        try {
+          val e = errors.head
+          errors.tail.foreach(e.addSuppressed)
+          logger.error("Error processing message batch:", e)
+          results.collect { case Success(f) => Try(session.remove(f)) }
+        } finally {
+          processor.done.put(false)
         }
-      } else if (count < minBatchSize) {
-        writeRemaining(writer, timeout, count)
+      } else {
+        var ok = true
+        results.foreach { case Success(f) =>
+          try {
+            if (f.getAttribute("record.count").toInt <= 0) {
+              logger.debug("Removing flow file, no records were written")
+              session.remove(f)
+            } else {
+              session.transfer(f, SuccessRelationship)
+            }
+          } catch {
+            case NonFatal(e) =>
+              ok = false
+              logger.error(s"Error transferring flow file $f:", e)
+              Try(session.remove(f))
+          }
+        }
+        processor.done.put(ok)
       }
-    }
-  }
-
-  private def readNextRecord(): Record = {
-    val feature = queue.poll(pollTimeout, TimeUnit.MILLISECONDS)
-    if (feature == null) { null } else {
-      converter.convert(feature)
     }
   }
 
@@ -212,22 +218,51 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   def cleanup(): Unit = {
     logger.info("Processor shutting down")
     val start = System.currentTimeMillis()
-    if (ds != null) {
-      fs.removeFeatureListener(listener)
-      CloseWithLogging(ds)
-      fs = null
-      ds = null
+    if (consumer != null) {
+      CloseWithLogging(consumer)
+      consumer = null
     }
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
-  class RecordFeatureListener extends FeatureListener {
-    override def changed(event: FeatureEvent): Unit = {
-      event match {
-        case e: KafkaFeatureChanged => queue.put(e.feature)
-        case _: KafkaFeatureRemoved => // no-op
-        case _: KafkaFeatureCleared => // no-op
-        case e                      => logger.error(s"Unknown event $e")
+  class RecordProcessor extends GeoMessageProcessor {
+
+    // synchronous queues for passing data to onTrigger and back
+    val ready = new SynchronousQueue[Seq[SimpleFeature]]()
+    val done = new SynchronousQueue[Boolean]()
+
+    private var lastSuccess = System.currentTimeMillis()
+
+    // note: this needs to complete before max.poll.interval.ms, which defaults to 5 minutes
+    override def consume(records: Seq[GeoMessage]): BatchResult = {
+      val features = records.collect { case GeoMessage.Change(f) => f }
+
+      // if we've read too many messages but haven't processed them (e.g. due to back-pressure),
+      // pause the kafka consumers so that we don't pile up results in memory
+      def continueOrPause: BatchResult = {
+        if (features.size < maxBatchSize * 10) { BatchResult.Continue } else {
+          logger.warn(s"Received ${features.size} records - pausing consumers while waiting for onTrigger")
+          BatchResult.Pause
+        }
+      }
+
+      // 1. offer features with `ready.offer` and wait for onTrigger to read them
+      // 2. wait for onTrigger to finish with `done.take`
+
+      if (features.size < minBatchSize && maxLatencyMillis.forall(_ > System.currentTimeMillis() - lastSuccess)) {
+        logger.debug(s"Received ${features.size} records but waiting for larger batch")
+        BatchResult.Continue // retry after checking for more messages
+      } else if (!ready.offer(features, 10, TimeUnit.SECONDS)) {
+        // onTrigger was not invoked, retry the batch later
+        logger.warn(s"Received ${features.size} records but onTrigger was not invoked")
+        continueOrPause
+      } else if (!done.take) {
+        // error in onTrigger, retry the batch later
+        continueOrPause
+      } else {
+        // commit offsets since we've successfully processed the messages
+        lastSuccess = System.currentTimeMillis()
+        BatchResult.Commit
       }
     }
   }
@@ -304,7 +339,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
       .description("The maximum number of records to write to a single FlowFile")
       .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-      .defaultValue("1000")
+      .defaultValue("10000")
       .build()
 
   val RecordMinBatchSize: PropertyDescriptor =
