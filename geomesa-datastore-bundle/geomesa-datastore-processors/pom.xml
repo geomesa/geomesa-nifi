@@ -61,6 +61,11 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-convert-all_2.11</artifactId>
         </dependency>
+        <!-- bring in postgis to make the PutGeoTools processor work with it out of the box -->
+        <dependency>
+            <groupId>org.geotools.jdbc</groupId>
+            <artifactId>gt-jdbc-postgis</artifactId>
+        </dependency>
         <dependency>
             <groupId>javax.media</groupId>
             <artifactId>jai_core</artifactId>
