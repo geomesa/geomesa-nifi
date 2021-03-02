@@ -13,13 +13,19 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.geotools.GeoToolsProcessor.listDataStores
 import org.geotools.data.{DataStoreFactorySpi, DataStoreFinder}
 
-abstract class GeoToolsProcessor extends DataStoreProcessor(Seq(GeoToolsProcessor.DataStoreName)) {
-
-  import GeoToolsProcessor.DataStoreName
+abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
 
   import scala.collection.JavaConverters._
+
+  private var dataStoreName: PropertyDescriptor = _
+
+  override protected def init(context: ProcessorInitializationContext): Unit = {
+    dataStoreName = GeoToolsProcessor.dataStoreName(listDataStores().map(_.getDisplayName).toSeq)
+    super.init(context)
+  }
 
   /**
     * Allow dynamic properties for data stores
@@ -38,9 +44,12 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq(GeoToolsProcesso
         .build()
   }
 
+  override protected def getConfigProperties: Seq[PropertyDescriptor] =
+    Seq(dataStoreName) ++ super.getConfigProperties
+
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
     val dynamic = context.getProperties.asScala.collect {
-      case (a, b) if a.getName != DataStoreName.getName => a.getName -> b
+      case (a, b) if a.getName != dataStoreName.getName => a.getName -> b
     }
     super.getDataStoreParams(context) ++ dynamic
   }
@@ -50,13 +59,13 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq(GeoToolsProcesso
     val result = new java.util.ArrayList[ValidationResult]()
     result.addAll(super.customValidate(validationContext))
 
-    val dsName = validationContext.getProperty(DataStoreName).getValue
+    val dsName = validationContext.getProperty(dataStoreName).getValue
 
     def invalid(name: String, reason: String): ValidationResult =
       new ValidationResult.Builder().input(name).valid(false).explanation(reason).build()
 
     if (dsName == null || dsName.isEmpty) {
-      result.add(invalid(DataStoreName.getName, "Must define available DataSore name"))
+      result.add(invalid(dataStoreName.getName, "Must define available DataSore name"))
     } else {
       logger.debug(s"Attempting to validate params for DataSore $dsName")
       val dsParams = GeoToolsProcessor.listDataStores().find(_.getDisplayName == dsName).toSeq.flatMap(_.getParametersInfo)
@@ -67,7 +76,7 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq(GeoToolsProcesso
 
       required.foreach { p =>
         val name = p.getName
-        if (names.contains(name)) {
+        if (!names.contains(name)) {
           result.add(invalid(name, s"Required property $name for DataSore $dsName is missing"))
         }
       }
@@ -86,12 +95,12 @@ object GeoToolsProcessor {
   private def sensitiveProps(): Iterator[String] =
     listDataStores().flatMap(_.getParametersInfo.collect { case i if i.isPassword => i.getName })
 
-  val DataStoreName: PropertyDescriptor =
+  def dataStoreName(values: Seq[String]): PropertyDescriptor =
     new PropertyDescriptor.Builder()
         .name("DataStoreName")
         .required(true)
-        .description("Name of the GeoTools data store to use")
-        .allowableValues(listDataStores().map(_.getDisplayName).toArray: _*)
+        .description("The GeoTools data store type to use")
+        .allowableValues(values.sorted: _*)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build()
 }
