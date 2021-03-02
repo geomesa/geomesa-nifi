@@ -742,7 +742,7 @@
                             <validHeader>build/copyright/ccri.txt</validHeader>
                         </validHeaders>
                         <properties>
-                            <year>2020</year>
+                            <year>2021</year>
                             <owner>Commonwealth Computer Research, Inc.</owner>
                         </properties>
                         <headerDefinitions>
