@@ -19,10 +19,10 @@ import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.schema.inference.SchemaInferenceUtil
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.AvroIngestProcessor.LenientMatch
-import org.geomesa.nifi.datastore.processor.records.{Properties, RecordUpdateProcessor}
-import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, ConverterIngestProcessor, DataStoreIngestProcessor, FeatureTypeProcessor, Relationships}
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureTypeProcessor}
+import org.geomesa.nifi.datastore.processor.records.Properties
+import org.geomesa.nifi.datastore.processor.{CompatibilityMode, RecordUpdateProcessor, Relationships}
 import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
@@ -59,7 +59,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(ConverterIngestProcessor.ConverterNameKey, "example-csv")
+      runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 1)
@@ -88,10 +88,10 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
-      runner.setProperty(ConverterIngestProcessor.ConvertFlowFileAttributes, "true")
+      runner.setProperty(ConvertInputProcessor.Properties.ConvertFlowFileAttributes, "true")
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(FeatureTypeProcessor.Attributes.SftSpecAttribute, "example")
-      attributes.put(FeatureTypeProcessor.Attributes.ConverterAttribute, "example-csv-attributes")
+      attributes.put(ConvertInputProcessor.Attributes.ConverterAttribute, "example-csv-attributes")
       attributes.put("my.flowfile.attribute", "foobar")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"), attributes)
       runner.run()
@@ -124,7 +124,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(FeatureTypeProcessor.Attributes.SftSpecAttribute, "example")
-      attributes.put(FeatureTypeProcessor.Attributes.ConverterAttribute, "example-csv")
+      attributes.put(ConvertInputProcessor.Attributes.ConverterAttribute, "example-csv")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"), attributes)
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 1)
@@ -154,7 +154,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(ConverterIngestProcessor.ConverterNameKey, "example-csv")
+      runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(FeatureTypeProcessor.Attributes.SftNameAttribute, "renamed")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"), attributes)
@@ -185,7 +185,8 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
-      runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
+      runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
+      runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Exact.toString)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
 
       runner.run()
@@ -237,8 +238,8 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     try {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
-      runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(AvroIngestProcessor.AvroMatchMode, LenientMatch)
+      runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
+      runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Existing.toString)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
 
       runner.run()
@@ -434,7 +435,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
-      runner.setProperty(ConverterIngestProcessor.ConverterNameKey, "example-csv")
+      runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 1)

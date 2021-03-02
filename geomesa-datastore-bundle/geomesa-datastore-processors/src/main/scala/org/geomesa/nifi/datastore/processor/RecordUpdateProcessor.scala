@@ -6,11 +6,11 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.records
+package org.geomesa.nifi.datastore.processor
 
 import java.io.InputStream
 
-import org.apache.nifi.annotation.behavior.{WritesAttribute, WritesAttributes}
+import org.apache.nifi.annotation.behavior.{SupportsBatching, WritesAttribute, WritesAttributes}
 import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled, OnShutdown, OnStopped}
 import org.apache.nifi.components.PropertyDescriptor
@@ -20,9 +20,9 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processor.{ProcessContext, ProcessSession}
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
-import org.geomesa.nifi.datastore.processor._
-import org.geomesa.nifi.datastore.processor.records.RecordUpdateProcessor.Properties.LookupCol
-import org.geomesa.nifi.datastore.processor.records.RecordUpdateProcessor.{AttributeFilter, FidFilter}
+import org.geomesa.nifi.datastore.processor.RecordUpdateProcessor.{AttributeFilter, FidFilter}
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
 import org.geotools.data.{DataStore, DataUtilities, Transaction}
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.filter.filterToString
@@ -39,6 +39,7 @@ import scala.util.control.NonFatal
  * 'modify' mode (which require the entire feature to be input), this processor only requires specifying
  * the fields that will be updated
  */
+@SupportsBatching
 @WritesAttributes(
   Array(
     new WritesAttribute(attribute = "geomesa.ingest.successes", description = "Number of features updated successfully"),
@@ -49,8 +50,7 @@ import scala.util.control.NonFatal
 trait RecordUpdateProcessor extends DataStoreProcessor {
 
   import RecordUpdateProcessor.Properties.LookupCol
-  import Relationships.{FailureRelationship, SuccessRelationship}
-  import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.Properties.NifiBatchSize
+  import org.geomesa.nifi.datastore.processor.mixins.Properties.NifiBatchSize
   import org.geomesa.nifi.datastore.processor.records.Properties.RecordReader
   import org.locationtech.geomesa.security.SecureSimpleFeature
 
@@ -60,6 +60,12 @@ trait RecordUpdateProcessor extends DataStoreProcessor {
   private var ds: DataStore = _
   private var factory: RecordReaderFactory = _
   private var options: OptionExtractor = _
+
+  override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
+    super.getPrimaryProperties ++ RecordUpdateProcessor.Props
+
+  override protected def getConfigProperties: Seq[PropertyDescriptor] =
+    super.getConfigProperties ++ Seq(NifiBatchSize)
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
@@ -165,15 +171,16 @@ trait RecordUpdateProcessor extends DataStoreProcessor {
             }
           })
 
-          session.putAttribute(file, Attributes.IngestSuccessCount, success.toString)
-          session.putAttribute(file, Attributes.IngestFailureCount, failure.toString)
-          session.transfer(file, SuccessRelationship)
+          var output = file
+          output = session.putAttribute(output, Attributes.IngestSuccessCount, success.toString)
+          output = session.putAttribute(output, Attributes.IngestFailureCount, failure.toString)
+          session.transfer(output, Relationships.SuccessRelationship)
 
           logger.debug(s"Ingested file $fullFlowFileName with $success successes and $failure failures")
         } catch {
           case NonFatal(e) =>
             logger.error(s"Error processing file $fullFlowFileName:", e)
-            session.transfer(file, FailureRelationship)
+            session.transfer(file, Relationships.FailureRelationship)
         }
       }
     }
@@ -191,13 +198,11 @@ trait RecordUpdateProcessor extends DataStoreProcessor {
     }
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
-
-  override protected def getProcessorProperties: Seq[PropertyDescriptor] =
-    super.getProcessorProperties ++ RecordUpdateProcessor.Props
 }
 
 object RecordUpdateProcessor {
 
+  import RecordUpdateProcessor.Properties.LookupCol
   import org.geomesa.nifi.datastore.processor.records.Properties._
   import org.locationtech.geomesa.filter.FilterHelper.ff
 

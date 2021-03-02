@@ -9,7 +9,7 @@
 package org.geomesa.nifi.processors.kafka
 
 import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor
+import org.geomesa.nifi.datastore.processor.RecordIngestProcessor
 
 @Tags(Array("geomesa", "geo", "ingest", "records", "kafka", "stream", "streaming", "geotools"))
 class PutGeoMesaKafkaRecord extends KafkaProcessor with RecordIngestProcessor

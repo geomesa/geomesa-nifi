@@ -26,8 +26,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.RecordSetWriterFactory
 import org.apache.nifi.serialization.record.RecordSchema
-import org.geomesa.nifi.datastore.processor.DataStoreProcessor
-import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
@@ -55,6 +54,7 @@ import scala.util.{Failure, Success, Try}
 class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
   import GetGeoMesaKafkaRecord._
+  import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
 
   import scala.collection.JavaConverters._
 

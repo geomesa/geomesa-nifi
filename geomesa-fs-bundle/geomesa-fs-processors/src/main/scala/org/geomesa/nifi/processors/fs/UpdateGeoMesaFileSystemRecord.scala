@@ -9,7 +9,7 @@
 package org.geomesa.nifi.processors.fs
 
 import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.records.RecordUpdateProcessor
+import org.geomesa.nifi.datastore.processor.RecordUpdateProcessor
 
 @Tags(Array("geomesa", "geo", "update", "records", "hdfs", "s3", "geotools"))
 class UpdateGeoMesaFileSystemRecord extends FileSystemProcessor with RecordUpdateProcessor

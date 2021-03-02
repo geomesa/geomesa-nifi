@@ -9,7 +9,7 @@
 package org.geomesa.nifi.datastore.processor.geotools
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor
+import org.geomesa.nifi.datastore.processor.RecordIngestProcessor
 
 @Tags(Array("geomesa", "geo", "ingest", "records", "geotools"))
 @CapabilityDescription("Ingest records into a GeoTools data store")

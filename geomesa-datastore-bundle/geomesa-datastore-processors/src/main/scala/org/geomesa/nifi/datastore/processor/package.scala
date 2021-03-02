@@ -20,7 +20,7 @@ package object processor {
    * @param f flow file
    * @return
    */
-  def fullName(f: FlowFile): String = f.getAttribute("path") + f.getAttribute("filename")
+  def fullName(f: FlowFile): String = s"${f.getAttribute("path")}${f.getAttribute("filename")}"
 
   /**
    * Create a validation result to mark a value invalid
@@ -51,4 +51,6 @@ package object processor {
     val IngestSuccessCount = "geomesa.ingest.successes"
     val IngestFailureCount = "geomesa.ingest.failures"
   }
+
+  case class IngestResult(success: Long, failure: Long)
 }

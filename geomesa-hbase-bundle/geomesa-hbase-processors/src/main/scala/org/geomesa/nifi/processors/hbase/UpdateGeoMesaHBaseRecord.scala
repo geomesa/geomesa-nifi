@@ -9,7 +9,7 @@
 package org.geomesa.nifi.processors.hbase
 
 import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.records.RecordUpdateProcessor
+import org.geomesa.nifi.datastore.processor.RecordUpdateProcessor
 
 @Tags(Array("geomesa", "geo", "update", "records", "hbase", "geotools"))
 class UpdateGeoMesaHBaseRecord extends HBaseProcessor with RecordUpdateProcessor

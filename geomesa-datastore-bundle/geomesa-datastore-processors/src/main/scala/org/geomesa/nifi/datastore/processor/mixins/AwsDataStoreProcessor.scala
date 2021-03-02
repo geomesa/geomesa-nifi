@@ -6,7 +6,7 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor
+package org.geomesa.nifi.datastore.processor.mixins
 
 import java.io.{ByteArrayInputStream, StringWriter}
 import java.nio.charset.StandardCharsets
