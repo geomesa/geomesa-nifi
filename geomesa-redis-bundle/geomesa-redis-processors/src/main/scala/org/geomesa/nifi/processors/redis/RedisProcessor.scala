@@ -8,7 +8,7 @@
 
 package org.geomesa.nifi.processors.redis
 
-import org.geomesa.nifi.datastore.processor.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 

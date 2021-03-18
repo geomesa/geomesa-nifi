@@ -6,7 +6,7 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.records
+package org.geomesa.nifi.datastore.processor
 
 import java.io.InputStream
 
@@ -17,11 +17,12 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
-import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
+import org.geomesa.nifi.datastore.processor.RecordIngestProcessor.CountHolder
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.records.Properties._
-import org.geomesa.nifi.datastore.processor.records.RecordIngestProcessor.CountHolder
-import org.geomesa.nifi.datastore.processor.{CompatibilityMode, DataStoreIngestProcessor}
+import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
 import org.geotools.data._
 import org.locationtech.geomesa.utils.io.WithClose
 
@@ -34,21 +35,16 @@ import scala.util.control.NonFatal
 @CapabilityDescription("Ingest records into GeoMesa")
 trait RecordIngestProcessor extends DataStoreIngestProcessor {
 
-  import DataStoreIngestProcessor.Properties.SchemaCompatibilityMode
-
-  override protected def getProcessorProperties: Seq[PropertyDescriptor] =
-    super.getProcessorProperties ++ RecordIngestProcessor.Props
-
-  override protected def getConfigProperties: Seq[PropertyDescriptor] =
-    super.getConfigProperties ++ Seq(SchemaCompatibilityMode)
+  override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
+    super.getPrimaryProperties ++ RecordIngestProcessor.Props
 
   override protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
-      writers: FeatureWriters): IngestProcessor = {
+      writers: FeatureWriters,
+      mode: CompatibilityMode): IngestProcessor = {
     val factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
     val options = OptionExtractor(context, GeometryEncoding.Wkt)
-    val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
     new RecordIngest(dataStore, writers, factory, options, mode)
   }
 
@@ -70,11 +66,11 @@ trait RecordIngestProcessor extends DataStoreIngestProcessor {
 
     import scala.collection.JavaConverters._
 
-    override protected def ingest(
+    override def ingest(
         context: ProcessContext,
         session: ProcessSession,
         file: FlowFile,
-        fileName: String): (Long, Long) = {
+        fileName: String): IngestResult = {
 
       val opts = options(context, file.getAttributes)
       val counts = new CountHolder()
@@ -126,7 +122,7 @@ trait RecordIngestProcessor extends DataStoreIngestProcessor {
         }
       })
 
-      (counts.success, counts.failure)
+      IngestResult(counts.success, counts.failure)
     }
   }
 }

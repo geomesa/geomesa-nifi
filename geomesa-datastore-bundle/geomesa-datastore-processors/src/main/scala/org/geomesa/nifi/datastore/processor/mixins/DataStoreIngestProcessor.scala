@@ -8,6 +8,7 @@
 
 
 package org.geomesa.nifi.datastore.processor
+package mixins
 
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
@@ -16,7 +17,7 @@ import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
-import org.apache.nifi.annotation.behavior.{WritesAttribute, WritesAttributes}
+import org.apache.nifi.annotation.behavior.{SupportsBatching, WritesAttribute, WritesAttributes}
 import org.apache.nifi.annotation.lifecycle._
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -25,8 +26,6 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
-import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.FeatureWriters.{AppendWriter, ModifyWriter, SimpleWriter}
-import org.geomesa.nifi.datastore.processor.DataStoreIngestProcessor.{FeatureWriters, ModifyWriters, PooledWriters, SingletonWriters}
 import org.geotools.data._
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.util.factory.Hints
@@ -49,18 +48,17 @@ import scala.util.{Failure, Success, Try}
     new WritesAttribute(attribute = "geomesa.ingest.failures", description = "Number of features with errors")
   )
 )
+@SupportsBatching
 trait DataStoreIngestProcessor extends DataStoreProcessor {
 
   import DataStoreIngestProcessor.Properties._
-  import Relationships.{FailureRelationship, SuccessRelationship}
+  import DataStoreIngestProcessor.{FeatureWriters, ModifyWriters, PooledWriters, SingletonWriters}
+  import Properties.NifiBatchSize
 
   import scala.collection.JavaConverters._
 
   @volatile
   private var ingest: IngestProcessor = _
-
-  @OnAdded // reload on add to pick up any sft/converter classpath changes
-  def reloadDescriptors(): Unit = loadDescriptors()
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
@@ -69,6 +67,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     val dataStore = loadDataStore(context)
 
     try {
+      val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
       val appender = if (context.getProperty(FeatureWriterCaching).getValue.toBoolean) {
         val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
         new PooledWriters(dataStore, FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS).toLong)
@@ -85,7 +84,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
         }
 
       try {
-        ingest = createIngest(context, dataStore, writers)
+        ingest = createIngest(context, dataStore, writers, mode)
       } catch {
         case NonFatal(e) => writers.close(); throw e
       }
@@ -100,15 +99,21 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     val flowFiles = session.get(context.getProperty(NifiBatchSize).evaluateAttributeExpressions().asInteger())
     logger.debug(s"Processing ${flowFiles.size()} files in batch")
     if (flowFiles != null && flowFiles.size > 0) {
-      flowFiles.asScala.foreach { f =>
+      flowFiles.asScala.foreach { file =>
+        val name = fullName(file)
         try {
-          logger.debug(s"Processing file ${fullName(f)}")
-          ingest.ingest(context, session, f)
-          session.transfer(f, SuccessRelationship)
+          logger.debug(s"Processing ${ingest.getClass.getName} with file $name")
+          val result = ingest.ingest(context, session, file, name)
+          var output = file
+          output = session.putAttribute(output, Attributes.IngestSuccessCount, result.success.toString)
+          output = session.putAttribute(output, Attributes.IngestFailureCount, result.failure.toString)
+          logger.debug(
+            s"Ingested file ${fullName(output)} with ${result.success} successes and ${result.failure} failures")
+          session.transfer(output, Relationships.SuccessRelationship)
         } catch {
           case NonFatal(e) =>
-            logger.error(s"Error processing file ${fullName(f)}:", e)
-            session.transfer(f, FailureRelationship)
+            logger.error(s"Error processing file ${fullName(file)}:", e)
+            session.transfer(file, Relationships.FailureRelationship)
         }
       }
     }
@@ -127,17 +132,26 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
+  override protected def getSecondaryProperties: Seq[PropertyDescriptor] =
+    super.getSecondaryProperties ++ Seq(SchemaCompatibilityMode, WriteMode, ModifyAttribute)
+
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
-    super.getConfigProperties ++ Seq(WriteMode, ModifyAttribute, FeatureWriterCaching, FeatureWriterCacheTimeout)
+    super.getConfigProperties ++ Seq(FeatureWriterCaching, FeatureWriterCacheTimeout, NifiBatchSize)
 
   /**
-   * Provides the processor a chance to configure a feature type before it's created in the data store
+   * Log an error from writing a given feature
    *
-   * @param sft simple feature type
+   * @param sf feature
+   * @param e error
    */
-  protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = sft
+  protected def logError(sf: SimpleFeature, e: Throwable): Unit =
+    logger.error(s"Error writing feature to store: '${DataUtilities.encodeFeature(sf)}'", e)
 
-  protected def createIngest(context: ProcessContext, dataStore: DataStore, writers: FeatureWriters): IngestProcessor
+  protected def createIngest(
+      context: ProcessContext,
+      dataStore: DataStore,
+      writers: FeatureWriters,
+      mode: CompatibilityMode): IngestProcessor
 
   /**
    * Abstraction over ingest methods
@@ -154,34 +168,16 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
      * @param context context
      * @param session session
      * @param file flow file
-     */
-    def ingest(context: ProcessContext, session: ProcessSession, file: FlowFile): Unit = {
-      val fullFlowFileName = fullName(file)
-      logger.debug(s"Running ${getClass.getName} on file $fullFlowFileName")
-
-      val (success, failure) = ingest(context, session, file, fullFlowFileName)
-
-      session.putAttribute(file, Attributes.IngestSuccessCount, success.toString)
-      session.putAttribute(file, Attributes.IngestFailureCount, failure.toString)
-      logger.debug(s"Ingested file $fullFlowFileName with $success successes and $failure failures")
-    }
-
-    override def close(): Unit = store.dispose()
-
-    /**
-     * Ingest a flow file
-     *
-     * @param context context
-     * @param session session
-     * @param file flow file
      * @param fileName file name
      * @return (success count, failure count)
      */
-    protected def ingest(
+    def ingest(
         context: ProcessContext,
         session: ProcessSession,
         file: FlowFile,
-        fileName: String): (Long, Long)
+        fileName: String): IngestResult
+
+    override def close(): Unit = store.dispose()
 
     /**
      * Check and update the schema in the data store, as needed
@@ -267,6 +263,8 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
 }
 
 object DataStoreIngestProcessor {
+
+  import FeatureWriters.{AppendWriter, ModifyWriter, SimpleWriter}
 
   import scala.collection.JavaConverters._
 
@@ -439,16 +437,6 @@ object DataStoreIngestProcessor {
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
-    val NifiBatchSize: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("BatchSize")
-          .required(false)
-          .description("Number of FlowFiles to execute in a single batch")
-          .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .defaultValue("5")
-          .build()
-
     val FeatureWriterCaching: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("FeatureWriterCaching")
@@ -477,7 +465,7 @@ object DataStoreIngestProcessor {
           .description(
             s"Defines how schema changes will be handled. '${CompatibilityMode.Existing}' will use " +
                 s"the existing schema and drop any additional fields. '${CompatibilityMode.Update}' will " +
-                s"update the existing schema to match the input schema. '${CompatibilityMode.Exact}' requires" +
+                s"update the existing schema to match the input schema. '${CompatibilityMode.Exact}' requires " +
                 "the input schema to match the existing schema.")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .allowableValues(CompatibilityMode.Existing.toString, CompatibilityMode.Update.toString, CompatibilityMode.Exact.toString)

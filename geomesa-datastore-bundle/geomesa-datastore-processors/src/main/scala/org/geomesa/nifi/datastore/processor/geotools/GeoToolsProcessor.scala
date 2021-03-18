@@ -12,8 +12,7 @@ import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, Valida
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.DataStoreProcessor
-import org.geomesa.nifi.datastore.processor.geotools.GeoToolsProcessor.listDataStores
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geotools.data.{DataStoreFactorySpi, DataStoreFinder}
 
 abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
@@ -22,9 +21,9 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
 
   private var dataStoreName: PropertyDescriptor = _
 
-  override protected def init(context: ProcessorInitializationContext): Unit = {
-    dataStoreName = GeoToolsProcessor.dataStoreName(listDataStores().map(_.getDisplayName).toSeq)
-    super.init(context)
+  override def reloadDescriptors(): Unit = {
+    dataStoreName = GeoToolsProcessor.dataStoreName(GeoToolsProcessor.listDataStores().map(_.getDisplayName).toSeq)
+    super.reloadDescriptors()
   }
 
   /**
@@ -36,10 +35,10 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
   override def getSupportedDynamicPropertyDescriptor(propertyDescriptorName: String): PropertyDescriptor = {
     new PropertyDescriptor.Builder()
         .name(propertyDescriptorName)
-        .description("Sets the value on the DataStore")
+        .description("Use this value in the DataStore lookup")
         .sensitive(GeoToolsProcessor.sensitiveProps().contains(propertyDescriptorName))
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .dynamic(true)
         .build()
   }
@@ -48,10 +47,11 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
     Seq(dataStoreName) ++ super.getConfigProperties
 
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
-    val dynamic = context.getProperties.asScala.collect {
-      case (a, b) if a.getName != dataStoreName.getName => a.getName -> b
+    val params = context.getProperties.asScala.collect {
+      case (a, _) if a.getName != dataStoreName.getName => a.getName ->
+          context.getProperty(a).evaluateAttributeExpressions().getValue
     }
-    super.getDataStoreParams(context) ++ dynamic
+    params.toMap
   }
 
   // custom validate properties based on the specific datastore

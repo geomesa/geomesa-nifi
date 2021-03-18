@@ -9,7 +9,7 @@
 package org.geomesa.nifi.processors.kafka
 
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.datastore.processor.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams.{ProducerConfig, TopicPartitions, TopicReplication}
 import org.locationtech.geomesa.kafka.data.{KafkaDataStoreFactory, KafkaDataStoreParams}

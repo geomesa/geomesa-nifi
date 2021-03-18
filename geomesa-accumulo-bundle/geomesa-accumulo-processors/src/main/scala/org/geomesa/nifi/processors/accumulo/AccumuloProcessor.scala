@@ -10,7 +10,7 @@ package org.geomesa.nifi.processors.accumulo
 
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.datastore.processor.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreConfigService
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams}

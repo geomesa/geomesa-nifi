@@ -12,7 +12,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.{AwsDataStoreProcessor, DataStoreIngestProcessor, DataStoreProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{AwsDataStoreProcessor, DataStoreIngestProcessor, DataStoreProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.fs.tools.utils.PartitionSchemeArgResolver
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam

@@ -8,8 +8,8 @@
 
 package org.geomesa.nifi.processors.hbase
 
+import org.geomesa.nifi.datastore.processor.mixins.{AwsDataStoreProcessor, DataStoreProcessor}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.geomesa.nifi.datastore.processor.{AwsDataStoreProcessor, DataStoreProcessor}
 import org.locationtech.geomesa.hbase.data.{HBaseDataStoreFactory, HBaseDataStoreParams}
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 

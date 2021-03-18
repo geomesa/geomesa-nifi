@@ -11,7 +11,7 @@ package org.geomesa.nifi.datastore.processor
 import java.io.{InputStream, OutputStream}
 
 import org.apache.nifi.annotation.behavior.WritesAttribute
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.annotation.documentation.{CapabilityDescription, DeprecationNotice, Tags}
 import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
@@ -30,6 +30,8 @@ import scala.collection.JavaConverters._
 @Tags(Array("OGC", "geo", "convert", "converter", "simple feature", "geotools", "geomesa"))
 @CapabilityDescription("Convert incoming files into OGC SimpleFeature avro data files using GeoMesa Converters")
 @WritesAttribute(attribute = "mime.type", description = "the mime type of the outgoing format")
+@DeprecationNotice(alternatives = Array(classOf[ConvertToGeoFile]), reason = "Replaced with fully featured converter processor")
+@deprecated
 class ConvertToGeoAvro extends AbstractProcessor {
 
   import ConvertToGeoAvro._
