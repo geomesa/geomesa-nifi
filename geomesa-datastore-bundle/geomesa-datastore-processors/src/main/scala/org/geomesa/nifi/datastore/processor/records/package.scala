@@ -23,6 +23,19 @@ import org.locationtech.jts.geom.Geometry
 
 package object records {
 
+  object Expressions {
+
+    val IdCol    = new RichExpression("geomesa.id.col")
+    val GeomCols = new RichExpression("geomesa.geometry.cols")
+    val JsonCols = new RichExpression("geomesa.json.cols")
+    val DtgCol   = new RichExpression("geomesa.default.dtg.col")
+    val VisCol   = new RichExpression("geomesa.visibilities.col")
+
+    implicit class RichExpression(val attribute: String) extends AnyVal {
+      def toExpression: String = "${" + attribute + "}"
+    }
+  }
+
   object Properties {
 
     val RecordReader: PropertyDescriptor =
@@ -51,6 +64,7 @@ package object records {
         .displayName("Feature ID column")
         .description("Column that will be used as the feature ID")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue(Expressions.IdCol.toExpression)
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
@@ -64,6 +78,7 @@ package object records {
           "Column(s) that will be deserialized as geometries and their type, as a SimpleFeatureType " +
             "specification string. A '*' can be used to indicate the default geometry column")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue(Expressions.GeomCols.toExpression)
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
@@ -97,6 +112,7 @@ package object records {
           "Column(s) that contain valid JSON documents, comma-separated. " +
             "The columns must be STRING type")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue(Expressions.JsonCols.toExpression)
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
@@ -108,6 +124,7 @@ package object records {
         .displayName("Default date column")
         .description("Column to use as the default date attribute")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue(Expressions.DtgCol.toExpression)
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
@@ -119,6 +136,7 @@ package object records {
         .displayName("Visibilities column")
         .description("Column to use for the feature visibilities")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue(Expressions.VisCol.toExpression)
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)
@@ -177,7 +195,7 @@ package object records {
   }
 
   case class SimpleFeatureConverterOptions(
-      fidField: Option[String] = Some("id"),
+      fidField: Option[String] = Some(SimpleFeatureRecordConverter.DefaultIdCol),
       encoding: GeometryEncoding.GeometryEncoding = GeometryEncoding.Wkt,
       visField: Option[String] = None,
       userDataField: Option[String] = None
@@ -323,7 +341,10 @@ package object records {
     private abstract class DynamicEvaluation[T](prop: PropertyDescriptor) extends PropertyExtractor[T] {
       override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T = {
         val p = context.getProperty(prop)
-        wrap(if (p.isSet) { p.evaluateAttributeExpressions(variables).getValue } else { null })
+        val value = if (!p.isSet) { null } else {
+          Option(p.evaluateAttributeExpressions(variables).getValue).filter(_.nonEmpty).orNull
+        }
+        wrap(value)
       }
       override def static(context: PropertyContext): PropertyExtractor[T] = {
         val p = context.getProperty(prop)

@@ -12,6 +12,7 @@ import java.io.Closeable
 import java.util.concurrent.{SynchronousQueue, TimeUnit}
 import java.util.{Collections, Properties}
 
+import org.apache.commons.codec.digest.MurmurHash3
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior.{InputRequirement, TriggerWhenEmpty, WritesAttribute, WritesAttributes}
@@ -28,15 +29,20 @@ import org.apache.nifi.serialization.RecordSetWriterFactory
 import org.apache.nifi.serialization.record.RecordSchema
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
+import org.geomesa.nifi.datastore.processor.records.{Expressions, GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geotools.data._
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
 import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreParams}
 import org.locationtech.geomesa.kafka.utils.{GeoMessage, GeoMessageProcessor}
+import org.locationtech.geomesa.tools.`export`.formats.DelimitedExporter
+import org.locationtech.geomesa.tools.`export`.formats.FeatureExporter.ByteExportStream
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeDescriptor
+import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
-import org.opengis.feature.simple.SimpleFeature
+import org.opengis.feature.`type`.GeometryDescriptor
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -55,6 +61,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
   import GetGeoMesaKafkaRecord._
   import org.geomesa.nifi.datastore.processor.Relationships.SuccessRelationship
+  import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
+  import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 
   import scala.collection.JavaConverters._
 
@@ -63,6 +71,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
   private var converter: SimpleFeatureRecordConverter = _
   private var schema: RecordSchema = _
+  private var defaultAttributes: java.util.Map[String, String] = _
+  private var idGenerator: Option[IdGenerator] = None
   private var maxBatchSize = 10000
   private var minBatchSize = 1
   private var maxLatencyMillis: Option[Long] = None
@@ -138,8 +148,30 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       require(sft != null,
         s"Feature type '$typeName' does not exist in the store. Available types: ${ds.getTypeNames.mkString(", ")}")
       val opts = SimpleFeatureConverterOptions(encoding = encoding, visField = vis, userDataField = userData)
+
+      // gather default variables to reduce configuration on record set writer
+      defaultAttributes = {
+        val attributes = new java.util.HashMap[String, String]()
+        attributes.put(Expressions.IdCol.attribute, SimpleFeatureRecordConverter.DefaultIdCol)
+        val geoms = sft.getAttributeDescriptors.asScala.collect { case d: GeometryDescriptor => encodeDescriptor(sft, d) }
+        if (geoms.nonEmpty) {
+          attributes.put(Expressions.GeomCols.attribute, geoms.mkString(","))
+        }
+        val json = sft.getAttributeDescriptors.asScala.collect { case d if d.isJson => d.getLocalName }
+        if (json.nonEmpty) {
+          attributes.put(Expressions.JsonCols.attribute, json.mkString(","))
+        }
+        sft.getDtgField.foreach(attributes.put(Expressions.DtgCol.attribute, _))
+        vis.foreach(attributes.put(Expressions.VisCol.attribute, _))
+        Collections.unmodifiableMap(attributes)
+      }
+      if (java.lang.Boolean.parseBoolean(context.getProperty(ReplaceFeatureIds).getValue)) {
+        idGenerator = Some(new IdGenerator(sft))
+      } else {
+        idGenerator = None
+      }
       converter = SimpleFeatureRecordConverter(sft, opts)
-      schema = factory.getSchema(Collections.emptyMap[String, String], converter.schema)
+      schema = factory.getSchema(Collections.emptyMap(), converter.schema)
       consumer = ds.createConsumer(typeName, groupId, processor)
     } finally {
       CloseWithLogging(ds)
@@ -158,10 +190,14 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
         try {
           flowFile = session.create()
           val result = WithClose(session.write(flowFile)) { out =>
-            WithClose(factory.createWriter(logger, schema, out, flowFile)) { writer =>
+            WithClose(factory.createWriter(logger, schema, out, defaultAttributes)) { writer =>
               writer.beginRecordSet()
               group.foreach { feature =>
-                writer.write(converter.convert(feature))
+                val record = converter.convert(feature)
+                idGenerator.foreach { g =>
+                  record.setValue(SimpleFeatureRecordConverter.DefaultIdCol, g.id(feature))
+                }
+                writer.write(record)
               }
               val result = writer.finishRecordSet()
               WriteResult(result.getRecordCount, writer.getMimeType, result.getAttributes)
@@ -312,6 +348,16 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
       .required(true)
       .build
 
+  val ReplaceFeatureIds: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+        .name("replace-fids")
+        .displayName("Replace Feature IDs")
+        .description("Replace the Kafka feature ID with a new ID based on a hash of the record fields")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues("false", "true")
+        .defaultValue("true")
+        .build
+
   val IncludeVisibilities: PropertyDescriptor =
     new PropertyDescriptor.Builder()
         .name("include-visibilities")
@@ -319,7 +365,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .description("Include a column with visibility expressions for each row")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("false", "true")
-        .defaultValue("false")
+        .defaultValue("true")
         .build
 
   val IncludeUserData: PropertyDescriptor =
@@ -379,6 +425,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     TypeName,
     GroupId,
     RecordWriter,
+    ReplaceFeatureIds,
     GeometrySerializationDefaultWkt,
     IncludeVisibilities,
     IncludeUserData,
@@ -390,6 +437,31 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     createPropertyDescriptor(KafkaDataStoreParams.ConsumerCount),
     createPropertyDescriptor(KafkaDataStoreParams.ConsumerConfig)
   )
+
+  /**
+   * Id generator - not thread safe
+   *
+   * @param sft simple feature type
+   */
+  class IdGenerator(sft: SimpleFeatureType) {
+
+    private val stream = new ByteExportStream()
+
+    // assertion - we don't need to close this as it just closes the underlying stream, which is a byte array
+    private val exporter = DelimitedExporter.csv(stream, withHeader = false, includeIds = true)
+    exporter.start(sft)
+
+    private val buf = Array.ofDim[Byte](16)
+
+    def id(feature: SimpleFeature): String = {
+      stream.os.reset()
+      exporter.export(Iterator.single(feature))
+      val Array(lo, hi) = MurmurHash3.hash128(stream.toByteArray)
+      ByteArrays.writeLong(lo, buf)
+      ByteArrays.writeLong(hi, buf, 8)
+      ByteArrays.toHex(buf, 0, 16)
+    }
+  }
 
   case class WriteResult(count: Int, mimeType: String, attributes: java.util.Map[String, String])
 }

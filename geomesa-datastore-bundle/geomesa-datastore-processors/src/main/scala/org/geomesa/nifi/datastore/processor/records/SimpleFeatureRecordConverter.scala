@@ -131,6 +131,8 @@ object SimpleFeatureRecordConverter extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
+  val DefaultIdCol = "id"
+
   private val gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").create()
 
   private val cache = Caffeine.newBuilder().build(

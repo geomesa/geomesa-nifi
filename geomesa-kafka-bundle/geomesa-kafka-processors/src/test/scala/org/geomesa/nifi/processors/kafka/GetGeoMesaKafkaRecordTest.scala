@@ -25,7 +25,7 @@ import org.locationtech.geomesa.kafka.EmbeddedKafka
 import org.locationtech.geomesa.security.SecureSimpleFeature
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.opengis.feature.simple.SimpleFeatureType
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -37,10 +37,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
 
   var kafka: EmbeddedKafka = _
 
-  step {
-    kafka = new EmbeddedKafka()
-  }
-
   lazy val dsParams = Map(
     "kafka.brokers"    -> kafka.brokers,
     "kafka.zookeepers" -> kafka.zookeepers
@@ -51,7 +47,7 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
   val sft: SimpleFeatureType = SimpleFeatureTypes.createType("example", sftSpec)
 
   val features: Seq[ScalaSimpleFeature] = Seq.tabulate(5) { i =>
-    ScalaSimpleFeature.create(
+    val sf = ScalaSimpleFeature.create(
       sft,
       s"$i", // fid
       s"string$i", // string
@@ -67,6 +63,9 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       Map(s"$i" -> i, s"2$i" -> (20 + i)).asJava, // map
       s"$i$i".getBytes(StandardCharsets.UTF_8) // byte array - csv outputs it with `new String(value)`
     )
+    sf.getUserData.put("foo", Int.box(i % 3))
+    sf.getUserData.put("bar", sf.getAttribute("date"))
+    sf
   }
 
   val sftWithVis = SimpleFeatureTypes.createType("get-records-vis", "name:String,dtg:Date,*geom:Point:srid=4326")
@@ -81,19 +80,23 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
     sf
   }
 
+  step {
+    kafka = new EmbeddedKafka()
+    WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
+      ds must not(beNull)
+      ds.createSchema(sft)
+      WithClose(ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
+        features.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
+      }
+      ds.createSchema(sftWithVis)
+      WithClose(ds.getFeatureWriterAppend(sftWithVis.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
+        featuresWithVis.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
+      }
+    }
+  }
+
   "GetGeoMesaKafkaRecord" should {
     "get records in csv format" in {
-      val sft =
-        SimpleFeatureTypes.createType("get-records", sftSpec)
-
-      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
-        ds must not(beNull)
-        ds.createSchema(sft)
-        WithClose(ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
-          features.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
-        }
-      }
-
       val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
       val result = try {
         val service = new CSVRecordSetWriter()
@@ -101,10 +104,12 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
         runner.enableControllerService(service)
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
-        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
         runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
         runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
         runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.ReplaceFeatureIds, "false")
+        runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "false")
         dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
         runner.run()
         val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
@@ -125,14 +130,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
     }
 
     "get records with visibilities" in {
-      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
-        ds must not(beNull)
-        ds.createSchema(sftWithVis)
-        WithClose(ds.getFeatureWriterAppend(sftWithVis.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
-          featuresWithVis.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
-        }
-      }
-
       val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
       val result = try {
         val service = new CSVRecordSetWriter()
@@ -140,10 +137,11 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
         runner.enableControllerService(service)
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
-        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
         runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
         runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
         runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sftWithVis.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.ReplaceFeatureIds, "false")
         runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "true")
         dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
         runner.run()
@@ -165,23 +163,6 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
     }
 
     "get records with user data" in {
-      val sft = SimpleFeatureTypes.createType("get-records-user-data", "name:String,dtg:Date,*geom:Point:srid=4326")
-
-      val features = Seq.tabulate(5) { i =>
-        val sf = ScalaSimpleFeature.create(sft, s"$i", s"name$i", s"2020-02-02T0$i:00:00.000Z", s"POINT ($i 10)")
-        sf.getUserData.put("foo", Int.box(i % 3))
-        sf.getUserData.put("bar", sf.getAttribute("dtg"))
-        sf
-      }
-
-      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
-        ds must not(beNull)
-        ds.createSchema(sft)
-        WithClose(ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
-          features.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
-        }
-      }
-
       val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
       val result = try {
         val service = new CSVRecordSetWriter()
@@ -190,11 +171,13 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.setProperty(service, CSVUtils.QUOTE_CHAR, "'")
         runner.enableControllerService(service)
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
-        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
         runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
         runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
         runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
         runner.setProperty(GetGeoMesaKafkaRecord.IncludeUserData, "true")
+        runner.setProperty(GetGeoMesaKafkaRecord.ReplaceFeatureIds, "false")
+        runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "false")
         dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
         runner.run()
         val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
@@ -205,24 +188,16 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       }
 
       result mustEqual
-          """id,name,dtg,geom,user-data
-            |0,name0,2020-02-02T00:00:00Z,POINT (0 10),'{"bar":"2020-02-02T00:00:00.000Z","foo":0}'
-            |1,name1,2020-02-02T01:00:00Z,POINT (1 10),'{"bar":"2020-02-02T01:00:00.000Z","foo":1}'
-            |2,name2,2020-02-02T02:00:00Z,POINT (2 10),'{"bar":"2020-02-02T02:00:00.000Z","foo":2}'
-            |3,name3,2020-02-02T03:00:00Z,POINT (3 10),'{"bar":"2020-02-02T03:00:00.000Z","foo":0}'
-            |4,name4,2020-02-02T04:00:00Z,POINT (4 10),'{"bar":"2020-02-02T04:00:00.000Z","foo":1}'
+          """id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes,user-data
+            |0,string0,0,2.0,0,2.0,true,0d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (0 10),2020-02-02T00:00:00Z,'[1, 2, 0]','{20=20, 0=0}',00,'{"bar":"2020-02-02T00:00:00.000Z","foo":0}'
+            |1,string1,1,2.1,1,2.1,false,1d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (1 10),2020-02-02T01:00:00Z,'[1, 2, 1]','{21=21, 1=1}',11,'{"bar":"2020-02-02T01:00:00.000Z","foo":1}'
+            |2,string2,2,2.2,2,2.2,true,2d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (2 10),2020-02-02T02:00:00Z,'[1, 2, 2]','{2=2, 22=22}',22,'{"bar":"2020-02-02T02:00:00.000Z","foo":2}'
+            |3,string3,3,2.3,3,2.3,false,3d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (3 10),2020-02-02T03:00:00Z,'[1, 2, 3]','{23=23, 3=3}',33,'{"bar":"2020-02-02T03:00:00.000Z","foo":0}'
+            |4,string4,4,2.4,4,2.4,true,4d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (4 10),2020-02-02T04:00:00Z,'[1, 2, 4]','{24=24, 4=4}',44,'{"bar":"2020-02-02T04:00:00.000Z","foo":1}'
             |""".stripMargin
     }
 
     "get records in GeoAvro format" in {
-      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
-        ds must not(beNull)
-        ds.createSchema(sft)
-        WithClose(ds.getFeatureWriterAppend(sft.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
-          features.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
-        }
-      }
-
       val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
       val result: Array[Byte] = try {
         val service = new GeoAvroRecordSetWriterFactory()
@@ -230,10 +205,12 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.enableControllerService(service)
 
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "avro-record-set-writer")
-        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
         runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
         runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
         runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.ReplaceFeatureIds, "false")
+        runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "false")
         dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
         runner.run()
         val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
@@ -243,21 +220,11 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.shutdown()
       }
 
-      val bais = new ByteArrayInputStream(result)
-      val avroReader = new AvroDataFileReader(bais)
-      val featuresRead: Seq[SimpleFeature] = avroReader.toList
-      featuresRead.size mustEqual 5
+      val featuresRead = WithClose(new AvroDataFileReader(new ByteArrayInputStream(result)))(_.toList)
+      featuresRead must haveSize(5)
     }
 
     "get records in GeoAvro format with visibilities" in {
-      WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
-        ds must not(beNull)
-        ds.createSchema(sftWithVis)
-        WithClose(ds.getFeatureWriterAppend(sftWithVis.getTypeName, Transaction.AUTO_COMMIT)) { writer =>
-          featuresWithVis.foreach(FeatureUtils.write(writer, _, useProvidedFid = true))
-        }
-      }
-
       val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
       val result: Array[Byte] = try {
         val service = new GeoAvroRecordSetWriterFactory()
@@ -266,10 +233,11 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.enableControllerService(service)
 
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "avro-record-set-writer")
-        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, "test-id")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
         runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
         runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
         runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sftWithVis.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.ReplaceFeatureIds, "false")
         runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "true")
         dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
         runner.run()
@@ -280,12 +248,40 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.shutdown()
       }
 
-      val bais = new ByteArrayInputStream(result)
-      val avroReader = new AvroDataFileReader(bais)
-      val featuresRead: Seq[SimpleFeature] = avroReader.toList
+      val featuresRead = WithClose(new AvroDataFileReader(new ByteArrayInputStream(result)))(_.toList)
+      featuresRead must haveSize(5)
+      featuresRead.head.visibility must beSome
+    }
 
-      featuresRead.head.visibility.get must not be null
-      featuresRead.size mustEqual 5
+    "get records in GeoAvro format suitable for ingest into GeoMesa with minimal configuration" in {
+      val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
+      val result: Array[Byte] = try {
+        val service = new GeoAvroRecordSetWriterFactory()
+        runner.addControllerService("avro-record-set-writer", service)
+        runner.enableControllerService(service)
+
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "avro-record-set-writer")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
+        runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "5")
+        runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sftWithVis.getTypeName)
+        dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+        runner.run()
+        val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
+        results.size mustEqual 1
+        runner.getContentAsByteArray(results.get(0))
+      } finally {
+        runner.shutdown()
+      }
+
+      val featuresRead = WithClose(new AvroDataFileReader(new ByteArrayInputStream(result))) { reader =>
+        reader.toList.sortBy(_.getAttribute("int").asInstanceOf[Int])
+      }
+      featuresRead must haveSize(5)
+      featuresRead.flatMap(_.visibility) mustEqual Seq("user", "admin", "user&admin", "user", "admin")
+      // verify feature id was replaced
+      featuresRead.map(_.getID) must not(containAnyOf(featuresWithVis.map(_.getID)))
+      featuresRead.map(_.getAttributes) mustEqual featuresWithVis.map(_.getAttributes)
     }
   }
 

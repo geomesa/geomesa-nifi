@@ -9,7 +9,6 @@
 package org.geomesa.nifi.datastore.processor.records
 
 import java.io.OutputStream
-import java.util
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.OnEnabled
@@ -31,7 +30,7 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
   private var options: OptionExtractor = _
 
   // NB: This is the same as what the InheritSchemaFromRecord Strategy does
-  override def getSchema(map: util.Map[String, String], recordSchema: RecordSchema): RecordSchema = recordSchema
+  override def getSchema(map: java.util.Map[String, String], recordSchema: RecordSchema): RecordSchema = recordSchema
 
   override def createWriter(
       logger: ComponentLog,
@@ -42,7 +41,7 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
     new GeoAvroRecordSetWriter(recordSchema, opts, outputStream)
   }
 
-  override def getSupportedPropertyDescriptors: util.List[PropertyDescriptor] = Props
+  override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = Props
 
   @OnEnabled
   def setContext(context: ConfigurationContext): Unit = {
@@ -73,7 +72,7 @@ object GeoAvroRecordSetWriterFactory {
     private val converter = SimpleFeatureRecordConverter(recordSchema, options)
     private val writer = new AvroDataFileWriter(outputStream, converter.sft)
 
-    override def writeRecord(record: Record): util.Map[String, String] = {
+    override def writeRecord(record: Record): java.util.Map[String, String] = {
       val sf = converter.convert(record)
       writer.append(sf)
 
