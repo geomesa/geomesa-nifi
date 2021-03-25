@@ -196,8 +196,8 @@ object AvroIngestProcessor {
           .name("Use provided feature ID")
           .description("Use the feature ID from the Avro record, or generate a new one")
           .required(false)
-          .defaultValue("false")
           .allowableValues("true", "false")
+          .defaultValue("true")
           .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
           .build()
 
@@ -210,7 +210,7 @@ object AvroIngestProcessor {
     val AvroMatchMode: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("Avro SFT match mode")
-          .description("Determines how Avro SFT mismatches are handled (deprecated - use Schema Compatibility)")
+          .description("(DEPRECATED - use Schema Compatibility) Determines how Avro SFT mismatches are handled")
           .required(false)
           .allowableValues(ExactMatch, LenientMatch)
           .build()
@@ -219,7 +219,7 @@ object AvroIngestProcessor {
     val AvroSftName: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("SftName")
-          .description("Feature type name (deprecated - use FeatureNameOverride)")
+          .description("(DEPRECATED - use FeatureNameOverride) Feature type name")
           .required(false)
           .build()
   }
