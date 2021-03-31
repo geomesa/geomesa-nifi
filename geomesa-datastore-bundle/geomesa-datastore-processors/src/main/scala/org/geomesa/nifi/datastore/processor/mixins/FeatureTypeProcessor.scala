@@ -54,7 +54,18 @@ trait FeatureTypeProcessor extends BaseProcessor {
    * @param file flow file
    * @return
    */
-  protected def loadFeatureType(context: ProcessContext, file: FlowFile): SimpleFeatureType = {
+  protected def loadFeatureType(context: ProcessContext, file: FlowFile): SimpleFeatureType =
+    loadFeatureType(context, file, loadFeatureTypeName(context, file))
+
+  /**
+   * Load the configured feature type, based on processor and flow file properties
+   *
+   * @param context context
+   * @param file flow file
+   * @param name feature type name override
+   * @return
+   */
+  protected def loadFeatureType(context: ProcessContext, file: FlowFile, name: Option[String]): SimpleFeatureType = {
     val specArg =
       Option(file.getAttribute(SftSpecAttribute))
           .orElse(BaseProcessor.getFirst(context, Seq(sftName, SftSpec)))
@@ -63,11 +74,20 @@ trait FeatureTypeProcessor extends BaseProcessor {
               s"SimpleFeatureType not specified: configure '$SftNameKey', 'SftSpec' " +
                   s"or flow-file attribute '$SftSpecAttribute'")
           }
-    val nameArg =
-      Option(file.getAttribute(SftNameAttribute))
-          .orElse(Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue))
-          .orNull
+    val nameArg = name.orNull
     sftCache.get(SftArgs(specArg, nameArg)).right.get // will throw an error if can't be loaded
+  }
+
+  /**
+   * Load the configured feature type name override, based on processor and flow file properties
+   *
+   * @param context context
+   * @param file flow file
+   * @return
+   */
+  protected def loadFeatureTypeName(context: ProcessContext, file: FlowFile): Option[String] = {
+    Option(file.getAttribute(SftNameAttribute))
+        .orElse(Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue))
   }
 }
 
