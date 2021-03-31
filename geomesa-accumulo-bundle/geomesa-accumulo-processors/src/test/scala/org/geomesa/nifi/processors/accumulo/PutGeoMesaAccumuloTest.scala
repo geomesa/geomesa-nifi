@@ -275,6 +275,50 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   }
 
   @Test
+  def testAvroIngestWithSchema(): Unit = {
+    val catalog = s"${root}AvroIngestWithSchema"
+    val spec =
+      """geomesa.sfts.example = {
+        |  attributes = [
+        |    { name = "name", type = "String", index = true }
+        |    { name = "age",  type = "Int"                  }
+        |    { name = "dtg",  type = "Date"                 }
+        |    { name = "geom", type = "Point", srid = 4326   }
+        |  ]
+        |}
+        |""".stripMargin
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
+      runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Existing.toString)
+      runner.setProperty(FeatureTypeProcessor.Properties.SftSpec, spec)
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
+
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(3, features.length)
+      val attributes = features.head.getFeatureType.getAttributeDescriptors.asScala.map(_.getLocalName)
+      Assert.assertEquals(Seq("name", "age", "dtg", "geom"), attributes)
+    } finally {
+      ds.dispose()
+    }
+  }
+
+  @Test
   def testRecordIngest(): Unit = {
     val catalog = s"${root}RecordIngest"
     val runner = TestRunners.newTestRunner(new PutGeoMesaAccumuloRecord())

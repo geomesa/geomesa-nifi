@@ -19,9 +19,9 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.mixins.FeatureTypeProcessor.Attributes.SftNameAttribute
+import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureTypeProcessor}
 import org.geotools.data.DataStore
 import org.geotools.util.Converters
 import org.geotools.util.factory.Hints
@@ -40,14 +40,14 @@ import scala.util.control.NonFatal
 @ReadsAttributes(
   Array(new ReadsAttribute(attribute = "geomesa.sft.name", description = "GeoMesa SimpleFeatureType name"))
 )
-trait AvroIngestProcessor extends DataStoreIngestProcessor {
+trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProcessor {
 
   import AvroIngestProcessor.Properties.UseProvidedFid
   import AvroIngestProcessor.{ModeMappings, Properties}
   import org.geomesa.nifi.datastore.processor.mixins.FeatureTypeProcessor.Properties.FeatureNameOverride
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
-    super.getPrimaryProperties ++ Seq(FeatureNameOverride, UseProvidedFid)
+    super.getPrimaryProperties ++ Seq(UseProvidedFid)
 
   // noinspection ScalaDeprecation
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
@@ -95,37 +95,48 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor {
       var success = 0L
       var failure = 0L
 
+      // noinspection ScalaDeprecation
+      val nameArg = Option(file.getAttribute(SftNameAttribute)).orElse {
+        val fno = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
+        val old = Option(context.getProperty(Properties.AvroSftName).getValue)
+        if (old.isEmpty) {
+          fno
+        } else if (fno.isEmpty) {
+          logger.warn(
+            s"Using deprecated property ${Properties.AvroSftName.getName} - " +
+                s"use ${FeatureNameOverride.getName} instead")
+          old
+        } else {
+          logger.warn(
+            s"Ignoring property ${Properties.AvroSftName.getName}: ${old.get} " +
+                s"in favor of ${FeatureNameOverride.getName}: ${fno.get}")
+          fno
+        }
+      }
+      val configuredSft = Try(loadFeatureType(context, file, nameArg)).toOption
+      // create/update the schema if it's configured in the processor or flow-file attributes
+      configuredSft.foreach(checkSchema)
+
       session.read(file, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           val reader = new AvroDataFileReader(in)
           try {
-            // noinspection ScalaDeprecation
-            val nameArg = Option(file.getAttribute(SftNameAttribute)).orElse {
-              val fno = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
-              val old = Option(context.getProperty(Properties.AvroSftName).getValue)
-              if (old.isEmpty) {
-                fno
-              } else if (fno.isEmpty) {
-                logger.warn(
-                  s"Using deprecated property ${Properties.AvroSftName.getName} - " +
-                      s"use ${FeatureNameOverride.getName} instead")
-                old
-              } else {
-                logger.warn(
-                  s"Ignoring property ${Properties.AvroSftName.getName}: ${old.get} " +
-                      s"in favor of ${FeatureNameOverride.getName}: ${fno.get}")
-                fno
+            val fileSft = {
+              val readerSft = reader.getSft
+              nameArg.orElse(configuredSft.map(_.getTypeName)) match {
+                case Some(name) if readerSft.getTypeName != name => SimpleFeatureTypes.renameSft(readerSft, name)
+                case None => readerSft
               }
             }
 
-            val sft = nameArg match {
-              case Some(name) if name != reader.getSft.getTypeName => SimpleFeatureTypes.renameSft(reader.getSft, name)
-              case _ => reader.getSft
+            // note: if we have a configured sft, we've already accounted for the update above
+            val shouldUpdate = configuredSft.isEmpty
+            val features = checkSchemaAndMapping(fileSft, shouldUpdate) match {
+              case None => reader
+              case Some(m) => reader.map(m.apply)
             }
 
-            val mapper = checkSchemaAndMapping(sft)
-            val features = mapper.map(m => reader.map(m.apply)).getOrElse(reader)
-            val writer = writers.borrowWriter(sft.getTypeName, file)
+            val writer = writers.borrowWriter(fileSft.getTypeName, file)
             try {
               features.foreach { sf =>
                 try {
@@ -152,7 +163,9 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor {
       IngestResult(success, failure)
     }
 
-    private def checkSchemaAndMapping(sft: SimpleFeatureType): Option[SimpleFeature => SimpleFeature] = {
+    private def checkSchemaAndMapping(
+        sft: SimpleFeatureType,
+        shouldUpdate: Boolean): Option[SimpleFeature => SimpleFeature] = {
       val existing = Try(store.getSchema(sft.getTypeName)).getOrElse(null)
 
       if (existing == null) {
@@ -161,14 +174,14 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor {
         None
       } else if (SimpleFeatureTypes.compare(sft, existing) == 0) {
         None
-      } else if (mode == CompatibilityMode.Update) {
+      } else if (mode == CompatibilityMode.Update && shouldUpdate) {
         logger.info(
           s"Updating schema ${sft.getTypeName}:" +
               s"\n  from: ${SimpleFeatureTypes.encodeType(existing)}" +
               s"\n  to:   ${SimpleFeatureTypes.encodeType(sft)}")
         store.updateSchema(sft.getTypeName, sft)
         None
-      } else if (mode == CompatibilityMode.Existing) {
+      } else if (mode == CompatibilityMode.Existing || mode == CompatibilityMode.Update ) {
         Some(AvroIngestProcessor.convert(sft, existing))
       } else {
         throw new IllegalArgumentException(
