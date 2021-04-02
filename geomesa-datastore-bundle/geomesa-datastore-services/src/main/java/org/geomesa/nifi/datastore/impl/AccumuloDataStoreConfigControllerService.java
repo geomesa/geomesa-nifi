@@ -20,7 +20,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.geomesa.nifi.datastore.services.DataStoreConfigService;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,11 +80,11 @@ public class AccumuloDataStoreConfigControllerService
         properties = Collections.unmodifiableList(props);
     }
 
-    private Map<String, Serializable> params;
+    private Map<String, String> params;
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        final Map<String, Serializable> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         for (PropertyDescriptor prop : properties) {
             map.put(prop.getName(), context.getProperty(prop).getValue());
         }
@@ -102,7 +101,7 @@ public class AccumuloDataStoreConfigControllerService
     }
 
     @Override
-    public Map<String, Serializable> getDataStoreParameters() {
+    public Map<String, String> getDataStoreParameters() {
         return params;
     }
 

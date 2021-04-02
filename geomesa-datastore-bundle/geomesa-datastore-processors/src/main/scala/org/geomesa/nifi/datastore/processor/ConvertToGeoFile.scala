@@ -49,6 +49,8 @@ class ConvertToGeoFile extends ConvertInputProcessor {
   import ConvertToGeoFile.FlowFileExportStream
   import ConvertToGeoFile.Properties.{GzipLevel, IncludeHeaders, OutputFormat}
 
+  import scala.collection.JavaConverters._
+
   override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
     super.getTertiaryProperties ++ Seq(OutputFormat, GzipLevel, IncludeHeaders)
 
@@ -59,10 +61,11 @@ class ConvertToGeoFile extends ConvertInputProcessor {
     }
     var output: FlowFile = null
     try {
-      val sft = loadFeatureType(context, input)
-      val format = ExportFormat(context.getProperty(OutputFormat).getValue).get
-      val gzip = Option(context.getProperty(GzipLevel).evaluateAttributeExpressions().getValue).map(_.toInt)
-      val headers = Option(context.getProperty(IncludeHeaders).getValue).forall(_.toBoolean)
+      val properties = evaluateDescriptors(getSupportedPropertyDescriptors.asScala, context, input)
+      val sft = loadFeatureType(properties, input)
+      val format = ExportFormat(properties(OutputFormat)).get
+      val gzip = properties.get(GzipLevel).map(_.toInt)
+      val headers = properties.get(IncludeHeaders).forall(_.toBoolean)
 
       output = session.create(input)
 
@@ -77,7 +80,7 @@ class ConvertToGeoFile extends ConvertInputProcessor {
               0L
             }
           }
-          result = convert(context, session, input, sft, callback)
+          result = convert(session, input, sft, callback, properties)
         } finally {
           CloseWithLogging(exporter)
         }

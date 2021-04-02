@@ -16,8 +16,8 @@ import org.locationtech.geomesa.kafka.data.{KafkaDataStoreFactory, KafkaDataStor
 
 abstract class KafkaProcessor extends DataStoreProcessor(KafkaProcessor.KafkaProperties) {
   // set consumer count to zero to disable consuming
-  override protected def getDataStoreParams(context: ProcessContext): Map[String, _] =
-    super.getDataStoreParams(context) ++ Map(KafkaDataStoreParams.ConsumerCount.getName -> Int.box(0))
+  override protected def getDataStoreParams(context: ProcessContext): Map[String, String] =
+    super.getDataStoreParams(context) ++ Map(KafkaDataStoreParams.ConsumerCount.getName -> "0")
 }
 
 object KafkaProcessor extends PropertyDescriptorUtils {

@@ -28,7 +28,7 @@ abstract class AccumuloProcessor extends DataStoreProcessor(AccumuloProcessor.Ac
   @volatile
   private var useControllerService: Boolean = false
 
-  override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
+  override protected def getDataStoreParams(context: ProcessContext): Map[String, String] = {
     if (useControllerService) {
       val controller = context.getProperty(GeoMesaConfigController)
       controller.asControllerService(classOf[DataStoreConfigService]).getDataStoreParameters.asScala.toMap

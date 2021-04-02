@@ -6,14 +6,14 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.records
+package org.geomesa.nifi.datastore.processor
+package records
 
 import java.io.OutputStream
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.apache.nifi.annotation.lifecycle.OnEnabled
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.controller.{AbstractControllerService, ConfigurationContext}
+import org.apache.nifi.controller.AbstractControllerService
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.schema.access.SchemaNameAsAttribute
 import org.apache.nifi.serialization.record.{Record, RecordSchema}
@@ -27,8 +27,6 @@ import scala.collection.JavaConverters._
 @CapabilityDescription("Writes the contents of a RecordSet as GeoAvro which AvroToPutGeoMesa* Processors can use.")
 class GeoAvroRecordSetWriterFactory extends AbstractControllerService with RecordSetWriterFactory {
 
-  private var options: OptionExtractor = _
-
   // NB: This is the same as what the InheritSchemaFromRecord Strategy does
   override def getSchema(map: java.util.Map[String, String], recordSchema: RecordSchema): RecordSchema = recordSchema
 
@@ -37,16 +35,12 @@ class GeoAvroRecordSetWriterFactory extends AbstractControllerService with Recor
       recordSchema: RecordSchema,
       outputStream: OutputStream,
       variables: java.util.Map[String, String]): GeoAvroRecordSetWriter = {
-    val opts = options.apply(getConfigurationContext, variables)
-    new GeoAvroRecordSetWriter(recordSchema, opts, outputStream)
+    val properties = evaluateDescriptors(Props, getConfigurationContext, variables)
+    val options = RecordConverterOptions(properties)
+    new GeoAvroRecordSetWriter(recordSchema, options, outputStream)
   }
 
-  override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = Props
-
-  @OnEnabled
-  def setContext(context: ConfigurationContext): Unit = {
-    options = OptionExtractor(context, GeometryEncoding.Wkb)
-  }
+  override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = Props.asJava
 }
 
 object GeoAvroRecordSetWriterFactory {
@@ -60,7 +54,7 @@ object GeoAvroRecordSetWriterFactory {
     Properties.DefaultDateCol,
     Properties.VisibilitiesCol,
     Properties.SchemaUserData
-  ).toList.asJava
+  )
 
   class GeoAvroRecordSetWriter(
       recordSchema: RecordSchema,

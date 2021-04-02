@@ -13,12 +13,12 @@ import java.util.Collections
 
 import org.apache.nifi.annotation.behavior.InputRequirement
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
-import org.apache.nifi.annotation.lifecycle.OnAdded
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processor.{AbstractProcessor, ProcessContext, ProcessorInitializationContext, Relationship}
+import org.geomesa.nifi.datastore.processor.mixins.BaseProcessor.FeatureTypeDecorator
 import org.opengis.feature.simple.SimpleFeatureType
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -48,9 +48,7 @@ abstract class BaseProcessor extends AbstractProcessor {
     logger.info(s"Relationships are ${relationships.asScala.mkString(", ")}")
   }
 
-
-  @OnAdded // reload on add to pick up any sft/converter classpath changes
-  def reloadDescriptors(): Unit = {
+  protected def reloadDescriptors(): Unit = {
     descriptors.clear()
     getPrimaryProperties.foreach(descriptors.add)
     getSecondaryProperties.foreach(descriptors.add)
@@ -95,17 +93,33 @@ abstract class BaseProcessor extends AbstractProcessor {
   protected def getServiceProperties: Seq[PropertyDescriptor] = Seq.empty
 
   /**
-   * Provides the processor a chance to configure a feature type after it's loaded from the environment
+   * Provides the processor a chance to configure a feature type based on the processor config
    *
-   * @param sft simple feature type
+   * @return
    */
-  protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = sft
+  protected def decorator: Option[FeatureTypeDecorator] = None
 }
 
 object BaseProcessor {
 
-  def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =
-    props.toStream.flatMap(p => Option(context.getProperty(p).getValue)).headOption
+  trait FeatureTypeDecorator {
+
+    /**
+     * Properties used to decorate the feature type, will be provided in the decorate method
+     *
+     * @return
+     */
+    def properties: Seq[PropertyDescriptor]
+
+    /**
+     * Decorate the feature type based on configured properties
+     *
+     * @param sft simple feature type
+     * @param properties evaluated properties, as defined by the `properties` method
+     * @return
+     */
+    def decorate(sft: SimpleFeatureType, properties: Map[PropertyDescriptor, String]): SimpleFeatureType
+  }
 
   object Properties {
     val ExtraClasspaths: PropertyDescriptor =

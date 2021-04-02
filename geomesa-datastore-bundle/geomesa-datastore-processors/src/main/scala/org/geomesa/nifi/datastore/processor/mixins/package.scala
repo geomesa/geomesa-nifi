@@ -8,9 +8,13 @@
 
 package org.geomesa.nifi.datastore.processor
 
+import com.github.benmanes.caffeine.cache.{RemovalCause, RemovalListener}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
+import org.apache.nifi.flowfile.FlowFile
+import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
+import org.locationtech.geomesa.utils.io.{CloseWithLogging, IsCloseable}
 
 package object mixins {
 
@@ -25,5 +29,13 @@ package object mixins {
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .defaultValue("5")
           .build()
+  }
+
+  class CloseableRemovalListener[C : IsCloseable] extends RemovalListener[AnyRef, C]() {
+    override def onRemoval(key: AnyRef, value: C, cause: RemovalCause): Unit = {
+      if (cause.wasEvicted()) {
+        CloseWithLogging(value)
+      }
+    }
   }
 }

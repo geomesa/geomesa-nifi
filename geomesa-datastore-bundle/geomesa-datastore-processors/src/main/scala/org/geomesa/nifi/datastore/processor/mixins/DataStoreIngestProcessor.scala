@@ -11,7 +11,6 @@ package org.geomesa.nifi.datastore.processor
 package mixins
 
 import java.io.Closeable
-import java.util.Collections
 import java.util.concurrent.TimeUnit
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
@@ -19,15 +18,15 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.behavior.{SupportsBatching, WritesAttribute, WritesAttributes}
-import org.apache.nifi.annotation.lifecycle._
-import org.apache.nifi.components.{PropertyDescriptor, PropertyValue}
+import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.controller.ControllerService
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.DynamicWriters
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor.DataStoreProcessorConfig
 import org.geomesa.nifi.datastore.processor.validators.WriteModeValidator
 import org.geotools.data._
 import org.geotools.filter.text.ecql.ECQL
@@ -36,7 +35,7 @@ import org.locationtech.geomesa.filter.FilterHelper
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
-import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
+import org.locationtech.geomesa.utils.io.{CloseQuietly, CloseWithLogging, WithClose}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.util.control.NonFatal
@@ -60,62 +59,50 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
 
   import scala.collection.JavaConverters._
 
-  @volatile
-  private var ingest: IngestProcessor = _
+  private val ingestCache = {
+    val loader = new CacheLoader[DataStoreProcessorConfig, IngestProcessor]() {
+      override def load(key: DataStoreProcessorConfig): IngestProcessor = {
+        logger.info("Initializing")
+        val ds = getCachedDataStore(key.dsParams)
 
-  @OnScheduled
-  def initialize(context: ProcessContext): Unit = {
-    logger.info("Initializing")
-
-    val dataStore = loadDataStore(context)
-
-    try {
-      val mode = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
-      val appender = if (context.getProperty(FeatureWriterCaching).getValue.toBoolean) {
-        val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
-        new PooledWriters(dataStore, FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS).toLong)
-      } else {
-        new SingletonWriters(dataStore)
-      }
-
-      val writers = {
-        val modeProp = context.getProperty(WriteMode)
-        val attrProp = context.getProperty(ModifyAttribute)
-        lazy val modify = {
-          val value = modeProp.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue
-          FeatureWriters.Modify.equalsIgnoreCase(value)
+        val mode = CompatibilityMode.withName(key.properties(SchemaCompatibilityMode))
+        val appender =
+          if (key.properties(FeatureWriterCaching).toBoolean) {
+            val timeout = key.properties(FeatureWriterCacheTimeout)
+            new PooledWriters(ds, FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS).toLong)
+          } else {
+            new SingletonWriters(ds)
+          }
+        val writers = key.properties.get(WriteMode) match {
+          case Some(mode) if mode.equalsIgnoreCase(FeatureWriters.Modify) =>
+            new ModifyWriters(ds, key.properties.get(ModifyAttribute), appender)
+          case _ => appender
         }
-        if (modeProp.isExpressionLanguagePresent || (modify && attrProp.isExpressionLanguagePresent)) {
-          new DynamicWriters(dataStore, modeProp, attrProp, appender)
-        } else if (modify) {
-          val attr = Option(attrProp.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue)
-          new ModifyWriters(dataStore, attr, appender)
-        } else {
-          appender
-        }
-      }
 
-      try {
-        ingest = createIngest(context, dataStore, writers, mode)
-      } catch {
-        case NonFatal(e) => writers.close(); throw e
+        val ingest = try { createIngest(ds, writers, mode, key.properties, key.services) } catch {
+          case NonFatal(e) => CloseQuietly(writers).foreach(e.addSuppressed); throw e
+        }
+
+        logger.info(s"Initialized ingest ${ingest.getClass.getSimpleName}")
+        ingest
       }
-    } catch {
-      case NonFatal(e) => dataStore.dispose(); throw e
     }
-
-    logger.info(s"Initialized datastore ${dataStore.getClass.getSimpleName} with ingest ${ingest.getClass.getSimpleName}")
+    Caffeine.newBuilder()
+        .expireAfterAccess(1L, TimeUnit.HOURS)
+        .removalListener(new CloseableRemovalListener[IngestProcessor]())
+        .build(loader)
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
     val flowFiles = session.get(context.getProperty(NifiBatchSize).evaluateAttributeExpressions().asInteger())
     logger.debug(s"Processing ${flowFiles.size()} files in batch")
-    if (flowFiles != null && flowFiles.size > 0) {
+    if (flowFiles != null && !flowFiles.isEmpty) {
       flowFiles.asScala.foreach { file =>
+        val ingest = ingestCache.get(loadProperties(context, file))
         val name = fullName(file)
         try {
           logger.debug(s"Processing ${ingest.getClass.getName} with file $name")
-          val result = ingest.ingest(context, session, file, name)
+          val result = ingest.ingest(session, file, name)
           var output = file
           output = session.putAttribute(output, Attributes.IngestSuccessCount, result.success.toString)
           output = session.putAttribute(output, Attributes.IngestFailureCount, result.failure.toString)
@@ -131,17 +118,10 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     }
   }
 
-  @OnRemoved
-  @OnStopped
-  @OnShutdown
-  def cleanup(): Unit = {
-    logger.info("Processor shutting down")
-    val start = System.currentTimeMillis()
-    if (ingest != null) {
-      CloseWithLogging(ingest)
-      ingest = null
-    }
-    logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
+  override protected def cleanup(): Unit = {
+    CloseWithLogging(ingestCache.asMap().asScala.values)
+    ingestCache.invalidateAll()
+    super.cleanup()
   }
 
   override protected def getSecondaryProperties: Seq[PropertyDescriptor] =
@@ -160,16 +140,18 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     logger.error(s"Error writing feature to store: '${DataUtilities.encodeFeature(sf)}'", e)
 
   protected def createIngest(
-      context: ProcessContext,
-      dataStore: DataStore,
+      ds: DataStore,
       writers: FeatureWriters,
-      mode: CompatibilityMode): IngestProcessor
+      mode: CompatibilityMode,
+      properties: Map[PropertyDescriptor, String],
+      services: Map[PropertyDescriptor, ControllerService]): IngestProcessor
 
   /**
    * Abstraction over ingest methods
    *
    * @param store data store
    * @param writers feature writers
+   * @param mode compatibility mode
    */
   abstract class IngestProcessor(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
       extends Closeable {
@@ -177,19 +159,14 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     /**
      * Ingest a flow file
      *
-     * @param context context
      * @param session session
      * @param file flow file
      * @param fileName file name
      * @return (success count, failure count)
      */
-    def ingest(
-        context: ProcessContext,
-        session: ProcessSession,
-        file: FlowFile,
-        fileName: String): IngestResult
+    def ingest(session: ProcessSession, file: FlowFile, fileName: String): IngestResult
 
-    override def close(): Unit = store.dispose()
+    override def close(): Unit = writers.close()
 
     /**
      * Check and update the schema in the data store, as needed
@@ -389,7 +366,7 @@ object DataStoreIngestProcessor {
 
     override def close(): Unit = {
       CloseWithLogging(cache.asMap().values().asScala)
-      ds.dispose()
+      cache.invalidateAll()
     }
   }
 
@@ -403,7 +380,7 @@ object DataStoreIngestProcessor {
       AppendWriter(typeName, ds.getFeatureWriterAppend(typeName, Transaction.AUTO_COMMIT))
     override def returnWriter(writer: SimpleWriter): Unit = CloseWithLogging(writer)
     override def invalidate(typeName: String): Unit = {}
-    override def close(): Unit = ds.dispose()
+    override def close(): Unit = {}
   }
 
   /**
@@ -422,41 +399,7 @@ object DataStoreIngestProcessor {
       CloseWithLogging(writer)
     }
     override def invalidate(typeName: String): Unit = appender.invalidate(typeName)
-    override def close(): Unit = CloseWithLogging(appender) // note: also disposes of the datastore
-  }
-
-  /**
-   * Dynamically creates append or modify writers based on flow file attributes
-   *
-   * @param ds data store
-   * @param mode write mode property value
-   * @param attribute identifying attribute property value
-   * @param appender appending writer
-   */
-  class DynamicWriters(ds: DataStore, mode: PropertyValue, attribute: PropertyValue, appender: FeatureWriters)
-      extends FeatureWriters {
-    override def borrowWriter(typeName: String, file: FlowFile): SimpleWriter = {
-      lazy val append = appender.borrowWriter(typeName, file)
-      lazy val modify =
-        ModifyWriter(ds, typeName, Option(attribute.evaluateAttributeExpressions(file).getValue), append)
-      mode.evaluateAttributeExpressions(file).getValue match {
-        case null | "" => append
-        case m if m.equalsIgnoreCase(FeatureWriters.Append) => append
-        case m if m.equalsIgnoreCase(FeatureWriters.Modify) => modify
-        case m => throw new IllegalArgumentException(s"Invalid value for ${Properties.WriteMode.getName}: $m")
-      }
-    }
-    override def returnWriter(writer: SimpleWriter): Unit = {
-      writer match {
-        case m: ModifyWriter =>
-          appender.returnWriter(m.append)
-          CloseWithLogging(m)
-        case _ =>
-          appender.returnWriter(writer)
-      }
-    }
-    override def invalidate(typeName: String): Unit = appender.invalidate(typeName)
-    override def close(): Unit = CloseWithLogging(appender) // note: also disposes of the datastore
+    override def close(): Unit = CloseWithLogging(appender)
   }
 
   /**

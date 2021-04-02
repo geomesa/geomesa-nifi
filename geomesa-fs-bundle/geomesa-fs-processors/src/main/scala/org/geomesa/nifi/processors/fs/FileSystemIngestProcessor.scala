@@ -8,10 +8,9 @@
 
 package org.geomesa.nifi.processors.fs
 
-import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
+import org.geomesa.nifi.datastore.processor.mixins.BaseProcessor.FeatureTypeDecorator
 import org.geomesa.nifi.datastore.processor.mixins.{AwsDataStoreProcessor, DataStoreIngestProcessor, DataStoreProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.fs.tools.utils.PartitionSchemeArgResolver
@@ -19,34 +18,35 @@ import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 import org.opengis.feature.simple.SimpleFeatureType
 
 abstract class FileSystemIngestProcessor
-    extends DataStoreProcessor(FileSystemIngestProcessor.FileSystemProperties)
+    extends DataStoreProcessor(FileSystemProcessor.FileSystemProperties)
         with DataStoreIngestProcessor
         with AwsDataStoreProcessor {
-
-  override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
 
   import FileSystemIngestProcessor.PartitionSchemeParam
   import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
 
-  private var partitionScheme: Option[String] = None
+  override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
+    super.getTertiaryProperties ++ Seq(PartitionSchemeParam)
 
-  @OnScheduled
-  override def initialize(context: ProcessContext): Unit = {
-    super.initialize(context)
-    partitionScheme = Option(context.getProperty(PartitionSchemeParam).getValue)
-  }
+  override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
 
-  override protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = {
-    partitionScheme.foreach { arg =>
-      logger.info(s"Adding partition scheme to ${sft.getTypeName}")
-      val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
-        case Left(e) => throw new IllegalArgumentException(e)
-        case Right(s) => s
+  override protected val decorator: Option[FeatureTypeDecorator] = {
+    val decorator: FeatureTypeDecorator = new FeatureTypeDecorator() {
+      override val properties: Seq[PropertyDescriptor] = Seq(PartitionSchemeParam)
+      override def decorate(sft: SimpleFeatureType, properties: Map[PropertyDescriptor, String]): SimpleFeatureType = {
+        properties.get(PartitionSchemeParam).foreach { arg =>
+          logger.info(s"Adding partition scheme to ${sft.getTypeName}")
+          val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
+            case Left(e) => throw new IllegalArgumentException(e)
+            case Right(s) => s
+          }
+          sft.setScheme(scheme.name, scheme.options)
+          logger.info(s"Updated sft with partition scheme: ${scheme.name}")
+        }
+        sft
       }
-      sft.setScheme(scheme.name, scheme.options)
-      logger.info(s"Updated SFT with partition scheme: ${scheme.name}")
     }
-    sft
+    Some(decorator)
   }
 }
 
@@ -59,6 +59,4 @@ object FileSystemIngestProcessor {
         .description("A partition scheme common name or config (required for creation of new store)")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build()
-
-  private val FileSystemProperties = FileSystemProcessor.FileSystemProperties :+ PartitionSchemeParam
 }

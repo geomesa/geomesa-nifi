@@ -14,6 +14,7 @@ import java.io.InputStream
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
 import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.controller.ControllerService
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
@@ -55,20 +56,20 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
 
   // noinspection ScalaDeprecation
   override protected def createIngest(
-      context: ProcessContext,
-      dataStore: DataStore,
+      ds: DataStore,
       writers: FeatureWriters,
-      mode: CompatibilityMode): IngestProcessor = {
-    val useProvidedFid = context.getProperty(UseProvidedFid).getValue.toBoolean
+      mode: CompatibilityMode,
+      properties: Map[PropertyDescriptor, String],
+      services: Map[PropertyDescriptor, ControllerService]): IngestProcessor = {
     val matchMode =
-      Option(context.getProperty(Properties.AvroMatchMode).getValue)
+      properties.get(Properties.AvroMatchMode)
           .collect { case m if m.nonEmpty && !ModeMappings.contains(m -> mode) =>
             val compat = ModeMappings.collectFirst { case (old, c) if old == m => c }.get
             logger.warn(s"Using deprecated match mode to override compatibility mode $mode with $compat")
             compat
           }
 
-    new AvroIngest(dataStore, writers, matchMode.getOrElse(mode), useProvidedFid)
+    new AvroIngest(ds, writers, matchMode.getOrElse(mode), properties)
   }
 
   /**
@@ -83,37 +84,28 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
       store: DataStore,
       writers: FeatureWriters,
       mode: CompatibilityMode,
-      useProvidedFid: Boolean
+      properties: Map[PropertyDescriptor, String]
     ) extends IngestProcessor(store, writers, mode) {
 
-    override def ingest(
-        context: ProcessContext,
-        session: ProcessSession,
-        file: FlowFile,
-        fileName: String): IngestResult = {
+    private val useProvidedFid = properties(UseProvidedFid).toBoolean
+    private val featureNameOverride = properties.get(FeatureNameOverride).orElse {
+      val old = properties.get(Properties.AvroSftName)
+      if (old.isDefined) {
+        logger.warn(
+          s"Using deprecated property ${Properties.AvroSftName.getName} - " +
+              s"use ${FeatureNameOverride.getName} instead")
+      }
+      old
+    }
+
+    override def ingest(session: ProcessSession, file: FlowFile, fileName: String): IngestResult = {
 
       var success = 0L
       var failure = 0L
 
       // noinspection ScalaDeprecation
-      val nameArg = Option(file.getAttribute(SftNameAttribute)).orElse {
-        val fno = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
-        val old = Option(context.getProperty(Properties.AvroSftName).getValue)
-        if (old.isEmpty) {
-          fno
-        } else if (fno.isEmpty) {
-          logger.warn(
-            s"Using deprecated property ${Properties.AvroSftName.getName} - " +
-                s"use ${FeatureNameOverride.getName} instead")
-          old
-        } else {
-          logger.warn(
-            s"Ignoring property ${Properties.AvroSftName.getName}: ${old.get} " +
-                s"in favor of ${FeatureNameOverride.getName}: ${fno.get}")
-          fno
-        }
-      }
-      val configuredSft = Try(loadFeatureType(context, file, nameArg)).toOption
+      val nameArg = Option(file.getAttribute(SftNameAttribute)).orElse(featureNameOverride)
+      val configuredSft = Try(loadFeatureType(properties, file, nameArg)).toOption
       // create/update the schema if it's configured in the processor or flow-file attributes
       configuredSft.foreach(checkSchema)
 

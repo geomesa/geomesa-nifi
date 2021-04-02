@@ -27,7 +27,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.RecordSetWriterFactory
 import org.apache.nifi.serialization.record.RecordSchema
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.evaluateDescriptors
 import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializationDefaultWkt
 import org.geomesa.nifi.datastore.processor.records.{Expressions, GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
@@ -122,7 +122,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
 
     val ds = {
       val props = {
-        val base = DataStoreProcessor.getDataStoreParams(context, descriptors)
+        val base = evaluateDescriptors(descriptors, context).map { case (d, v) => d.getName -> v }
         val offset = context.getProperty(InitialOffset).getValue
         // override/set auto.offset.reset
         val config = KafkaDataStoreParams.ConsumerConfig.lookupOpt(base.asJava).getOrElse(new Properties())

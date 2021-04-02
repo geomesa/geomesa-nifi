@@ -14,5 +14,5 @@ import java.io.Serializable;
 import java.util.Map;
 
 public interface DataStoreConfigService extends ControllerService {
-    Map<String, Serializable> getDataStoreParameters();
+    Map<String, String> getDataStoreParameters();
 }

@@ -12,7 +12,6 @@ import java.io.InputStream
 
 import org.apache.nifi.annotation.behavior.{SupportsBatching, WritesAttribute, WritesAttributes}
 import org.apache.nifi.annotation.documentation.CapabilityDescription
-import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnScheduled, OnShutdown, OnStopped}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.io.InputStreamCallback
@@ -22,11 +21,11 @@ import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
 import org.geomesa.nifi.datastore.processor.RecordUpdateProcessor.{AttributeFilter, FidFilter}
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
-import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
-import org.geotools.data.{DataStore, DataUtilities, Transaction}
+import org.geomesa.nifi.datastore.processor.records.{RecordConverterOptions, SimpleFeatureRecordConverter}
+import org.geotools.data.{DataUtilities, Transaction}
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.filter.filterToString
-import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
+import org.locationtech.geomesa.utils.io.WithClose
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.filter.Filter
 
@@ -56,51 +55,33 @@ trait RecordUpdateProcessor extends DataStoreProcessor {
 
   import scala.collection.JavaConverters._
 
-  @volatile
-  private var ds: DataStore = _
-  private var factory: RecordReaderFactory = _
-  private var options: OptionExtractor = _
-
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
     super.getPrimaryProperties ++ RecordUpdateProcessor.Props
 
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
     super.getConfigProperties ++ Seq(NifiBatchSize)
 
-  @OnScheduled
-  def initialize(context: ProcessContext): Unit = {
-    logger.info("Initializing")
-
-    ds = loadDataStore(context)
-
-    try {
-      factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
-      options = OptionExtractor(context, GeometryEncoding.Wkt)
-    } catch {
-      case NonFatal(e) => CloseWithLogging(ds); ds = null; throw e
-    }
-
-    logger.info(s"Initialized datastore ${ds.getClass.getSimpleName}")
-  }
-
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
     val flowFiles = session.get(context.getProperty(NifiBatchSize).evaluateAttributeExpressions().asInteger())
     logger.debug(s"Processing ${flowFiles.size()} files in batch")
-    if (flowFiles != null && flowFiles.size > 0) {
+    if (flowFiles != null && !flowFiles.isEmpty) {
       flowFiles.asScala.foreach { file =>
         val fullFlowFileName = fullName(file)
         try {
           logger.debug(s"Running ${getClass.getName} on file $fullFlowFileName")
-          val opts = options(context, file.getAttributes)
-          val id = context.getProperty(LookupCol).evaluateAttributeExpressions(file).getValue
-          val filterFactory = if (opts.fidField.contains(id)) { FidFilter } else { new AttributeFilter(id) }
+          val props = loadProperties(context, file)
+          val ds = getCachedDataStore(props.dsParams)
+          val factory = props.services(RecordReader).asInstanceOf[RecordReaderFactory]
+          val options = RecordConverterOptions(props.properties)
+          val id = props.properties(LookupCol)
+          val filterFactory = if (options.fidField.contains(id)) { FidFilter } else { new AttributeFilter(id) }
 
           var success, failure = 0L
 
           session.read(file, new InputStreamCallback {
             override def process(in: InputStream): Unit = {
               WithClose(factory.createRecordReader(file, in, logger)) { reader =>
-                val converter = SimpleFeatureRecordConverter(reader.getSchema, opts)
+                val converter = SimpleFeatureRecordConverter(reader.getSchema, options)
                 val typeName = converter.sft.getTypeName
 
                 val existing = Try(ds.getSchema(typeName)).getOrElse(null)
@@ -144,10 +125,10 @@ trait RecordUpdateProcessor extends DataStoreProcessor {
                           do {
                             val toWrite = writer.next()
                             names.foreach(n => toWrite.setAttribute(n, sf.getAttribute(n)))
-                            if (opts.fidField.isDefined) {
+                            if (options.fidField.isDefined) {
                               toWrite.getUserData.put(Hints.PROVIDED_FID, sf.getID)
                             }
-                            if (opts.visField.isDefined) {
+                            if (options.visField.isDefined) {
                               sf.visibility.foreach(toWrite.visibility = _)
                             }
                             writer.write()
@@ -184,19 +165,6 @@ trait RecordUpdateProcessor extends DataStoreProcessor {
         }
       }
     }
-  }
-
-  @OnRemoved
-  @OnStopped
-  @OnShutdown
-  def cleanup(): Unit = {
-    logger.info("Processor shutting down")
-    val start = System.currentTimeMillis()
-    if (ds != null) {
-      CloseWithLogging(ds)
-      ds = null
-    }
-    logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 }
 

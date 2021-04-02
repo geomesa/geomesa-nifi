@@ -35,7 +35,7 @@ trait AwsDataStoreProcessor extends DataStoreProcessor {
   override protected def getServiceProperties: Seq[PropertyDescriptor] =
     super.getServiceProperties ++ Seq(AwsDataStoreProcessor.CredentialsServiceProperty)
 
-  override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
+  override protected def getDataStoreParams(context: ProcessContext): Map[String, String] = {
     val base = super.getDataStoreParams(context)
     val prop = context.getProperty(AwsDataStoreProcessor.CredentialsServiceProperty)
     val credentials = for {

@@ -90,23 +90,24 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
   }
 
   protected def convert(
-      context: ProcessContext,
       session: ProcessSession,
       file: FlowFile,
       sft: SimpleFeatureType,
-      callback: ConverterCallback): IngestResult = {
+      callback: ConverterCallback,
+      properties: Map[PropertyDescriptor, String]): IngestResult = {
 
     val config =
       Option(file.getAttribute(ConverterAttribute))
-          .orElse(BaseProcessor.getFirst(context, Seq(converterName, ConverterSpec)))
+          .orElse(properties.get(converterName))
+          .orElse(properties.get(ConverterSpec))
           .getOrElse {
             throw new IllegalArgumentException(
               s"Converter not specified: configure '$ConverterNameKey', '${ConverterSpec.getName}' " +
                   s"or flow-file attribute '$ConverterAttribute'")
           }
 
-    val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
-    val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
+    val errorMode = properties.get(ConverterErrorMode)
+    val attributes = properties.get(ConvertFlowFileAttributes).exists(_.toBoolean)
 
     val converters = converterCache.get((sft, config, errorMode)).right.get // will re-throw the error
 

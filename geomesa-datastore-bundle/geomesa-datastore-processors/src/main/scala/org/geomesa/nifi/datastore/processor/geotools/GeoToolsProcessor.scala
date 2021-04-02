@@ -6,7 +6,8 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.geotools
+package org.geomesa.nifi.datastore.processor
+package geotools
 
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -21,7 +22,7 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
 
   private var dataStoreName: PropertyDescriptor = _
 
-  override def reloadDescriptors(): Unit = {
+  override protected def reloadDescriptors(): Unit = {
     dataStoreName = GeoToolsProcessor.dataStoreName(GeoToolsProcessor.listDataStores().map(_.getDisplayName).toSeq)
     super.reloadDescriptors()
   }
@@ -46,12 +47,12 @@ abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
     Seq(dataStoreName) ++ super.getConfigProperties
 
-  override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
+  override protected def getDataStoreParams(context: ProcessContext): Map[String, String] = {
     val params = context.getProperties.asScala.collect {
-      case (a, _) if a.getName != dataStoreName.getName => a.getName ->
-          context.getProperty(a).evaluateAttributeExpressions().getValue
+      case (a, _) if a.getName != dataStoreName.getName =>
+        a.getName -> evaluateDescriptor(a, context)
     }
-    params.toMap
+    params.collect { case (k, Some(v)) => k -> v }.toMap
   }
 
   // custom validate properties based on the specific datastore

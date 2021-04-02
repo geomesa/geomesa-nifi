@@ -6,14 +6,14 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.mixins
+package org.geomesa.nifi.datastore.processor
+package mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
-import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.validators.SimpleFeatureTypeValidator
 import org.locationtech.geomesa.utils.geotools._
@@ -33,12 +33,23 @@ trait FeatureTypeProcessor extends BaseProcessor {
   import FeatureTypeProcessor.Attributes.{SftNameAttribute, SftSpecAttribute}
   import FeatureTypeProcessor.Properties.{FeatureNameOverride, SftNameKey, SftSpec}
 
+  import scala.collection.JavaConverters._
+
   private var sftName: PropertyDescriptor = _
 
   private val sftCache = Caffeine.newBuilder().build(
-    new CacheLoader[SftArgs, Either[Throwable, SimpleFeatureType]]() {
-      override def load(key: SftArgs): Either[Throwable, SimpleFeatureType] =
-        SftArgResolver.getArg(key).right.map(decorate)
+    new CacheLoader[(SftArgs, Map[String, String]), Either[Throwable, SimpleFeatureType]]() {
+      override def load(key: (SftArgs, Map[String, String])): Either[Throwable, SimpleFeatureType] = {
+        val sft = SftArgResolver.getArg(key._1)
+        decorator match {
+          case None => sft
+          case Some(d) =>
+            val props = key._2.map { case (k, v) =>
+              getSupportedPropertyDescriptors.asScala.find(_.getName == k).get -> v
+            }
+            sft.right.map(d.decorate(_, props))
+        }
+      }
     }
   )
 
@@ -50,45 +61,49 @@ trait FeatureTypeProcessor extends BaseProcessor {
   /**
    * Load the configured feature type, based on processor and flow file properties
    *
-   * @param context context
+   * @param properties context properties
    * @param file flow file
    * @return
    */
-  protected def loadFeatureType(context: ProcessContext, file: FlowFile): SimpleFeatureType =
-    loadFeatureType(context, file, loadFeatureTypeName(context, file))
+  protected def loadFeatureType(properties: Map[PropertyDescriptor, String], file: FlowFile): SimpleFeatureType =
+    loadFeatureType(properties, file, loadFeatureTypeName(properties, file))
 
   /**
    * Load the configured feature type, based on processor and flow file properties
    *
-   * @param context context
+   * @param properties context properties
    * @param file flow file
    * @param name feature type name override
    * @return
    */
-  protected def loadFeatureType(context: ProcessContext, file: FlowFile, name: Option[String]): SimpleFeatureType = {
+  protected def loadFeatureType(
+      properties: Map[PropertyDescriptor, String],
+      file: FlowFile,
+      name: Option[String]): SimpleFeatureType = {
     val specArg =
       Option(file.getAttribute(SftSpecAttribute))
-          .orElse(BaseProcessor.getFirst(context, Seq(sftName, SftSpec)))
+          .orElse(properties.get(sftName))
+          .orElse(properties.get(SftSpec))
           .getOrElse {
             throw new IllegalArgumentException(
               s"SimpleFeatureType not specified: configure '$SftNameKey', 'SftSpec' " +
                   s"or flow-file attribute '$SftSpecAttribute'")
           }
     val nameArg = name.orNull
-    sftCache.get(SftArgs(specArg, nameArg)).right.get // will throw an error if can't be loaded
+    val decoration = decorator.map(d => properties.filterKeys(d.properties.contains)).getOrElse(Map.empty)
+    val key = (SftArgs(specArg, nameArg), decoration.map { case (k, v) => k.getName -> v })
+    sftCache.get(key).right.get // will throw an error if can't be loaded
   }
 
   /**
    * Load the configured feature type name override, based on processor and flow file properties
    *
-   * @param context context
+   * @param properties context properties
    * @param file flow file
    * @return
    */
-  protected def loadFeatureTypeName(context: ProcessContext, file: FlowFile): Option[String] = {
-    Option(file.getAttribute(SftNameAttribute))
-        .orElse(Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue))
-  }
+  protected def loadFeatureTypeName(properties: Map[PropertyDescriptor, String], file: FlowFile): Option[String] =
+    Option(file.getAttribute(SftNameAttribute)).orElse(properties.get(FeatureNameOverride))
 }
 
 object FeatureTypeProcessor {

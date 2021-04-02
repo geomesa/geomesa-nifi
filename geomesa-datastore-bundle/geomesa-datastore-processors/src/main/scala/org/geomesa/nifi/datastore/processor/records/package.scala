@@ -8,10 +8,7 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import java.util.Collections
-
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.serialization.RecordReaderFactory
@@ -214,98 +211,21 @@ package object records {
 
   case class GeometryColumn(name: String, binding: Class[_ <: Geometry], default: Boolean)
 
-  sealed trait OptionExtractor {
-
-    /**
-     * Create converter options based on the environment
-     *
-     * @param context process/session context
-     * @param variables flow file attributes
-     * @return
-     */
-    def apply(
-        context: PropertyContext,
-        variables: java.util.Map[String, String] = Collections.emptyMap()): RecordConverterOptions
-  }
-
-  object OptionExtractor {
+  object RecordConverterOptions {
 
     import GeometryEncoding.GeometryEncoding
 
-    /**
-     * Create an option extractor for the given context
-     *
-     * @param context context
-     * @param encoding default geometry encoding
-     * @return
-     */
-    def apply(context: PropertyContext, encoding: GeometryEncoding): OptionExtractor = {
-
-      val typeName = TypeNameExtractor.static(context)
-      val fidCol = FeatureIdExtractor.static(context)
-      val geomCols = GeometryColsExtractor.static(context)
-      val geomEncoding = encoding match {
-        case GeometryEncoding.Wkt => GeometryEncodingWktExtractor.static(context)
-        case GeometryEncoding.Wkb => GeometryEncodingWkbExtractor.static(context)
-      }
-      val jsonCols = JsonColumnsExtractor.static(context)
-      val dtgCol = DefaultDateExtractor.static(context)
-      val visCol = VisibilitiesExtractor.static(context)
-      val userData = UserDataExtractor.static(context)
-
-      val dynamic =
-        new DynamicConfiguration(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
-
-      val static =
-        Seq(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
-            .forall(_.isInstanceOf[StaticEvaluation[_]])
-
-      if (!static) { dynamic } else {
-        new StaticConfiguration(dynamic.apply(context, Collections.emptyMap()))
-      }
-    }
-
-    /**
-     * A static configuration that doesn't depend on the environment (i.e. no expression language)
-     *
-     * @param opts opts
-     */
-    class StaticConfiguration(opts: RecordConverterOptions) extends OptionExtractor {
-      override def apply(
-          context: PropertyContext,
-          variables: java.util.Map[String, String]): RecordConverterOptions = opts
-    }
-
-    /**
-     * A dynamic configuration that depends on the environment (i.e. has expression language)
-     *
-     * Each individual config value may be static so it's not re-evaluated each time
-     */
-    class DynamicConfiguration(
-        typeName: PropertyExtractor[Option[String]],
-        fidCol: PropertyExtractor[Option[String]],
-        geomCols: PropertyExtractor[Seq[GeometryColumn]],
-        geomEncoding: PropertyExtractor[GeometryEncoding],
-        jsonCols: PropertyExtractor[Seq[String]],
-        dtgCol: PropertyExtractor[Option[String]],
-        visCol: PropertyExtractor[Option[String]],
-        userData: PropertyExtractor[Map[String, AnyRef]]
-      ) extends OptionExtractor {
-
-      override def apply(
-          context: PropertyContext,
-          variables: java.util.Map[String, String]): RecordConverterOptions = {
-        RecordConverterOptions(
-          typeName   = typeName.apply(context, variables),
-          fidField   = fidCol.apply(context, variables),
-          geomFields = geomCols.apply(context, variables),
-          encoding   = geomEncoding.apply(context, variables),
-          jsonFields = jsonCols.apply(context, variables),
-          dtgField   = dtgCol.apply(context, variables),
-          visField   = visCol.apply(context, variables),
-          userData   = userData.apply(context, variables)
-        )
-      }
+    def apply(properties: Map[PropertyDescriptor, String]): RecordConverterOptions = {
+      RecordConverterOptions(
+        typeName   = TypeNameExtractor.apply(properties),
+        fidField   = FeatureIdExtractor.apply(properties),
+        geomFields = GeometryColsExtractor.apply(properties).getOrElse(Seq.empty),
+        encoding   = GeometryEncodingExtractor.apply(properties),
+        jsonFields = JsonColumnsExtractor.apply(properties).getOrElse(Seq.empty),
+        dtgField   = DefaultDateExtractor.apply(properties),
+        visField   = VisibilitiesExtractor.apply(properties),
+        userData   = UserDataExtractor.apply(properties).getOrElse(Map.empty)
+      )
     }
 
     /**
@@ -313,51 +233,22 @@ package object records {
      *
      * @tparam T type
      */
-    private sealed trait PropertyExtractor[T] {
+    private abstract class PropertyExtractor[T <: AnyRef](prop: PropertyDescriptor) {
 
       /**
        * Evaluate the property descriptor
        *
-       * @param context context
-       * @param variables flow file variables
+       * @param properties evaluated properties from the processor and flow file
        * @return
        */
-      def apply(context: PropertyContext, variables: java.util.Map[String, String]): T
-
-      /**
-       * Make the extractor static (memoize it), if possible
-       *
-       * @param context context
-       * @return
-       */
-      def static(context: PropertyContext): PropertyExtractor[T]
-    }
-
-    private class StaticEvaluation[T](value: T) extends PropertyExtractor[T] {
-      override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T = value
-      override def static(context: PropertyContext): PropertyExtractor[T] = this
-    }
-
-    private abstract class DynamicEvaluation[T](prop: PropertyDescriptor) extends PropertyExtractor[T] {
-      override def apply(context: PropertyContext, variables: java.util.Map[String, String]): T = {
-        val p = context.getProperty(prop)
-        val value = if (!p.isSet) { null } else {
-          Option(p.evaluateAttributeExpressions(variables).getValue).filter(_.nonEmpty).orNull
-        }
-        wrap(value)
-      }
-      override def static(context: PropertyContext): PropertyExtractor[T] = {
-        val p = context.getProperty(prop)
-        if (p.isSet && p.isExpressionLanguagePresent) { this } else {
-          new StaticEvaluation(apply(context, Collections.emptyMap()))
-        }
-      }
+      def apply(properties: Map[PropertyDescriptor, String]): Option[T] =
+        properties.get(prop).collect { case v if v.nonEmpty => wrap(v) }
 
       protected def wrap(value: String): T
     }
 
-    private class OptionEvaluation(prop: PropertyDescriptor) extends DynamicEvaluation[Option[String]](prop) {
-      override def wrap(value: String): Option[String] = Option(value)
+    private class OptionEvaluation(prop: PropertyDescriptor) extends PropertyExtractor[String](prop) {
+      override def wrap(value: String): String = value
     }
 
     private object TypeNameExtractor extends OptionEvaluation(TypeName)
@@ -365,38 +256,38 @@ package object records {
     private object DefaultDateExtractor extends OptionEvaluation(DefaultDateCol)
     private object VisibilitiesExtractor extends OptionEvaluation(VisibilitiesCol)
 
-    private object GeometryColsExtractor extends DynamicEvaluation[Seq[GeometryColumn]](GeometryCols) {
+    private object GeometryColsExtractor extends PropertyExtractor[Seq[GeometryColumn]](GeometryCols) {
       override protected def wrap(value: String): Seq[GeometryColumn] = {
-        Option(value).toSeq.flatMap { spec =>
-          SimpleFeatureSpecParser.parse(spec).attributes.collect {
-            case g: GeomAttributeSpec => GeometryColumn(g.name, g.clazz, g.default)
-          }
+        SimpleFeatureSpecParser.parse(value).attributes.collect {
+          case g: GeomAttributeSpec => GeometryColumn(g.name, g.clazz, g.default)
         }
       }
     }
 
     private object GeometryEncodingWktExtractor
-        extends DynamicEvaluation[GeometryEncoding](GeometrySerializationDefaultWkt) {
+        extends PropertyExtractor[GeometryEncoding](GeometrySerializationDefaultWkt) {
       override protected def wrap(value: String): GeometryEncoding = GeometryEncoding(value)
     }
 
     private object GeometryEncodingWkbExtractor
-        extends DynamicEvaluation[GeometryEncoding](GeometrySerializationDefaultWkb) {
+        extends PropertyExtractor[GeometryEncoding](GeometrySerializationDefaultWkb) {
       override protected def wrap(value: String): GeometryEncoding = GeometryEncoding(value)
     }
 
-    private object JsonColumnsExtractor extends DynamicEvaluation[Seq[String]](JsonCols) {
-      override protected def wrap(value: String): Seq[String] =
-        Option(value).toSeq.flatMap(_.split(",")).map(_.trim())
+    private object GeometryEncodingExtractor {
+      def apply(properties: Map[PropertyDescriptor, String]): GeometryEncoding =
+        GeometryEncodingWktExtractor.apply(properties)
+            .orElse(GeometryEncodingWkbExtractor.apply(properties))
+            .getOrElse(throw new IllegalStateException("No default geometry encoding value found in processor"))
     }
 
-    private object UserDataExtractor extends DynamicEvaluation[Map[String, AnyRef]](SchemaUserData) {
-      override protected def wrap(value: String): Map[String, AnyRef] = {
-        value match {
-          case null => Map.empty[String, AnyRef]
-          case spec => SimpleFeatureSpecParser.parse(";" + spec).options
-        }
-      }
+    private object JsonColumnsExtractor extends PropertyExtractor[Seq[String]](JsonCols) {
+      override protected def wrap(value: String): Seq[String] = value.split(",").map(_.trim())
+    }
+
+    private object UserDataExtractor extends PropertyExtractor[Map[String, AnyRef]](SchemaUserData) {
+      override protected def wrap(value: String): Map[String, AnyRef] =
+        SimpleFeatureSpecParser.parse(";" + value).options
     }
 
   }

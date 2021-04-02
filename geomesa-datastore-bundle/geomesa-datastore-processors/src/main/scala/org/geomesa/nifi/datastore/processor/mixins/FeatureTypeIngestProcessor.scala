@@ -9,6 +9,7 @@
 package org.geomesa.nifi.datastore.processor
 package mixins
 
+import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
@@ -31,15 +32,15 @@ trait FeatureTypeIngestProcessor extends DataStoreIngestProcessor with FeatureTy
   abstract class IngestProcessorWithSchema(
       store: DataStore,
       writers: FeatureWriters,
-      mode: CompatibilityMode
+      mode: CompatibilityMode,
+      properties: Map[PropertyDescriptor, String]
     ) extends IngestProcessor(store, writers, mode) {
 
     override def ingest(
-        context: ProcessContext,
         session: ProcessSession,
         file: FlowFile,
         flowFileName: String): IngestResult = {
-      val sft = loadFeatureType(context, file)
+      val sft = loadFeatureType(properties, file)
       checkSchema(sft)
       val writer = writers.borrowWriter(sft.getTypeName, file)
       try { ingest(session, file, flowFileName, sft, writer) } finally {

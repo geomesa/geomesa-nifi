@@ -10,6 +10,8 @@
 package org.geomesa.nifi.datastore.processor
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription
+import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.controller.ControllerService
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
@@ -29,11 +31,12 @@ import scala.util.control.NonFatal
 trait ConverterIngestProcessor extends FeatureTypeIngestProcessor with ConvertInputProcessor {
 
   override protected def createIngest(
-      context: ProcessContext,
-      dataStore: DataStore,
+      ds: DataStore,
       writers: FeatureWriters,
-      mode: CompatibilityMode): IngestProcessor = {
-    new ConverterIngest(context, dataStore, writers, mode)
+      mode: CompatibilityMode,
+      properties: Map[PropertyDescriptor, String],
+      services: Map[PropertyDescriptor, ControllerService]): IngestProcessor = {
+    new ConverterIngest(ds, writers, mode, properties)
   }
 
   /**
@@ -43,8 +46,12 @@ trait ConverterIngestProcessor extends FeatureTypeIngestProcessor with ConvertIn
    * @param writers feature writers
    * @param mode schema compatibility mode
    */
-  class ConverterIngest(context: ProcessContext, store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
-      extends IngestProcessorWithSchema(store, writers, mode) {
+  class ConverterIngest(
+      store: DataStore,
+      writers: FeatureWriters,
+      mode: CompatibilityMode,
+      properties: Map[PropertyDescriptor, String]
+    ) extends IngestProcessorWithSchema(store, writers, mode, properties) {
 
     override protected def ingest(
         session: ProcessSession,
@@ -63,7 +70,7 @@ trait ConverterIngestProcessor extends FeatureTypeIngestProcessor with ConvertIn
           failed
         }
       }
-      convert(context, session, file, sft, callback)
+      convert(session, file, sft, callback, properties)
     }
   }
 }
