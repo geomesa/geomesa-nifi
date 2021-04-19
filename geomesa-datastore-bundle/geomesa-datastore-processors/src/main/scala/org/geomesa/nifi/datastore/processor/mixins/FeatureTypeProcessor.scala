@@ -75,7 +75,11 @@ trait FeatureTypeProcessor extends BaseProcessor {
                   s"or flow-file attribute '$SftSpecAttribute'")
           }
     val nameArg = name.orNull
-    sftCache.get(SftArgs(specArg, nameArg)).right.get // will throw an error if can't be loaded
+    sftCache.get(SftArgs(specArg, nameArg)) match {
+      case Right(sft) => sft
+      case Left(e) =>
+        throw new IllegalArgumentException(s"Unable to load feature type '$specArg' for file ${file.getId}:", e)
+    }
   }
 
   /**
