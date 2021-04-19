@@ -4,7 +4,7 @@
 
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi</artifactId>
-    <version>3.2.0</version>
+    <version>3.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>GeoMesa-NiFi</name>
@@ -63,7 +63,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>3.2.0</geomesa.version>
+        <geomesa.version>3.2.1-SNAPSHOT</geomesa.version>
         <gt.version>23.3</gt.version>
         <scala.version>2.11.7</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
