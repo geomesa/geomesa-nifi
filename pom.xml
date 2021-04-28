@@ -63,7 +63,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>3.1.1</geomesa.version>
+        <geomesa.version>3.1.2</geomesa.version>
         <scala.version>2.11.7</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
         <accumulo.version>2.0.0</accumulo.version>
