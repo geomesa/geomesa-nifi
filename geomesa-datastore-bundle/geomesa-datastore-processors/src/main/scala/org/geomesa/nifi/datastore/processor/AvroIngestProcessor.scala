@@ -20,7 +20,6 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.mixins.FeatureTypeProcessor.Attributes.SftNameAttribute
 import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureTypeProcessor}
 import org.geotools.data.DataStore
 import org.geotools.util.Converters
@@ -44,14 +43,13 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
 
   import AvroIngestProcessor.Properties.UseProvidedFid
   import AvroIngestProcessor.{ModeMappings, Properties}
-  import org.geomesa.nifi.datastore.processor.mixins.FeatureTypeProcessor.Properties.FeatureNameOverride
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
     super.getPrimaryProperties ++ Seq(UseProvidedFid)
 
   // noinspection ScalaDeprecation
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
-    super.getConfigProperties ++ Seq(Properties.AvroMatchMode, Properties.AvroSftName)
+    super.getConfigProperties ++ Seq(Properties.AvroMatchMode)
 
   // noinspection ScalaDeprecation
   override protected def createIngest(
@@ -95,25 +93,8 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
       var success = 0L
       var failure = 0L
 
-      // noinspection ScalaDeprecation
-      val nameArg = Option(file.getAttribute(SftNameAttribute)).orElse {
-        val fno = Option(context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue)
-        val old = Option(context.getProperty(Properties.AvroSftName).getValue)
-        if (old.isEmpty) {
-          fno
-        } else if (fno.isEmpty) {
-          logger.warn(
-            s"Using deprecated property ${Properties.AvroSftName.getName} - " +
-                s"use ${FeatureNameOverride.getName} instead")
-          old
-        } else {
-          logger.warn(
-            s"Ignoring property ${Properties.AvroSftName.getName}: ${old.get} " +
-                s"in favor of ${FeatureNameOverride.getName}: ${fno.get}")
-          fno
-        }
-      }
-      val configuredSft = Try(loadFeatureType(context, file, nameArg)).toOption
+      val nameArg = loadFeatureTypeName(context, file)
+      val configuredSft = loadFeatureTypeSpec(context, file).map(s => loadFeatureType(Some(s), nameArg, file))
       // create/update the schema if it's configured in the processor or flow-file attributes
       configuredSft.foreach(checkSchema)
 
@@ -226,14 +207,6 @@ object AvroIngestProcessor {
           .description("(DEPRECATED - use Schema Compatibility) Determines how Avro SFT mismatches are handled")
           .required(false)
           .allowableValues(ExactMatch, LenientMatch)
-          .build()
-
-    @deprecated
-    val AvroSftName: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("SftName")
-          .description("(DEPRECATED - use FeatureNameOverride) Feature type name")
-          .required(false)
           .build()
   }
 
