@@ -219,6 +219,55 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
     val catalog = s"${root}AvroIngestByName"
 
     // Let's make a new Avro file
+    val sft2 = SimpleFeatureTypes.createType("test2", "name:String,*geom:Point:srid=4326,dtg:Date")
+    val pt = WKTUtils.read("POINT(1.2 3.4)")
+    val date = new Date()
+
+    val baos = new ByteArrayOutputStream()
+    WithClose(new AvroDataFileWriter(baos, sft2)) { writer =>
+      val sf = new ScalaSimpleFeature(sft2, "sf2-record", Array("Ray", pt, date))
+      writer.append(sf)
+      writer.flush()
+    }
+
+    val is = new ByteArrayInputStream(baos.toByteArray)
+
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
+      runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Existing.toString)
+
+      runner.enqueue(is)
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore(
+      (dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      Assert.assertEquals(5, sft.getAttributeCount)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      Assert.assertEquals(1, features.length)
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(Seq(null, "Ray", null, date, pt), features.head.getAttributes.asScala)
+    } finally {
+      ds.dispose()
+    }
+  }
+
+  @Test
+  def testAvroIngestWitNameOverride(): Unit = {
+    val catalog = s"${root}AvroIngestWithNameOverride"
+
+    // Let's make a new Avro file
     val sft2 = SimpleFeatureTypes.createType("test2", "lastseen:Date,newField:Double,age:Int,name:String,*geom:Point:srid=4326")
 
     val baos = new ByteArrayOutputStream()
@@ -258,7 +307,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
 
     val ds = DataStoreFinder.getDataStore(
       (dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog) +
-        (AccumuloDataStoreParams.AuthsParam.key -> "admin")).asJava
+          (AccumuloDataStoreParams.AuthsParam.key -> "admin")).asJava
     )
     Assert.assertNotNull(ds)
     try {
