@@ -106,7 +106,7 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
               val readerSft = reader.getSft
               nameArg.orElse(configuredSft.map(_.getTypeName)) match {
                 case Some(name) if readerSft.getTypeName != name => SimpleFeatureTypes.renameSft(readerSft, name)
-                case None => readerSft
+                case _ => readerSft
               }
             }
 
