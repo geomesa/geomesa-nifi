@@ -55,31 +55,33 @@ trait FeatureTypeProcessor extends BaseProcessor {
    * @return
    */
   protected def loadFeatureType(context: ProcessContext, file: FlowFile): SimpleFeatureType =
-    loadFeatureType(context, file, loadFeatureTypeName(context, file))
+    loadFeatureType(loadFeatureTypeSpec(context, file), loadFeatureTypeName(context, file), file)
 
   /**
    * Load the configured feature type, based on processor and flow file properties
    *
-   * @param context context
+   * @param spec simple feature type spec or name
+   * @param name simple feature type name override
    * @param file flow file
-   * @param name feature type name override
    * @return
    */
-  protected def loadFeatureType(context: ProcessContext, file: FlowFile, name: Option[String]): SimpleFeatureType = {
-    val specArg =
-      Option(file.getAttribute(SftSpecAttribute))
-          .orElse(BaseProcessor.getFirst(context, Seq(sftName, SftSpec)))
-          .getOrElse {
-            throw new IllegalArgumentException(
-              s"SimpleFeatureType not specified: configure '$SftNameKey', 'SftSpec' " +
-                  s"or flow-file attribute '$SftSpecAttribute'")
-          }
+  protected def loadFeatureType(spec: Option[String], name: Option[String], file: FlowFile): SimpleFeatureType = {
+    val specArg = spec.getOrElse {
+      throw new IllegalArgumentException(
+        s"SimpleFeatureType not specified: configure '$SftNameKey', 'SftSpec' " +
+            s"or flow-file attribute '$SftSpecAttribute'")
+    }
     val nameArg = name.orNull
     sftCache.get(SftArgs(specArg, nameArg)) match {
       case Right(sft) => sft
       case Left(e) =>
         throw new IllegalArgumentException(s"Unable to load feature type '$specArg' for file ${file.getId}:", e)
     }
+  }
+
+  protected def loadFeatureTypeSpec(context: ProcessContext, file: FlowFile): Option[String] = {
+    Option(file.getAttribute(SftSpecAttribute))
+        .orElse(BaseProcessor.getFirst(context, Seq(sftName, SftSpec)))
   }
 
   /**
