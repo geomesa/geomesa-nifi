@@ -46,8 +46,9 @@ package object processor {
   }
 
   object Relationships {
-    val SuccessRelationship: Relationship = new Relationship.Builder().name("success").description("Success").build()
-    val FailureRelationship: Relationship = new Relationship.Builder().name("failure").description("Failure").build()
+    val SuccessRelationship: Relationship  = new Relationship.Builder().name("success").description("Success").build()
+    val FailureRelationship: Relationship  = new Relationship.Builder().name("failure").description("Failure").build()
+    val OriginalRelationship: Relationship = new Relationship.Builder().name("original").description("Original input file").build()
   }
 
   /**

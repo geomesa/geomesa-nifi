@@ -121,7 +121,11 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
           output = session.putAttribute(output, Attributes.IngestFailureCount, result.failure.toString)
           logger.debug(
             s"Ingested file ${fullName(output)} with ${result.success} successes and ${result.failure} failures")
-          session.transfer(output, Relationships.SuccessRelationship)
+          if (result.success > 0L) {
+            session.transfer(output, Relationships.SuccessRelationship)
+          } else {
+            session.transfer(output, Relationships.FailureRelationship)
+          }
         } catch {
           case NonFatal(e) =>
             logger.error(s"Error processing file ${fullName(file)}:", e)

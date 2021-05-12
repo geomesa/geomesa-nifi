@@ -39,15 +39,13 @@ abstract class BaseProcessor extends AbstractProcessor {
 
   override protected def init(context: ProcessorInitializationContext): Unit = {
     relationships.clear()
-    relationships.add(Relationships.SuccessRelationship)
-    relationships.add(Relationships.FailureRelationship)
+    getShips.foreach(relationships.add)
 
     reloadDescriptors()
 
     logger.info(s"Props are ${descriptors.asScala.mkString(", ")}")
     logger.info(s"Relationships are ${relationships.asScala.mkString(", ")}")
   }
-
 
   @OnAdded // reload on add to pick up any sft/converter classpath changes
   def reloadDescriptors(): Unit = {
@@ -58,6 +56,10 @@ abstract class BaseProcessor extends AbstractProcessor {
     getConfigProperties.foreach(descriptors.add)
     getServiceProperties.foreach(descriptors.add)
   }
+
+  protected def getShips: Seq[Relationship] =
+    Seq(Relationships.SuccessRelationship, Relationships.FailureRelationship)
+
 
   /**
    * Get the main processor params - these will come first in the UI

@@ -13,6 +13,7 @@ package mixins
 import java.io.InputStream
 import java.util.Collections
 
+import com.codahale.metrics.Counter
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
@@ -120,7 +121,8 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
           inputFile
         }
       }
-      val ec = converter.createEvaluationContext(globalParams)
+      // create new counters so we don't use any shared state
+      val ec = converter.createEvaluationContext(globalParams, new Counter(), new Counter())
       session.read(file, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           WithClose(converter.process(in, ec)) { iter =>

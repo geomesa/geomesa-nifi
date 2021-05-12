@@ -31,7 +31,14 @@ class ConvertToGeoFileTest extends LazyLogging {
         runner.enqueue(input)
         runner.run()
         runner.assertTransferCount(Relationships.SuccessRelationship, i + 1)
+        runner.assertTransferCount(Relationships.OriginalRelationship, i + 1)
         runner.assertTransferCount(Relationships.FailureRelationship, 0)
+
+        val original = runner.getFlowFilesForRelationship(Relationships.OriginalRelationship).get(i)
+        original.assertAttributeEquals("geomesa.convert.successes", "3")
+        original.assertAttributeEquals("geomesa.convert.failures", "0")
+        original.assertContentEquals(input)
+
         val output = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship).get(i)
         output.assertAttributeEquals("geomesa.convert.successes", "3")
         output.assertAttributeEquals("geomesa.convert.failures", "0")
