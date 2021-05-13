@@ -21,7 +21,7 @@
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-kafka-datastore_2.11</artifactId>
+            <artifactId>geomesa-kafka-datastore_${scala.binary.version}</artifactId>
         </dependency>
 
         <dependency>

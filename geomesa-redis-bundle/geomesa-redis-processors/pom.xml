@@ -22,7 +22,7 @@
 
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-redis-datastore_2.11</artifactId>
+            <artifactId>geomesa-redis-datastore_${scala.binary.version}</artifactId>
         </dependency>
 
         <!-- test -->

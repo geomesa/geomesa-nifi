@@ -55,11 +55,11 @@
 
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-index-api_2.11</artifactId>
+            <artifactId>geomesa-index-api_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-convert-all_2.11</artifactId>
+            <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
         </dependency>
         <!-- bring in postgis to make the PutGeoTools processor work with it out of the box -->
         <dependency>
@@ -68,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools_2.11</artifactId>
+            <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>javax.media</groupId>

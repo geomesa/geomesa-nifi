@@ -65,8 +65,8 @@
     <properties>
         <geomesa.version>3.3.0-SNAPSHOT</geomesa.version>
         <gt.version>23.3</gt.version>
-        <scala.version>2.11.7</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
+        <scala.version>2.12.13</scala.version>
+        <scala.binary.version>2.12</scala.binary.version>
         <accumulo.version>2.0.0</accumulo.version>
         <accumulo-1.version>1.9.3</accumulo-1.version>
         <hbase.version>2.2.3</hbase.version>
@@ -277,12 +277,12 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-index-api_2.11</artifactId>
+                <artifactId>geomesa-index-api_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-tools_2.11</artifactId>
+                <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
 
@@ -293,7 +293,7 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-hbase-datastore_2.11</artifactId>
+                <artifactId>geomesa-hbase-datastore_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
