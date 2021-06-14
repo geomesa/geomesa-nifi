@@ -168,6 +168,13 @@
                 <artifactId>nifi-standard-processors</artifactId>
                 <version>${nifi.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <!-- this artifact relies on a non-secure repo and maven won't resolve it -->
+                    <exclusion>
+                        <groupId>com.fluenda</groupId>
+                        <artifactId>ParCEFone</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- managed submodules -->
