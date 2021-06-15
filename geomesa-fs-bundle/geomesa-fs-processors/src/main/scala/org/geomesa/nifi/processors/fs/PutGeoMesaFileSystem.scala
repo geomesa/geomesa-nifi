@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.fs
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{ConverterIngestProcessor, PutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "hdfs", "s3", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[FileSystemDataStoreService], classOf[PutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class PutGeoMesaFileSystem extends FileSystemIngestProcessor with ConverterIngestProcessor

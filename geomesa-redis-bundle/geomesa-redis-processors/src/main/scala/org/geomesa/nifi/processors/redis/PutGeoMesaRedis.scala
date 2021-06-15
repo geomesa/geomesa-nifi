@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.redis
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{ConverterIngestProcessor, PutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "redis", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[RedisDataStoreService], classOf[PutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class PutGeoMesaRedis extends RedisProcessor with ConverterIngestProcessor

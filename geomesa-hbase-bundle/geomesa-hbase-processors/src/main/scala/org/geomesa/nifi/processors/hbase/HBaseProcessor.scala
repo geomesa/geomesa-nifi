@@ -8,12 +8,13 @@
 
 package org.geomesa.nifi.processors.hbase
 
-import org.geomesa.nifi.datastore.processor.mixins.{AwsDataStoreProcessor, DataStoreProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{AbstractDataStoreProcessor, AwsDataStoreProcessor}
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.hbase.data.{HBaseDataStoreFactory, HBaseDataStoreParams}
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
-abstract class HBaseProcessor extends DataStoreProcessor(HBaseProcessor.HBaseProperties) with AwsDataStoreProcessor {
+abstract class HBaseProcessor
+    extends AbstractDataStoreProcessor(HBaseProcessor.HBaseProperties) with AwsDataStoreProcessor {
   override protected def configParam: GeoMesaParam[String] = HBaseDataStoreParams.ConfigsParam
 }
 

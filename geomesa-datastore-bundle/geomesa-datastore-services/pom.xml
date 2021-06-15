@@ -15,9 +15,17 @@
     <description>GeoMesa controller service implementations</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-processors</artifactId>
+        </dependency>
+
+        <!-- provided dependencies inherited from the geomesa-datastore-services-api-nar -->
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
             <artifactId>geomesa-datastore-services-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -27,6 +35,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
         </dependency>
+
     </dependencies>
 
 </project>

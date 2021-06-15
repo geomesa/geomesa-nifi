@@ -2,3 +2,8 @@ org.geomesa.nifi.processors.hbase.AvroToPutGeoMesaHBase
 org.geomesa.nifi.processors.hbase.PutGeoMesaHBase
 org.geomesa.nifi.processors.hbase.PutGeoMesaHBaseRecord
 org.geomesa.nifi.processors.hbase.UpdateGeoMesaHBaseRecord
+org.geomesa.nifi.datastore.processor.ConvertToGeoAvro
+org.geomesa.nifi.datastore.processor.geotools.AvroToPutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoToolsRecord
+org.geomesa.nifi.datastore.processor.geotools.UpdateGeoToolsRecord

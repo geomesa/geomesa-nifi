@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.hbase
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, AvroToPutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "avro", "hbase", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[HBaseDataStoreService], classOf[AvroToPutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class AvroToPutGeoMesaHBase extends HBaseProcessor with AvroIngestProcessor

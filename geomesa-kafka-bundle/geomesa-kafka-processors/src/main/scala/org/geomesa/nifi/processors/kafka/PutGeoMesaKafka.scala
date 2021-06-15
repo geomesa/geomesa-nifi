@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{ConverterIngestProcessor, PutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "kafka", "stream", "streaming", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[KafkaDataStoreService], classOf[PutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class PutGeoMesaKafka extends KafkaProcessor with ConverterIngestProcessor

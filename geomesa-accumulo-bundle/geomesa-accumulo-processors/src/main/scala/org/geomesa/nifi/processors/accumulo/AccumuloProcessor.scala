@@ -10,12 +10,12 @@ package org.geomesa.nifi.processors.accumulo
 
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreConfigService
-import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams}
+import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
 
-abstract class AccumuloProcessor extends DataStoreProcessor(AccumuloProcessor.AccumuloProperties) {
+abstract class AccumuloProcessor extends AbstractDataStoreProcessor(AccumuloProcessor.AccumuloProperties) {
 
   import AccumuloDataStoreParams._
   import AccumuloProcessor._
@@ -82,5 +82,5 @@ object AccumuloProcessor extends PropertyDescriptorUtils {
 
   private val AccumuloProperties =
     // don't require any properties because we are using the controller service
-    createPropertyDescriptors(AccumuloDataStoreFactory).map(unrequired) :+ GeoMesaConfigController
+    AccumuloDataStoreService.Properties.map(unrequired) :+ GeoMesaConfigController
 }

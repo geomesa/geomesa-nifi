@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.redis
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.RecordUpdateProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{RecordUpdateProcessor, UpdateGeoMesaRecord}
 
 @Tags(Array("geomesa", "geo", "update", "records", "redis", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[RedisDataStoreService], classOf[UpdateGeoMesaRecord]),
+  reason = "Replaced with controller service for data store connections")
 class UpdateGeoMesaRedisRecord extends RedisProcessor with RecordUpdateProcessor

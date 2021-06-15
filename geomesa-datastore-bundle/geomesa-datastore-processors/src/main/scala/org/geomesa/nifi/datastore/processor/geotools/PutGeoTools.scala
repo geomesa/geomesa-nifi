@@ -8,9 +8,12 @@
 
 package org.geomesa.nifi.datastore.processor.geotools
 
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.apache.nifi.annotation.documentation.{CapabilityDescription, DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{ConverterIngestProcessor, PutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "geotools"))
 @CapabilityDescription("Convert and ingest data files into a GeoTools data store")
+@DeprecationNotice(
+  alternatives = Array(classOf[PostgisDataStoreService], classOf[PutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class PutGeoTools extends GeoToolsProcessor with ConverterIngestProcessor

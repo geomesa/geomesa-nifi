@@ -12,10 +12,10 @@ import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, Valida
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.AbstractDataStoreProcessor
 import org.geotools.data.{DataStoreFactorySpi, DataStoreFinder}
 
-abstract class GeoToolsProcessor extends DataStoreProcessor(Seq.empty) {
+abstract class GeoToolsProcessor extends AbstractDataStoreProcessor(Seq.empty) {
 
   import scala.collection.JavaConverters._
 

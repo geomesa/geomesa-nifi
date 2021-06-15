@@ -2,3 +2,8 @@ org.geomesa.nifi.processors.accumulo.AvroToPutGeoMesaAccumulo
 org.geomesa.nifi.processors.accumulo.PutGeoMesaAccumulo
 org.geomesa.nifi.processors.accumulo.PutGeoMesaAccumuloRecord
 org.geomesa.nifi.processors.accumulo.UpdateGeoMesaAccumuloRecord
+org.geomesa.nifi.datastore.processor.ConvertToGeoAvro
+org.geomesa.nifi.datastore.processor.geotools.AvroToPutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoToolsRecord
+org.geomesa.nifi.datastore.processor.geotools.UpdateGeoToolsRecord

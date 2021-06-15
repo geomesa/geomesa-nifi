@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.fs
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.RecordUpdateProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{RecordUpdateProcessor, UpdateGeoMesaRecord}
 
 @Tags(Array("geomesa", "geo", "update", "records", "hdfs", "s3", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[FileSystemDataStoreService], classOf[UpdateGeoMesaRecord]),
+  reason = "Replaced with controller service for data store connections")
 class UpdateGeoMesaFileSystemRecord extends FileSystemProcessor with RecordUpdateProcessor

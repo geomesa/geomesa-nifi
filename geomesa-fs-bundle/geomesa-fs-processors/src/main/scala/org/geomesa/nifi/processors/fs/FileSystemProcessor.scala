@@ -8,17 +8,11 @@
 
 package org.geomesa.nifi.processors.fs
 
-import org.geomesa.nifi.datastore.processor.mixins.{AwsDataStoreProcessor, DataStoreProcessor}
-import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory
+import org.geomesa.nifi.datastore.processor.mixins.{AbstractDataStoreProcessor, AwsDataStoreProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
 abstract class FileSystemProcessor
-    extends DataStoreProcessor(FileSystemProcessor.FileSystemProperties) with AwsDataStoreProcessor {
+    extends AbstractDataStoreProcessor(FileSystemDataStoreService.Properties) with AwsDataStoreProcessor {
   override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
-}
-
-object FileSystemProcessor extends PropertyDescriptorUtils {
-  private [fs] val FileSystemProperties = createPropertyDescriptors(FileSystemDataStoreFactory)
 }
