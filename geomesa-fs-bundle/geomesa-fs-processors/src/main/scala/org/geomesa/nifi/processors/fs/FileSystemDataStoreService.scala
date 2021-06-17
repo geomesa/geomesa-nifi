@@ -19,7 +19,6 @@ import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDat
 @CapabilityDescription("Service for connecting to GeoMesa FileSystem stores")
 class FileSystemDataStoreService
     extends AwsDataStoreService[FileSystemDataStoreFactory](FileSystemDataStoreService.Properties, FileSystemDataStoreParams.ConfigsParam)
-// TODO partition scheme...
 
 object FileSystemDataStoreService extends PropertyDescriptorUtils {
   val Properties: Seq[PropertyDescriptor] = createPropertyDescriptors(FileSystemDataStoreFactory)
