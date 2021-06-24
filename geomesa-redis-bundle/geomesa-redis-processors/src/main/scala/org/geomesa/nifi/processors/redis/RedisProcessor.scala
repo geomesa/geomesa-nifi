@@ -8,11 +8,11 @@
 
 package org.geomesa.nifi.processors.redis
 
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.redis.data.RedisDataStoreFactory
 
-abstract class RedisProcessor extends DataStoreProcessor(RedisProcessor.RedisProperties)
+abstract class RedisProcessor extends AbstractDataStoreProcessor(RedisProcessor.RedisProperties)
 
 object RedisProcessor extends PropertyDescriptorUtils {
   private val RedisProperties = createPropertyDescriptors(RedisDataStoreFactory)

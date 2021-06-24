@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.hbase
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{ConverterIngestProcessor, PutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "hbase", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[HBaseDataStoreService], classOf[PutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class PutGeoMesaHBase extends HBaseProcessor with ConverterIngestProcessor

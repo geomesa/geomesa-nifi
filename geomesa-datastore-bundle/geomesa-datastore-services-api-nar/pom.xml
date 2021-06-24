@@ -18,6 +18,7 @@
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
             <artifactId>geomesa-datastore-services-api</artifactId>
+            <scope>compile</scope>
         </dependency>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its
              classpath at runtime. see https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars -->

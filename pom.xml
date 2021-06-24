@@ -59,6 +59,7 @@
         <module>geomesa-fs-bundle</module>
         <module>geomesa-hbase-bundle</module>
         <module>geomesa-kafka-bundle</module>
+        <module>geomesa-lambda-bundle</module>
         <module>geomesa-redis-bundle</module>
     </modules>
 
@@ -85,6 +86,8 @@
         <specs2.version>4.3.2</specs2.version>
         <junit.version>4.13.1</junit.version>
         <slf4j.version>1.7.5</slf4j.version>
+        <log4j.version>1.2.17</log4j.version>
+        <scalalogging.version>3.8.0</scalalogging.version>
         <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit</maven.test.jvmargs>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -102,29 +105,9 @@
             <!-- Nifi Dependencies -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-api</artifactId>
-                <version>${nifi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-utils</artifactId>
-                <version>${nifi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-processor-utils</artifactId>
-                <version>${nifi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
                 <version>${nifi.version}</version>
                 <type>nar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-aws-service-api</artifactId>
-                <version>${nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -134,28 +117,63 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-api</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-utils</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-processor-utils</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-aws-service-api</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record</artifactId>
                 <version>${nifi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-avro-record-utils</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-serialization-service-api</artifactId>
                 <version>${nifi.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-sink-api</artifactId>
                 <version>${nifi.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-record-utils</artifactId>
                 <version>${nifi.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-schema-registry-service-api</artifactId>
                 <version>${nifi.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -181,6 +199,11 @@
 
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-datastore-services-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
                 <artifactId>geomesa-accumulo-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -195,11 +218,6 @@
                 <artifactId>geomesa-accumulo2-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.geomesa.nifi</groupId>
-                <artifactId>geomesa-datastore-services-api</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
@@ -264,6 +282,17 @@
             </dependency>
             <dependency>
                 <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-lambda-processors</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-lambda-nar</artifactId>
+                <version>${project.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
                 <artifactId>geomesa-redis-processors</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -289,6 +318,16 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-utils_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-process-vector_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
@@ -300,12 +339,12 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-hbase-datastore_${scala.binary.version}</artifactId>
+                <artifactId>geomesa-fs-datastore_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-kafka_${scala.binary.version}</artifactId>
+                <artifactId>geomesa-hbase-datastore_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
@@ -315,18 +354,24 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-tools_${scala.binary.version}</artifactId>
+                <artifactId>geomesa-lambda-datastore_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-redis-datastore_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-main</artifactId>
+                <version>${gt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-render</artifactId>
+                <version>${gt.version}</version>
             </dependency>
 
             <!-- data store dependencies -->
@@ -390,13 +435,11 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
                 <version>${hadoop.version}</version>
-                <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
                 <version>${hadoop.version}</version>
-                <scope>compile</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.mortbay.jetty</groupId>
@@ -448,7 +491,6 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-aws</artifactId>
                 <version>${hadoop.version}</version>
-                <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>com.amazonaws</groupId>
@@ -526,6 +568,12 @@
                 <version>2.8.6</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>28.0-jre</version>
+            </dependency>
+
             <!-- Netty 4.x used by arrow, hadoop, hbase, and c* -->
             <dependency>
                 <groupId>io.netty</groupId>
@@ -570,6 +618,24 @@
                 <version>3.6.2.Final</version>
             </dependency>
 
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.9.3</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-configuration</groupId>
+                <artifactId>commons-configuration</artifactId>
+                <version>1.6</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- exclude commons-beanutils-core, which doesn't exist in 1.9.3 -->
+                        <groupId>commons-beanutils</groupId>
+                        <artifactId>commons-beanutils-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <!-- scala -->
 
             <dependency>
@@ -591,6 +657,11 @@
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-reflect</artifactId>
                 <version>${scala.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.scala-logging</groupId>
+                <artifactId>scala-logging_${scala.binary.version}</artifactId>
+                <version>${scalalogging.version}</version>
             </dependency>
 
             <!-- test dependencies -->
@@ -622,6 +693,12 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>${slf4j.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>log4j</groupId>
+                <artifactId>log4j</artifactId>
+                <version>${log4j.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -792,7 +869,7 @@
                 <plugin>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-nar-maven-plugin</artifactId>
-                    <version>1.2.0</version>
+                    <version>1.3.2</version>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>

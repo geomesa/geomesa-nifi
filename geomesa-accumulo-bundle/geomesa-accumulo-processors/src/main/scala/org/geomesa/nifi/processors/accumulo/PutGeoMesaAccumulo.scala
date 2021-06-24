@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.accumulo
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.ConverterIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{ConverterIngestProcessor, PutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "convert", "accumulo", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[AccumuloDataStoreService], classOf[PutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class PutGeoMesaAccumulo extends AccumuloProcessor with ConverterIngestProcessor

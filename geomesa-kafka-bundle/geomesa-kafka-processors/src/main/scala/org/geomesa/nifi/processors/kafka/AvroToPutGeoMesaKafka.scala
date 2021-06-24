@@ -8,8 +8,11 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import org.apache.nifi.annotation.documentation.Tags
-import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
+import org.apache.nifi.annotation.documentation.{DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, AvroToPutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "avro", "kafka", "stream", "streaming", "geotools"))
+@DeprecationNotice(
+  alternatives = Array(classOf[KafkaDataStoreService], classOf[AvroToPutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class AvroToPutGeoMesaKafka extends KafkaProcessor with AvroIngestProcessor

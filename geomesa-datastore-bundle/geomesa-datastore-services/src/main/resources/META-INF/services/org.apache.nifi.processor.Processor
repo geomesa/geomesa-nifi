@@ -1,0 +1,5 @@
+org.geomesa.nifi.datastore.processor.AvroToPutGeoMesa
+org.geomesa.nifi.datastore.processor.PutGeoMesa
+org.geomesa.nifi.datastore.processor.PutGeoMesaRecord
+org.geomesa.nifi.datastore.processor.UpdateGeoMesaRecord
+org.geomesa.nifi.datastore.processor.ConvertToGeoFile

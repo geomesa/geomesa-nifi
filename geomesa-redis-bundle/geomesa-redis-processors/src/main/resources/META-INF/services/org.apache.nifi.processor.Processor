@@ -2,3 +2,8 @@ org.geomesa.nifi.processors.redis.AvroToPutGeoMesaRedis
 org.geomesa.nifi.processors.redis.PutGeoMesaRedis
 org.geomesa.nifi.processors.redis.PutGeoMesaRedisRecord
 org.geomesa.nifi.processors.redis.UpdateGeoMesaRedisRecord
+org.geomesa.nifi.datastore.processor.ConvertToGeoAvro
+org.geomesa.nifi.datastore.processor.geotools.AvroToPutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoTools
+org.geomesa.nifi.datastore.processor.geotools.PutGeoToolsRecord
+org.geomesa.nifi.datastore.processor.geotools.UpdateGeoToolsRecord

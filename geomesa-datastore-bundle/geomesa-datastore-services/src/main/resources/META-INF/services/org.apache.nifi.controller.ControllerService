@@ -1,1 +1,3 @@
 org.geomesa.nifi.datastore.impl.AccumuloDataStoreConfigControllerService
+org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory
+org.geomesa.nifi.datastore.processor.geotools.PostgisDataStoreService

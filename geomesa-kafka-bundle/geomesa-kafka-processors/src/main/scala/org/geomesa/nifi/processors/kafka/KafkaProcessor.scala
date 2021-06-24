@@ -9,12 +9,12 @@
 package org.geomesa.nifi.processors.kafka
 
 import org.apache.nifi.processor.ProcessContext
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
+import org.geomesa.nifi.datastore.processor.mixins.AbstractDataStoreProcessor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams.{ProducerConfig, TopicPartitions, TopicReplication}
 import org.locationtech.geomesa.kafka.data.{KafkaDataStoreFactory, KafkaDataStoreParams}
 
-abstract class KafkaProcessor extends DataStoreProcessor(KafkaProcessor.KafkaProperties) {
+abstract class KafkaProcessor extends AbstractDataStoreProcessor(KafkaProcessor.KafkaProperties) {
   // set consumer count to zero to disable consuming
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] =
     super.getDataStoreParams(context) ++ Map(KafkaDataStoreParams.ConsumerCount.getName -> Int.box(0))

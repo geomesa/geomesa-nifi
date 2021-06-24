@@ -30,6 +30,21 @@ package object processor {
    */
   def invalid(message: String): ValidationResult = new ValidationResult.Builder().input(message).build()
 
+  def invalid(subject: String, error: Throwable, input: Option[String] = None): ValidationResult = {
+    val builder = new ValidationResult.Builder().subject(subject)
+    input.foreach(builder.input)
+    val explanation = new StringBuilder
+    var e = error
+    while (e != null) {
+      if (explanation.nonEmpty) {
+        explanation.append("\n  Caused by: ")
+      }
+      explanation.append(e.toString)
+      e = e.getCause
+    }
+    builder.explanation(explanation.toString).build()
+  }
+
   object Relationships {
     val SuccessRelationship: Relationship = new Relationship.Builder().name("success").description("Success").build()
     val FailureRelationship: Relationship = new Relationship.Builder().name("failure").description("Failure").build()

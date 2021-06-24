@@ -16,12 +16,13 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService
+import org.geomesa.nifi.datastore.processor.service.AwsDataStoreService
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
 /**
   * Trait with support for an AWSCredentialsProviderService
   */
-trait AwsDataStoreProcessor extends DataStoreProcessor {
+trait AwsDataStoreProcessor extends AbstractDataStoreProcessor {
 
   import scala.collection.JavaConverters._
 
@@ -33,11 +34,11 @@ trait AwsDataStoreProcessor extends DataStoreProcessor {
   protected def configParam: GeoMesaParam[String]
 
   override protected def getServiceProperties: Seq[PropertyDescriptor] =
-    super.getServiceProperties ++ Seq(AwsDataStoreProcessor.CredentialsServiceProperty)
+    super.getServiceProperties ++ Seq(AwsDataStoreService.Properties.CredentialsServiceProperty)
 
   override protected def getDataStoreParams(context: ProcessContext): Map[String, _] = {
     val base = super.getDataStoreParams(context)
-    val prop = context.getProperty(AwsDataStoreProcessor.CredentialsServiceProperty)
+    val prop = context.getProperty(AwsDataStoreService.Properties.CredentialsServiceProperty)
     val credentials = for {
       service  <- Option(prop.asControllerService(classOf[AWSCredentialsProviderService]))
       provider <- Option(service.getCredentialsProvider)
@@ -66,14 +67,4 @@ trait AwsDataStoreProcessor extends DataStoreProcessor {
         base ++ Map(configParam.key -> out.toString)
     }
   }
-}
-
-object AwsDataStoreProcessor {
-  private val CredentialsServiceProperty =
-    new PropertyDescriptor.Builder()
-        .name("AWS Credentials Provider service")
-        .description("The Controller Service that is used to obtain an AWS credentials provider")
-        .required(false)
-        .identifiesControllerService(classOf[AWSCredentialsProviderService])
-        .build()
 }

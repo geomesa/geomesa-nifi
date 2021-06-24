@@ -21,6 +21,8 @@ import scala.util.control.NonFatal
 
 trait PropertyDescriptorUtils extends LazyLogging {
 
+  import scala.collection.JavaConverters._
+
   /**
    * Create descriptors for a data store
    *
@@ -69,7 +71,13 @@ trait PropertyDescriptorUtils extends LazyLogging {
       builder.allowableValues("true", "false")
     } else {
       Option(param.metadata.get(Parameter.OPTIONS)).foreach { enum =>
-        try { builder.allowableValues(new java.util.HashSet(enum.asInstanceOf[java.util.List[String]])) } catch {
+        try {
+          val allowed = new java.util.HashSet[String]()
+          enum.asInstanceOf[java.util.List[_]].asScala.foreach(e => allowed.add(e.toString))
+          if (!allowed.isEmpty) {
+            builder.allowableValues(allowed)
+          }
+        } catch {
           case NonFatal(e) => logger.warn(s"Error trying to set allowable values for ${param.getName}: $enum", e)
         }
       }

@@ -8,9 +8,12 @@
 
 package org.geomesa.nifi.datastore.processor.geotools
 
-import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.datastore.processor.AvroIngestProcessor
+import org.apache.nifi.annotation.documentation.{CapabilityDescription, DeprecationNotice, Tags}
+import org.geomesa.nifi.datastore.processor.{AvroIngestProcessor, AvroToPutGeoMesa}
 
 @Tags(Array("geomesa", "geo", "ingest", "avro", "geotools"))
 @CapabilityDescription("Ingest GeoAvro files into a GeoTools data store")
+@DeprecationNotice(
+  alternatives = Array(classOf[PostgisDataStoreService], classOf[AvroToPutGeoMesa]),
+  reason = "Replaced with controller service for data store connections")
 class AvroToPutGeoTools extends GeoToolsProcessor with AvroIngestProcessor

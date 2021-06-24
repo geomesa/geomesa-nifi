@@ -144,8 +144,8 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
-  override protected def getSecondaryProperties: Seq[PropertyDescriptor] =
-    super.getSecondaryProperties ++ Seq(SchemaCompatibilityMode, WriteMode, ModifyAttribute)
+  override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
+    super.getTertiaryProperties ++ Seq(SchemaCompatibilityMode, WriteMode, ModifyAttribute)
 
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
     super.getConfigProperties ++ Seq(FeatureWriterCaching, FeatureWriterCacheTimeout, NifiBatchSize)
