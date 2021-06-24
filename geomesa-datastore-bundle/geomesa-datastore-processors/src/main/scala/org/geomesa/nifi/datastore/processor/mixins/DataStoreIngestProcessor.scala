@@ -174,6 +174,12 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
   abstract class IngestProcessor(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
       extends Closeable {
 
+    private val schemaCheckCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(
+      new CacheLoader[SimpleFeatureType, Try[Unit]]() {
+        override def load(sft: SimpleFeatureType): Try[Unit] = Try(doCheckSchema(sft))
+      }
+    )
+
     /**
      * Ingest a flow file
      *
@@ -192,11 +198,18 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     override def close(): Unit = store.dispose()
 
     /**
-     * Check and update the schema in the data store, as needed
+     * Check and update the schema in the data store, as needed.
+     *
+     * Implementation note: the feature type is used as a key for a cache, which tracks the check against
+     * the data store so we don't perform it repeatedly. This is safe to do since all our processors cache the
+     * feature type object, meaning the same cache entry will be returned for each flow file that targets a
+     * given type name.
      *
      * @param sft simple feature type
      */
-    protected def checkSchema(sft: SimpleFeatureType): Unit = {
+    protected def checkSchema(sft: SimpleFeatureType): Unit = schemaCheckCache.get(sft).get // throw any error
+
+    private def doCheckSchema(sft: SimpleFeatureType): Unit = {
       store match {
         case gm: GeoMesaDataStore[_] =>
           gm.checkSchemaCompatibility(sft.getTypeName, sft) match {
