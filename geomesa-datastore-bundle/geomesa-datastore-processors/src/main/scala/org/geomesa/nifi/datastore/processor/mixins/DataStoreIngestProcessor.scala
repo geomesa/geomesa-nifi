@@ -178,11 +178,12 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
   abstract class IngestProcessor(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
       extends Closeable {
 
-    private val schemaCheckCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(
-      new CacheLoader[SimpleFeatureType, Try[Unit]]() {
-        override def load(sft: SimpleFeatureType): Try[Unit] = Try(doCheckSchema(sft))
-      }
-    )
+    private val schemaCheckCache =
+      Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build[SimpleFeatureType, Try[Unit]](
+        new CacheLoader[SimpleFeatureType, Try[Unit]]() {
+          override def load(sft: SimpleFeatureType): Try[Unit] = Try(doCheckSchema(sft))
+        }
+      )
 
     /**
      * Ingest a flow file
@@ -340,8 +341,13 @@ object DataStoreIngestProcessor {
       override def close(): Unit = CloseWithLogging(writer)
     }
 
-    case class ModifyWriter(ds: DataStore, typeName: String, attribute: Option[String], append: SimpleWriter)
+    class ModifyWriter(val typeName: String, ds: DataStore, attribute: Option[String], appender: => SimpleWriter)
         extends SimpleWriter with LazyLogging  {
+
+      private var append: SimpleWriter = _
+
+      def appendWriter: Option[SimpleWriter] = Option(append)
+
       override def apply(f: SimpleFeature): Unit = {
         val filter = attribute match {
           case None => FilterHelper.ff.id(FilterHelper.ff.featureId(f.getID))
@@ -358,11 +364,15 @@ object DataStoreIngestProcessor {
               logger.warn(s"Filter '${ECQL.toCQL(filter)}' matched multiple records, only updating the first one")
             }
           } else {
+            if (append == null) {
+              append = appender
+            }
             append.apply(f)
           }
         }
       }
-      override def close(): Unit = append.close()
+
+      override def close(): Unit = {}
     }
   }
 
@@ -374,7 +384,7 @@ object DataStoreIngestProcessor {
    */
   class PooledWriters(ds: DataStore, timeout: Long) extends FeatureWriters {
 
-    private val cache = Caffeine.newBuilder().build(
+    private val cache = Caffeine.newBuilder().build[String, ObjectPool[SimpleWriter]](
       new CacheLoader[String, ObjectPool[SimpleWriter]] {
         override def load(key: String): ObjectPool[SimpleWriter] = {
           val factory = new BasePooledObjectFactory[SimpleWriter] {
@@ -432,12 +442,9 @@ object DataStoreIngestProcessor {
    */
   class ModifyWriters(ds: DataStore, attribute: Option[String], appender: FeatureWriters) extends FeatureWriters {
     override def borrowWriter(typeName: String, file: FlowFile): SimpleWriter =
-      ModifyWriter(ds, typeName, attribute, appender.borrowWriter(typeName, file))
-    override def returnWriter(writer: SimpleWriter): Unit = {
-      val ModifyWriter(_, _, _, append) = writer
-      appender.returnWriter(append)
-      CloseWithLogging(writer)
-    }
+      new ModifyWriter(typeName, ds, attribute, appender.borrowWriter(typeName, file))
+    override def returnWriter(writer: SimpleWriter): Unit =
+      writer.asInstanceOf[ModifyWriter].appendWriter.foreach(appender.returnWriter)
     override def invalidate(typeName: String): Unit = appender.invalidate(typeName)
     override def close(): Unit = CloseWithLogging(appender) // note: also disposes of the datastore
   }
@@ -455,7 +462,7 @@ object DataStoreIngestProcessor {
     override def borrowWriter(typeName: String, file: FlowFile): SimpleWriter = {
       lazy val append = appender.borrowWriter(typeName, file)
       lazy val modify =
-        ModifyWriter(ds, typeName, Option(attribute.evaluateAttributeExpressions(file).getValue), append)
+        new ModifyWriter(typeName, ds, Option(attribute.evaluateAttributeExpressions(file).getValue), append)
       mode.evaluateAttributeExpressions(file).getValue match {
         case null | "" => append
         case m if m.equalsIgnoreCase(FeatureWriters.Append) => append
@@ -465,11 +472,8 @@ object DataStoreIngestProcessor {
     }
     override def returnWriter(writer: SimpleWriter): Unit = {
       writer match {
-        case m: ModifyWriter =>
-          appender.returnWriter(m.append)
-          CloseWithLogging(m)
-        case _ =>
-          appender.returnWriter(writer)
+        case m: ModifyWriter => m.appendWriter.foreach(appender.returnWriter)
+        case _ => appender.returnWriter(writer)
       }
     }
     override def invalidate(typeName: String): Unit = appender.invalidate(typeName)
