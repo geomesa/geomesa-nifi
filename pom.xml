@@ -733,6 +733,12 @@
                 <classifier>tests</classifier>
                 <scope>test</scope>
             </dependency>
+            <!-- this is a transitive dependency - this version fixes the usage of a non-https repo that get blocked by maven -->
+            <dependency>
+                <groupId>com.fluenda</groupId>
+                <artifactId>ParCEFone</artifactId>
+                <version>1.2.8</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
