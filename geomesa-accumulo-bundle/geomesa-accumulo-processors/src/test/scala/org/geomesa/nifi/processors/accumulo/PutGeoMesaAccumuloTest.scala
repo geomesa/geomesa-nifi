@@ -704,4 +704,45 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.shutdown()
     }
   }
+
+  @Test
+  def testIngestCounts(): Unit = {
+    val catalog = s"${root}Counts"
+    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
+      runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
+
+      var i = 0
+      while (i < 3) {
+        runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
+        i += 1
+      }
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, i)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      while (i > 0) {
+        i -= 1
+        val output = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship).get(i)
+        output.assertAttributeEquals(org.geomesa.nifi.datastore.processor.Attributes.IngestSuccessCount, "3")
+        output.assertAttributeEquals(org.geomesa.nifi.datastore.processor.Attributes.IngestFailureCount, "0")
+      }
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(3, features.length)
+    } finally {
+      ds.dispose()
+    }
+  }
 }

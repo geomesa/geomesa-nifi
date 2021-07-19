@@ -49,11 +49,14 @@ class ConvertToGeoFile extends ConvertInputProcessor {
   import ConvertToGeoFile.FlowFileExportStream
   import ConvertToGeoFile.Properties.{GzipLevel, IncludeHeaders, OutputFormat}
 
+  override protected def getShips: Seq[Relationship] =
+    super.getShips ++ Seq(Relationships.OriginalRelationship)
+
   override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
     super.getTertiaryProperties ++ Seq(OutputFormat, GzipLevel, IncludeHeaders)
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
-    val input = session.get()
+    var input = session.get()
     if (input == null) {
       return
     }
@@ -128,17 +131,25 @@ class ConvertToGeoFile extends ConvertInputProcessor {
         }
       }
 
-      if (result != null) {
-        output = session.putAttribute(output, "geomesa.convert.successes", result.success.toString)
-        output = session.putAttribute(output, "geomesa.convert.failures", result.failure.toString)
-      }
-
       val basename =
         Option(input.getAttribute("filename")).map(FilenameUtils.getBaseName).getOrElse(UUID.randomUUID().toString)
       output = session.putAttribute(output, "filename", s"$basename.${format.extensions.head}")
+      output = session.removeAttribute(output, "mime.type")
 
-      session.transfer(output, Relationships.SuccessRelationship)
-      session.remove(input)
+      val attributes = new java.util.HashMap[String, String](2)
+      attributes.put("geomesa.convert.successes", result.success.toString)
+      attributes.put("geomesa.convert.failures", result.failure.toString)
+
+      output = session.putAllAttributes(output, attributes)
+      input = session.putAllAttributes(input, attributes)
+
+      if (result.success > 0L) {
+        session.transfer(output, Relationships.SuccessRelationship)
+        session.transfer(input, Relationships.OriginalRelationship)
+      } else {
+        session.remove(output)
+        session.transfer(input, Relationships.FailureRelationship)
+      }
     } catch {
       case NonFatal(e) =>
         logger.error(s"Error converting file: ${e.getMessage}", e)

@@ -15,10 +15,9 @@ import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCallback
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters.SimpleWriter
-import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, FeatureTypeIngestProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor}
 import org.geotools.data._
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.opengis.feature.simple.SimpleFeature
 
 import scala.util.control.NonFatal
 
@@ -26,14 +25,14 @@ import scala.util.control.NonFatal
   * Converter ingest processor for geotools data stores
   */
 @CapabilityDescription("Convert and ingest data files into GeoMesa")
-trait ConverterIngestProcessor extends FeatureTypeIngestProcessor with ConvertInputProcessor {
+trait ConverterIngestProcessor extends DataStoreIngestProcessor with ConvertInputProcessor {
 
   override protected def createIngest(
       context: ProcessContext,
       dataStore: DataStore,
       writers: FeatureWriters,
       mode: CompatibilityMode): IngestProcessor = {
-    new ConverterIngest(context, dataStore, writers, mode)
+    new ConverterIngest(dataStore, writers, mode)
   }
 
   /**
@@ -43,27 +42,33 @@ trait ConverterIngestProcessor extends FeatureTypeIngestProcessor with ConvertIn
    * @param writers feature writers
    * @param mode schema compatibility mode
    */
-  class ConverterIngest(context: ProcessContext, store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
-      extends IngestProcessorWithSchema(store, writers, mode) {
+  class ConverterIngest(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
+      extends IngestProcessor(store, writers, mode) {
 
-    override protected def ingest(
+    override def ingest(
+        context: ProcessContext,
         session: ProcessSession,
         file: FlowFile,
-        name: String,
-        sft: SimpleFeatureType,
-        writer: SimpleWriter): IngestResult = {
-      val callback = new ConverterCallback() {
-        override def apply(features: Iterator[SimpleFeature]): Long = {
-          var failed = 0L
-          features.foreach { feature =>
-            try { writer.apply(feature) } catch {
-              case NonFatal(e) => logError(feature, e); failed += 1
+        flowFileName: String): IngestResult = {
+      val sft = loadFeatureType(context, file)
+      checkSchema(sft)
+      val writer = writers.borrowWriter(sft.getTypeName, file)
+      try {
+        val callback = new ConverterCallback() {
+          override def apply(features: Iterator[SimpleFeature]): Long = {
+            var failed = 0L
+            features.foreach { feature =>
+              try { writer.apply(feature) } catch {
+                case NonFatal(e) => logError(feature, e); failed += 1
+              }
             }
+            failed
           }
-          failed
         }
+        convert(context, session, file, sft, callback)
+      } finally {
+        writers.returnWriter(writer)
       }
-      convert(context, session, file, sft, callback)
     }
   }
 }
