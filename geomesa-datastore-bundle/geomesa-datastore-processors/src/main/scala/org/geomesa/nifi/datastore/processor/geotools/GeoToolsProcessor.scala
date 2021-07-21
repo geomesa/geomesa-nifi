@@ -90,7 +90,10 @@ object GeoToolsProcessor {
 
   import scala.collection.JavaConverters._
 
-  private def listDataStores(): Iterator[DataStoreFactorySpi] = DataStoreFinder.getAvailableDataStores.asScala
+  private def listDataStores(): Iterator[DataStoreFactorySpi] = {
+    DataStoreFinder.scanForPlugins() // ensure stores on the current classpath are loaded
+    DataStoreFinder.getAvailableDataStores.asScala
+  }
 
   private def sensitiveProps(): Iterator[String] =
     listDataStores().flatMap(_.getParametersInfo.collect { case i if i.isPassword => i.getName })
