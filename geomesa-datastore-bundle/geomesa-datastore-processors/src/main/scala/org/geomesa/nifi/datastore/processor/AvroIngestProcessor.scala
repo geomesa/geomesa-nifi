@@ -9,8 +9,6 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import java.io.InputStream
-
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
 import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
@@ -29,6 +27,7 @@ import org.locationtech.geomesa.features.avro.AvroDataFileReader
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import java.io.InputStream
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -94,7 +93,7 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
       var failure = 0L
 
       val nameArg = loadFeatureTypeName(context, file)
-      val configuredSft = loadFeatureTypeSpec(context, file).map(s => loadFeatureType(Some(s), nameArg, file))
+      val configuredSft = loadFeatureTypeSpec(context, file).map(s => loadFeatureType(context, file, Some(s), nameArg))
       // create/update the schema if it's configured in the processor or flow-file attributes
       configuredSft.foreach(checkSchema)
 

@@ -9,7 +9,6 @@
 package org.geomesa.nifi.datastore.processor
 
 import java.io.InputStream
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
@@ -19,11 +18,12 @@ import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.RecordIngestProcessor.CountHolder
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor
+import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, UserDataProcessor}
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
 import org.geotools.data._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.WithClose
 
 import scala.annotation.tailrec
@@ -33,7 +33,7 @@ import scala.util.control.NonFatal
   * Record-based ingest processor for geotools data stores
   */
 @CapabilityDescription("Ingest records into GeoMesa")
-trait RecordIngestProcessor extends DataStoreIngestProcessor {
+trait RecordIngestProcessor extends DataStoreIngestProcessor with UserDataProcessor {
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
     super.getPrimaryProperties ++ RecordIngestProcessor.Props
@@ -79,8 +79,14 @@ trait RecordIngestProcessor extends DataStoreIngestProcessor {
         override def process(in: InputStream): Unit = {
           WithClose(recordReaderFactory.createRecordReader(file, in, logger)) { reader =>
             val converter = SimpleFeatureRecordConverter(reader.getSchema, opts)
+            val userData = loadFeatureTypeUserData(converter.sft, context, file)
+            val sft = if (userData.isEmpty) { converter.sft } else {
+              val copy = SimpleFeatureTypes.copy(converter.sft)
+              copy.getUserData.putAll(userData)
+              copy
+            }
             // create or update the feature type if needed
-            checkSchema(decorate(converter.sft))
+            checkSchema(sft)
 
             @tailrec
             def nextRecord: Record = {
@@ -94,7 +100,7 @@ trait RecordIngestProcessor extends DataStoreIngestProcessor {
               nextRecord
             }
 
-            val writer = writers.borrowWriter(converter.sft.getTypeName, file)
+            val writer = writers.borrowWriter(sft.getTypeName, file)
             try {
               var record = nextRecord
               while (record != null) {
