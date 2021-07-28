@@ -15,10 +15,6 @@
     <description>GeoMesa controller services nar</description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-datastore-services</artifactId>
-        </dependency>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its
              classpath at runtime. see https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars -->
         <dependency>
@@ -26,6 +22,27 @@
             <artifactId>geomesa-datastore-services-api-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-services</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
