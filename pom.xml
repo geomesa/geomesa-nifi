@@ -68,12 +68,12 @@
         <gt.version>23.3</gt.version>
         <scala.version>2.12.13</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
-        <accumulo.version>2.0.0</accumulo.version>
-        <accumulo-1.version>1.9.3</accumulo-1.version>
-        <hbase.version>2.2.3</hbase.version>
-        <hbase-1.version>1.4.12</hbase-1.version>
+        <accumulo.version>2.0.1</accumulo.version>
+        <accumulo-1.version>1.10.1</accumulo-1.version>
+        <hbase.version>2.2.6</hbase.version>
+        <hbase-1.version>1.4.13</hbase-1.version>
         <kafka.version>2.1.1</kafka.version>
-        <zookeer.version>3.4.14</zookeer.version>
+        <zookeer.version>3.5.9</zookeer.version>
         <zkclient.version>0.10</zkclient.version>
         <curator.version>4.3.0</curator.version>
         <nifi.version>1.12.1</nifi.version>
@@ -83,7 +83,7 @@
         <avro.version>1.8.1</avro.version> <!-- matches version in nifi 1.12 -->
         <netty.version>4.1.48.Final</netty.version>
 
-        <specs2.version>4.3.2</specs2.version>
+        <specs2.version>4.9.2</specs2.version>
         <junit.version>4.13.1</junit.version>
         <slf4j.version>1.7.5</slf4j.version>
         <log4j.version>1.2.17</log4j.version>
