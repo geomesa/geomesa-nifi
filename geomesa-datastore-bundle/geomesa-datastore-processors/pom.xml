@@ -55,6 +55,20 @@
             <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
 
+        <!-- include geomesa-fs jars here so that we can use dynamic classloading (i.e. for postgres) as needed -->
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-fs-storage-orc_${scala.binary.version}</artifactId>
+        </dependency>
+
         <!-- bring in postgis to make the PutGeoTools processor work with it out of the box -->
         <dependency>
             <groupId>org.geotools.jdbc</groupId>
