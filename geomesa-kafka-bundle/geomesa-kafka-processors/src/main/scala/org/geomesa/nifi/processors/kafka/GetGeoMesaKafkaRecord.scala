@@ -8,10 +8,6 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import java.io.Closeable
-import java.util.concurrent.{SynchronousQueue, TimeUnit}
-import java.util.{Collections, Properties}
-
 import org.apache.commons.codec.digest.MurmurHash3
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
@@ -31,10 +27,9 @@ import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializa
 import org.geomesa.nifi.datastore.processor.records.{Expressions, GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.geotools.data._
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
-import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreParams}
+import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreFactory, KafkaDataStoreParams}
 import org.locationtech.geomesa.kafka.utils.{GeoMessage, GeoMessageProcessor}
 import org.locationtech.geomesa.tools.`export`.formats.DelimitedExporter
 import org.locationtech.geomesa.tools.`export`.formats.FeatureExporter.ByteExportStream
@@ -44,6 +39,9 @@ import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 import org.opengis.feature.`type`.GeometryDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import java.io.Closeable
+import java.util.concurrent.{SynchronousQueue, TimeUnit}
+import java.util.{Collections, Properties}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
@@ -136,12 +134,11 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       logger.trace(s"DataStore properties: ${safeToLog.mkString(", ")}")
       KafkaDataStore.LoadIntervalProperty.threadLocalValue.set(s"$pollTimeout ms")
       try {
-        DataStoreFinder.getDataStore(props.asJava).asInstanceOf[KafkaDataStore]
+        GeoMesaDataStoreService.tryGetDataStore[KafkaDataStoreFactory](props.asJava).get.asInstanceOf[KafkaDataStore]
       } finally {
         KafkaDataStore.LoadIntervalProperty.threadLocalValue.remove()
       }
     }
-    require(ds != null, "Could not load datastore using provided parameters")
 
     try {
       val sft = ds.getSchema(typeName)

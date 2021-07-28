@@ -9,7 +9,6 @@
 package org.geomesa.nifi.datastore.processor.mixins
 
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.processor.ProcessContext
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geotools.data.{DataStore, DataStoreFinder}
@@ -30,6 +29,7 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
       props.map { case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}" }
     }
     logger.trace(s"DataStore properties: ${safeToLog.mkString(", ")}")
+    DataStoreFinder.scanForPlugins() // ensure stores on the current classpath are loaded
     val ds = DataStoreFinder.getDataStore(props.asJava)
     require(ds != null, "Could not load datastore using provided parameters")
     ds

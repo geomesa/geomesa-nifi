@@ -53,7 +53,7 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
 
   private var converterName: PropertyDescriptor = _
 
-  private val converterCache = Caffeine.newBuilder().build(
+  private val converterCache = Caffeine.newBuilder().build[(SimpleFeatureType, String, Option[String]), Either[Throwable, ConverterPool]](
     new CacheLoader[(SimpleFeatureType, String, Option[String]), Either[Throwable, ConverterPool]]() {
       override def load(key: (SimpleFeatureType, String, Option[String])): Either[Throwable, ConverterPool] = {
         val (sft, confArg, error) = key

@@ -121,7 +121,7 @@ object GeoMesaDataStoreService {
     builder.result
   }
 
-  private def tryGetDataStore[T <: DataStoreFactorySpi: ClassTag](params: java.util.Map[String, _]): Try[DataStore] = {
+  def tryGetDataStore[T <: DataStoreFactorySpi: ClassTag](params: java.util.Map[String, _]): Try[DataStore] = {
     Try {
       val factory = implicitly[ClassTag[T]].runtimeClass.newInstance().asInstanceOf[T]
       val store = factory.createDataStore(params.asInstanceOf[java.util.Map[String, java.io.Serializable]])
