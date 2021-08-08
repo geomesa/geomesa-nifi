@@ -115,6 +115,17 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-zk-utils_${scala.binary.version}</artifactId>
+            <exclusions>
+                <!-- exclude dependencies provided by datastore-services-api-nar -->
+                <exclusion>
+                    <groupId>org.locationtech.geomesa</groupId>
+                    <artifactId>geomesa-index-api_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
