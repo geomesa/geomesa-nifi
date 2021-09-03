@@ -217,7 +217,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
                     s"Detected schema change for ${sft.getTypeName} but compatibility mode is set to 'exact'")
 
                 case CompatibilityMode.Existing =>
-                  logger.warn(
+                  logger.info(
                     s"Detected schema change ${sft.getTypeName}:" +
                         s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
                         s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
@@ -254,7 +254,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
                       s"Detected schema change for ${sft.getTypeName} but compatibility mode is set to 'exact'")
 
                   case CompatibilityMode.Existing =>
-                    logger.warn(
+                    logger.info(
                       s"Detected schema change ${sft.getTypeName}:" +
                           s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
                           s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
