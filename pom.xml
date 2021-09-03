@@ -379,6 +379,11 @@
                 <artifactId>geomesa-fs-storage-orc_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-zk-utils_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.geotools</groupId>
