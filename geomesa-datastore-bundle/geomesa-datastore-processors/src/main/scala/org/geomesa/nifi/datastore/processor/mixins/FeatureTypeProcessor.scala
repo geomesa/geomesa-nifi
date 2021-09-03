@@ -28,23 +28,22 @@ import org.opengis.feature.simple.SimpleFeatureType
     new ReadsAttribute(attribute = "geomesa.sft.spec", description = "GeoMesa SimpleFeatureType specification")
   )
 )
-trait FeatureTypeProcessor extends BaseProcessor {
+trait FeatureTypeProcessor extends UserDataProcessor {
 
   import FeatureTypeProcessor.Attributes.{SftNameAttribute, SftSpecAttribute}
   import FeatureTypeProcessor.Properties.{FeatureNameOverride, SftNameKey, SftSpec}
 
   private var sftName: PropertyDescriptor = _
 
-  private val sftCache = Caffeine.newBuilder().build(
+  private val sftCache = Caffeine.newBuilder().build[SftArgs, Either[Throwable, SimpleFeatureType]](
     new CacheLoader[SftArgs, Either[Throwable, SimpleFeatureType]]() {
-      override def load(key: SftArgs): Either[Throwable, SimpleFeatureType] =
-        SftArgResolver.getArg(key).right.map(decorate)
+      override def load(key: SftArgs): Either[Throwable, SimpleFeatureType] = SftArgResolver.getArg(key)
     }
   )
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] = {
     sftName = FeatureTypeProcessor.Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
-    super.getPrimaryProperties ++ Seq(sftName, SftSpec, FeatureNameOverride)
+    Seq(sftName, SftSpec, FeatureNameOverride) ++ super.getPrimaryProperties
   }
 
   /**
@@ -52,30 +51,31 @@ trait FeatureTypeProcessor extends BaseProcessor {
    *
    * @param context context
    * @param file flow file
-   * @return
-   */
-  protected def loadFeatureType(context: ProcessContext, file: FlowFile): SimpleFeatureType =
-    loadFeatureType(loadFeatureTypeSpec(context, file), loadFeatureTypeName(context, file), file)
-
-  /**
-   * Load the configured feature type, based on processor and flow file properties
-   *
    * @param spec simple feature type spec or name
    * @param name simple feature type name override
-   * @param file flow file
    * @return
    */
-  protected def loadFeatureType(spec: Option[String], name: Option[String], file: FlowFile): SimpleFeatureType = {
-    val specArg = spec.getOrElse {
+  protected def loadFeatureType(
+      context: ProcessContext,
+      file: FlowFile,
+      spec: Option[String] = None,
+      name: Option[String] = None): SimpleFeatureType = {
+    val specArg = spec.orElse(loadFeatureTypeSpec(context, file)).getOrElse {
       throw new IllegalArgumentException(
         s"SimpleFeatureType not specified: configure '$SftNameKey', 'SftSpec' " +
             s"or flow-file attribute '$SftSpecAttribute'")
     }
-    val nameArg = name.orNull
-    sftCache.get(SftArgs(specArg, nameArg)) match {
+    val nameArg = name.orElse(loadFeatureTypeName(context, file)).orNull
+    val sft = sftCache.get(SftArgs(specArg, nameArg)) match {
       case Right(sft) => sft
       case Left(e) =>
         throw new IllegalArgumentException(s"Unable to load feature type '$specArg' for file ${file.getId}:", e)
+    }
+    val userData = loadFeatureTypeUserData(sft, context, file)
+    if (userData.isEmpty) { sft } else {
+      val copy = SimpleFeatureTypes.copy(sft)
+      copy.getUserData.putAll(userData)
+      copy
     }
   }
 

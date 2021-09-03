@@ -10,23 +10,25 @@ package org.geomesa.nifi.processors.fs
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.util.StandardValidators
-import org.geomesa.nifi.datastore.processor.mixins.{AbstractDataStoreProcessor, AwsDataStoreProcessor, DataStoreIngestProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{AbstractDataStoreProcessor, AwsDataStoreProcessor, DataStoreIngestProcessor, UserDataProcessor}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
 import org.locationtech.geomesa.fs.storage.common.utils.PartitionSchemeArgResolver
+import org.locationtech.geomesa.fs.storage.common.{StorageKeys, StorageSerialization}
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 import org.opengis.feature.simple.SimpleFeatureType
 
 abstract class FileSystemIngestProcessor
     extends AbstractDataStoreProcessor(FileSystemIngestProcessor.FileSystemProperties)
         with DataStoreIngestProcessor
+        with UserDataProcessor
         with AwsDataStoreProcessor {
 
   override protected def configParam: GeoMesaParam[String] = FileSystemDataStoreParams.ConfigsParam
 
   import FileSystemIngestProcessor.PartitionSchemeParam
-  import org.locationtech.geomesa.fs.storage.common.RichSimpleFeatureType
 
   private var partitionScheme: Option[String] = None
 
@@ -36,17 +38,23 @@ abstract class FileSystemIngestProcessor
     partitionScheme = Option(context.getProperty(PartitionSchemeParam).getValue)
   }
 
-  override protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = {
-    partitionScheme.foreach { arg =>
-      logger.info(s"Adding partition scheme to ${sft.getTypeName}")
-      val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
-        case Left(e) => throw new IllegalArgumentException(e)
-        case Right(s) => s
+  override protected def loadFeatureTypeUserData(
+      sft: SimpleFeatureType,
+      context: ProcessContext,
+      file: FlowFile): java.util.Map[String, String] = {
+    val base = super.loadFeatureTypeUserData(sft, context, file)
+    if (!base.containsKey(StorageKeys.SchemeKey)) {
+      partitionScheme.foreach { arg =>
+        logger.info(s"Adding partition scheme to ${sft.getTypeName}")
+        val scheme = PartitionSchemeArgResolver.resolve(sft, arg) match {
+          case Left(e) => throw new IllegalArgumentException(e)
+          case Right(s) => s
+        }
+        logger.info(s"Loaded partition scheme: ${scheme.name}")
+        base.put(StorageKeys.SchemeKey, StorageSerialization.serialize(scheme))
       }
-      sft.setScheme(scheme.name, scheme.options)
-      logger.info(s"Updated SFT with partition scheme: ${scheme.name}")
     }
-    sft
+    base
   }
 }
 

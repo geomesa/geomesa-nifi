@@ -95,13 +95,6 @@ abstract class BaseProcessor extends AbstractProcessor {
    * @return
    */
   protected def getServiceProperties: Seq[PropertyDescriptor] = Seq.empty
-
-  /**
-   * Provides the processor a chance to configure a feature type after it's loaded from the environment
-   *
-   * @param sft simple feature type
-   */
-  protected def decorate(sft: SimpleFeatureType): SimpleFeatureType = sft
 }
 
 object BaseProcessor {
