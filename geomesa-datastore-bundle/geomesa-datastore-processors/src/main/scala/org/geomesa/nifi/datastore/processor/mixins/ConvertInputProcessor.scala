@@ -109,7 +109,10 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
     val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
     val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
 
-    val converters = converterCache.get((sft, config, errorMode)).right.get // will re-throw the error
+    val converters = converterCache.get((sft, config, errorMode)) match {
+      case Right(c) => c
+      case Left(e) => throw e
+    }
 
     val converter = converters.borrowObject()
     try {
