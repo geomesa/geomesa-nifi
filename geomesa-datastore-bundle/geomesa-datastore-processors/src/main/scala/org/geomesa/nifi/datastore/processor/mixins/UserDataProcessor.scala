@@ -40,7 +40,7 @@ trait UserDataProcessor extends BaseProcessor {
       context: ProcessContext,
       file: FlowFile): java.util.Map[String, String] = {
     val userData = context.getProperty(SftUserData).evaluateAttributeExpressions(file).getValue
-    if (userData == null || userData.isEmpty) { Collections.emptyMap() } else {
+    if (userData == null || userData.isEmpty) { new java.util.HashMap[String, String]() } else {
       val props = new Properties()
       props.load(new StringReader(userData))
       props.asInstanceOf[java.util.Map[String, String]]
