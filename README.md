@@ -1,4 +1,4 @@
 # GeoMesa NiFi
 
-See the official GeoMesa [site](https://www.geomesa.org/documentation/user/nifi.html) for documentation.
+See the official GeoMesa [documentation](https://www.geomesa.org/documentation/stable/user/nifi/index.html) for details.
 
