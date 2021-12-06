@@ -10,10 +10,11 @@
 package org.geomesa.nifi.datastore.processor
 package mixins
 
+import com.codahale.metrics.Counter
+
 import java.io.InputStream
 import java.util.Collections
-
-import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
+import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, LoadingCache}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
@@ -26,6 +27,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.validators.ConverterValidator
+import org.locationtech.geomesa.convert.EvaluationContext.DelegatingEvaluationContext
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
@@ -52,37 +54,38 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
 
   private var converterName: PropertyDescriptor = _
 
-  private val converterCache = Caffeine.newBuilder().build(
-    new CacheLoader[(SimpleFeatureType, String, Option[String]), Either[Throwable, ConverterPool]]() {
-      override def load(key: (SimpleFeatureType, String, Option[String])): Either[Throwable, ConverterPool] = {
-        val (sft, confArg, error) = key
-        ConverterConfigResolver.getArg(ConfArgs(confArg)).right.flatMap { base =>
-          try {
-            val config = error match {
-              case None => base
-              case Some(mode) =>
-                val opts = ConfigValueFactory.fromMap(Collections.singletonMap("error-mode", mode))
-                ConfigFactory.empty().withValue("options", opts).withFallback(base)
+  private val converterCache: LoadingCache[(SimpleFeatureType, String, Option[String]), Either[Throwable, ConverterPool]] =
+    Caffeine.newBuilder().build(
+      new CacheLoader[(SimpleFeatureType, String, Option[String]), Either[Throwable, ConverterPool]]() {
+        override def load(key: (SimpleFeatureType, String, Option[String])): Either[Throwable, ConverterPool] = {
+          val (sft, confArg, error) = key
+          ConverterConfigResolver.getArg(ConfArgs(confArg)).right.flatMap { base =>
+            try {
+              val config = error match {
+                case None => base
+                case Some(mode) =>
+                  val opts = ConfigValueFactory.fromMap(Collections.singletonMap("error-mode", mode))
+                  ConfigFactory.empty().withValue("options", opts).withFallback(base)
+              }
+
+              val factory = new BasePooledObjectFactory[SimpleFeatureConverter] {
+                override def create(): SimpleFeatureConverter = SimpleFeatureConverter(sft, config)
+                override def wrap(obj: SimpleFeatureConverter): PooledObject[SimpleFeatureConverter] =
+                  new DefaultPooledObject(obj)
+                override def destroyObject(p: PooledObject[SimpleFeatureConverter]): Unit = p.getObject.close()
+              }
+
+              val poolConfig = new GenericObjectPoolConfig[SimpleFeatureConverter]()
+              poolConfig.setMaxTotal(-1)
+
+              Right(new GenericObjectPool(factory, poolConfig))
+            } catch {
+              case NonFatal(e) => Left(e)
             }
-
-            val factory = new BasePooledObjectFactory[SimpleFeatureConverter] {
-              override def create(): SimpleFeatureConverter = SimpleFeatureConverter(sft, config)
-              override def wrap(obj: SimpleFeatureConverter): PooledObject[SimpleFeatureConverter] =
-                new DefaultPooledObject(obj)
-              override def destroyObject(p: PooledObject[SimpleFeatureConverter]): Unit = p.getObject.close()
-            }
-
-            val poolConfig = new GenericObjectPoolConfig[SimpleFeatureConverter]()
-            poolConfig.setMaxTotal(-1)
-
-            Right(new GenericObjectPool(factory, poolConfig))
-          } catch {
-            case NonFatal(e) => Left(e)
           }
         }
       }
-    }
-  )
+    )
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] = {
     converterName = ConvertInputProcessor.Properties.converterName(ConverterConfigLoader.listConverterNames)
@@ -120,7 +123,11 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
           inputFile
         }
       }
-      val ec = converter.createEvaluationContext(globalParams)
+      val ec = {
+        // override success/failure to avoid shared global state
+        val base = converter.createEvaluationContext(globalParams)
+        new DelegatingEvaluationContext(base)(new Counter(), new Counter())
+      }
       session.read(file, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           WithClose(converter.process(in, ec)) { iter =>
