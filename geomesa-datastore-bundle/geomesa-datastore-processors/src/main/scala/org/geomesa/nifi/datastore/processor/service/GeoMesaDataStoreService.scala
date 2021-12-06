@@ -9,19 +9,18 @@
 package org.geomesa.nifi.datastore.processor
 package service
 
-import java.util.Collections
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicReference
-
 import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnEnabled}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.controller.{AbstractControllerService, ConfigurationContext}
 import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.data.{DataStore, DataStoreFactorySpi}
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 import scala.reflect.ClassTag
-import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -48,6 +47,11 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     store
   }
 
+  override final def dispose(ds: DataStore): Unit = {
+    stores.remove(ds)
+    CloseWithLogging(ds)
+  }
+
   @OnEnabled
   final def onEnabled(context: ConfigurationContext): Unit = {
     params.clear()
@@ -57,11 +61,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
 
   @OnDisabled
   final def onDisabled(): Unit = {
-    stores.asScala.foreach { ds =>
-      try { ds.dispose() } catch {
-        case NonFatal(e) => getLogger.warn(s"Error disposing store $ds:", e)
-      }
-    }
+    stores.asScala.foreach(CloseWithLogging(_))
     stores.clear()
   }
 

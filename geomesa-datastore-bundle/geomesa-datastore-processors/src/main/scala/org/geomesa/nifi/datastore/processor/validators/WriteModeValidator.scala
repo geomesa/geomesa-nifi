@@ -9,16 +9,14 @@
 package org.geomesa.nifi.datastore.processor.validators
 
 import org.apache.nifi.components.{ValidationContext, ValidationResult, Validator}
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
-
-import scala.util.{Success, Try}
+import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor
 
 /**
   * Validates write mode
   */
 object WriteModeValidator extends Validator {
 
-  private val Values = Seq(FeatureWriters.Append, FeatureWriters.Modify)
+  private val Values = Seq(DataStoreIngestProcessor.AppendMode, DataStoreIngestProcessor.ModifyMode)
 
   override def validate(subject: String, input: String, context: ValidationContext): ValidationResult = {
     val builder = new ValidationResult.Builder().subject(subject).input(input)

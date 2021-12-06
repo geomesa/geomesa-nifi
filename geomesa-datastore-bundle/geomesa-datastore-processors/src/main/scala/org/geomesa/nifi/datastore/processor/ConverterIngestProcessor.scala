@@ -14,8 +14,7 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCallback
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureWriters}
 import org.geotools.data._
 import org.opengis.feature.simple.SimpleFeature
 
@@ -52,8 +51,7 @@ trait ConverterIngestProcessor extends DataStoreIngestProcessor with ConvertInpu
         flowFileName: String): IngestResult = {
       val sft = loadFeatureType(context, file)
       checkSchema(sft)
-      val writer = writers.borrowWriter(sft.getTypeName, file)
-      try {
+      writers.borrow(sft.getTypeName, file) { writer =>
         val callback = new ConverterCallback() {
           override def apply(features: Iterator[SimpleFeature]): Long = {
             var failed = 0L
@@ -66,8 +64,6 @@ trait ConverterIngestProcessor extends DataStoreIngestProcessor with ConvertInpu
           }
         }
         convert(context, session, file, sft, callback)
-      } finally {
-        writers.returnWriter(writer)
       }
     }
   }

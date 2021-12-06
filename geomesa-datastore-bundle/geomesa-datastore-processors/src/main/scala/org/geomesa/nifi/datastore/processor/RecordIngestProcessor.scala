@@ -8,7 +8,6 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import java.io.InputStream
 import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
@@ -18,14 +17,14 @@ import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.RecordIngestProcessor.CountHolder
-import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, UserDataProcessor}
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
+import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureWriters, UserDataProcessor}
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
 import org.geotools.data._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.WithClose
 
+import java.io.InputStream
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
 
@@ -100,8 +99,7 @@ trait RecordIngestProcessor extends DataStoreIngestProcessor with UserDataProces
               nextRecord
             }
 
-            val writer = writers.borrowWriter(sft.getTypeName, file)
-            try {
+            writers.borrow(sft.getTypeName, file) { writer =>
               var record = nextRecord
               while (record != null) {
                 try {
@@ -121,8 +119,6 @@ trait RecordIngestProcessor extends DataStoreIngestProcessor with UserDataProces
                 }
                 record = nextRecord
               }
-            } finally {
-              writers.returnWriter(writer)
             }
           }
         }
