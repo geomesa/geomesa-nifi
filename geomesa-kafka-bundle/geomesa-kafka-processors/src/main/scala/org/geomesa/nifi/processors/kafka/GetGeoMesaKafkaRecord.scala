@@ -207,7 +207,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
         } catch {
           case NonFatal(e) =>
             if (flowFile != null) {
-              Try(session.remove(flowFile)).failed.foreach(e.addSuppressed)
+              Try(session.remove(flowFile)).failed.filter(_ != e).foreach(e.addSuppressed)
             }
             Failure(e)
         }
@@ -217,7 +217,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       if (errors.nonEmpty) {
         try {
           val e = errors.head
-          errors.tail.foreach(e.addSuppressed)
+          errors.tail.filter(_ != e).foreach(e.addSuppressed)
           logger.error("Error processing message batch:", e)
           results.collect { case Success(f) => Try(session.remove(f)) }
         } finally {
