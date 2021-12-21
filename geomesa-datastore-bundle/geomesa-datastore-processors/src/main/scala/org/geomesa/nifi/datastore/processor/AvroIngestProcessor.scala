@@ -17,8 +17,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureTypeProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureTypeProcessor, FeatureWriters}
 import org.geotools.data.DataStore
 import org.geotools.util.Converters
 import org.geotools.util.factory.Hints
@@ -116,8 +115,7 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
               case Some(m) => reader.map(m.apply)
             }
 
-            val writer = writers.borrowWriter(fileSft.getTypeName, file)
-            try {
+            writers.borrow(fileSft.getTypeName, file) { writer =>
               features.foreach { sf =>
                 try {
                   if (useProvidedFid) {
@@ -131,8 +129,6 @@ trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProce
                     logError(sf, e)
                 }
               }
-            } finally {
-              writers.returnWriter(writer)
             }
           } finally {
             reader.close()

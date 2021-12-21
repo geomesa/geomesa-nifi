@@ -12,6 +12,7 @@ import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.data.DataStore
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 /**
  * Abstract processor that uses a data store
@@ -22,6 +23,13 @@ trait DataStoreProcessor extends BaseProcessor {
 
   protected def loadDataStore(context: ProcessContext): DataStore =
     context.getProperty(DataStoreService).asControllerService(classOf[DataStoreService]).loadDataStore()
+
+  protected def disposeDataStore(ds: DataStore, context: Option[ProcessContext]): Unit = {
+    context match {
+      case Some(c) => c.getProperty(DataStoreService).asControllerService(classOf[DataStoreService]).dispose(ds)
+      case None => CloseWithLogging(ds)
+    }
+  }
 
   override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
     Seq(DataStoreService) ++ super.getTertiaryProperties

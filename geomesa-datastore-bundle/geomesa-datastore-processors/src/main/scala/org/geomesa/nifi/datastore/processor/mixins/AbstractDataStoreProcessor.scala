@@ -12,6 +12,7 @@ import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geotools.data.{DataStore, DataStoreFinder}
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 /**
  * Abstract processor that uses a data store
@@ -34,6 +35,8 @@ abstract class AbstractDataStoreProcessor(dataStoreProperties: Seq[PropertyDescr
     require(ds != null, "Could not load datastore using provided parameters")
     ds
   }
+
+  override protected def disposeDataStore(ds: DataStore, context: Option[ProcessContext]): Unit = CloseWithLogging(ds)
 
   /**
    * Get params for looking up the data store, based on the current processor configuration

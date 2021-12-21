@@ -8,19 +8,13 @@
 
 package org.geomesa.nifi.processors.accumulo
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import java.nio.charset.StandardCharsets
-import java.text.SimpleDateFormat
-import java.util.{Collections, Date}
-
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.schema.inference.SchemaInferenceUtil
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.FeatureWriters
-import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureTypeProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureTypeProcessor, FeatureWriters}
 import org.geomesa.nifi.datastore.processor.records.Properties
 import org.geomesa.nifi.datastore.processor.{CompatibilityMode, RecordUpdateProcessor, Relationships}
 import org.geotools.data.{DataStoreFinder, Transaction}
@@ -35,6 +29,11 @@ import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypeLoader, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
 import org.locationtech.geomesa.utils.text.WKTUtils
+
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.{Collections, Date}
 
 class PutGeoMesaAccumuloTest extends LazyLogging {
 
@@ -536,7 +535,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         Seq("2015-05-06", "2015-06-07", "2015-10-23").map(df.parse),
         Seq("POINT (-100.2365 23)", "POINT (40.232 -53.2356)", "POINT (3 -62.23)")
       )
-      runner.setProperty(DataStoreIngestProcessor.Properties.WriteMode, FeatureWriters.Modify)
+      runner.setProperty(DataStoreIngestProcessor.Properties.WriteMode, DataStoreIngestProcessor.ModifyMode)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-update.csv"))
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 2)
