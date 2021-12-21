@@ -42,8 +42,8 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import java.io.Closeable
 import java.util.concurrent.{SynchronousQueue, TimeUnit}
 import java.util.{Collections, Properties}
+import scala.util.Try
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -182,66 +182,53 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
     if (records == null) {
       context.`yield`()
     } else {
-      val results = records.grouped(maxBatchSize).toSeq.map { group =>
+      records.grouped(maxBatchSize).toSeq.foreach { group =>
         var flowFile: FlowFile = null
         try {
           flowFile = session.create()
-          val result = WithClose(session.write(flowFile)) { out =>
+          val errors = new ErrorHolder()
+          val (result, mimeType) = WithClose(session.write(flowFile)) { out =>
             WithClose(factory.createWriter(logger, schema, out, defaultAttributes)) { writer =>
               writer.beginRecordSet()
               group.foreach { feature =>
-                val record = converter.convert(feature)
-                idGenerator.foreach { g =>
-                  record.setValue(SimpleFeatureRecordConverter.DefaultIdCol, g.id(feature))
+                try {
+                  val record = converter.convert(feature)
+                  idGenerator.foreach { g =>
+                    record.setValue(SimpleFeatureRecordConverter.DefaultIdCol, g.id(feature))
+                  }
+                  writer.write(record)
+                } catch {
+                  case NonFatal(e) =>
+                    logger.warn(s"Error writing record for feature ${feature.getID}: ", e)
+                    errors.error(e)
                 }
-                writer.write(record)
               }
-              val result = writer.finishRecordSet()
-              WriteResult(result.getRecordCount, writer.getMimeType, result.getAttributes)
+              (writer.finishRecordSet(), writer.getMimeType)
             }
           }
-          val attributes = new java.util.HashMap[String, String](result.attributes)
-          attributes.put(CoreAttributes.MIME_TYPE.key, result.mimeType)
-          attributes.put("record.count", String.valueOf(result.count))
-          Success(session.putAllAttributes(flowFile, attributes))
+
+          if (result.getRecordCount > 0) {
+            val attributes = new java.util.HashMap[String, String](result.getAttributes)
+            attributes.put(CoreAttributes.MIME_TYPE.key, mimeType)
+            attributes.put("record.count", String.valueOf(result.getRecordCount))
+            attributes.put("record.errors", String.valueOf(errors.count))
+            flowFile = session.putAllAttributes(flowFile, attributes)
+            session.transfer(flowFile, SuccessRelationship)
+          } else {
+            session.remove(flowFile)
+            logger.error(s"File produced 0 valid and ${errors.count} invalid records")
+            errors.first.foreach { e =>
+              logger.error(s"First record exception:", e)
+            }
+          }
         } catch {
           case NonFatal(e) =>
-            if (flowFile != null) {
-              Try(session.remove(flowFile)).failed.foreach(e.addSuppressed)
-            }
-            Failure(e)
+            Option(flowFile).flatMap(f => Try(session.remove(f)).failed.filter(_ != e).toOption).foreach(e.addSuppressed)
+            logger.error("Error processing message batch:", e)
         }
       }
 
-      val errors = results.collect { case Failure(e) => e }
-      if (errors.nonEmpty) {
-        try {
-          val e = errors.head
-          errors.tail.foreach(e.addSuppressed)
-          logger.error("Error processing message batch:", e)
-          results.collect { case Success(f) => Try(session.remove(f)) }
-        } finally {
-          processor.done.put(false)
-        }
-      } else {
-        var ok = true
-        results.foreach { case Success(f) =>
-          try {
-            if (f.getAttribute("record.count").toInt <= 0) {
-              logger.debug("Removing flow file, no records were written")
-              session.remove(f)
-            } else {
-              session.transfer(f, SuccessRelationship)
-            }
-          } catch {
-            case NonFatal(e) =>
-              ok = false
-              logger.error(s"Error transferring flow file $f:", e)
-              Try(session.remove(f))
-          }
-        }
-        processor.done.put(ok)
-      }
+      processor.done.put(true)
     }
   }
 
@@ -460,5 +447,18 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     }
   }
 
-  case class WriteResult(count: Int, mimeType: String, attributes: java.util.Map[String, String])
+  class ErrorHolder {
+    private var errors = 0
+    private var err: Throwable = _
+
+    def count: Int = errors
+    def first: Option[Throwable] = Option(err)
+
+    def error(e: Throwable): Unit = {
+      errors += 1
+      if (err == null) {
+        err = e
+      }
+    }
+  }
 }
