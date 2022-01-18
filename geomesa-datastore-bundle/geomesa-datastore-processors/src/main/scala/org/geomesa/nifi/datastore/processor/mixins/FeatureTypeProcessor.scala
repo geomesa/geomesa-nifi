@@ -10,7 +10,7 @@ package org.geomesa.nifi.datastore.processor.mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
-import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -44,6 +44,25 @@ trait FeatureTypeProcessor extends UserDataProcessor {
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] = {
     sftName = FeatureTypeProcessor.Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
     Seq(sftName, SftSpec, FeatureNameOverride) ++ super.getPrimaryProperties
+  }
+
+  override protected def customValidate(context: ValidationContext): java.util.Collection[ValidationResult] = {
+    val results = new java.util.HashSet(super.customValidate(context))
+
+    val spec = context.getProperty(SftSpec).getValue
+    if (spec != null && spec.nonEmpty) {
+      val name = context.getProperty(FeatureNameOverride).evaluateAttributeExpressions().getValue
+      SftArgResolver.getArg(SftArgs(spec, name)).left.foreach { e =>
+        val builder =
+          new ValidationResult.Builder()
+              .subject(SftSpec.getName)
+              .input(spec)
+              .explanation(s"'${SftSpec.getName}' is not a valid simple feature type: $e")
+        results.add(builder.build())
+      }
+    }
+
+    results
   }
 
   /**
