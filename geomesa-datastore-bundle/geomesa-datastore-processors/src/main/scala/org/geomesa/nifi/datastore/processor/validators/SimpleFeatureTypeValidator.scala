@@ -17,9 +17,11 @@ import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs}
 object SimpleFeatureTypeValidator extends Validator {
   override def validate(subject: String, input: String, validationContext: ValidationContext): ValidationResult = {
     val builder = new ValidationResult.Builder().subject(subject).input(input)
-    SftArgResolver.getArg(SftArgs(input, null)) match {
-      case Left(e)  => builder.explanation(s"'$subject' is not a valid simple feature type: $e").build();
-      case Right(_) => builder.valid(true).build();
+    // pass in a placeholder name
+    // further validation in conjunction with the feature type name must be done in customValidate
+    SftArgResolver.getArg(SftArgs(input, "")) match {
+      case Left(e)  => builder.explanation(s"'$subject' is not a valid simple feature type: $e").build()
+      case _        => builder.valid(true).build()
     }
   }
 }

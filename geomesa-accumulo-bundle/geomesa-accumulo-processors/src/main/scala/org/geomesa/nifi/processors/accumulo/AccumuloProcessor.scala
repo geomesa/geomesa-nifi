@@ -37,18 +37,18 @@ abstract class AccumuloProcessor extends AbstractDataStoreProcessor(AccumuloProc
     }
   }
 
-  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
+  override protected def customValidate(context: ValidationContext): java.util.Collection[ValidationResult] = {
     import org.geomesa.nifi.datastore.processor.invalid
 
     val result = new java.util.ArrayList[ValidationResult]()
-    result.addAll(super.customValidate(validationContext))
+    result.addAll(super.customValidate(context))
 
-    useControllerService = validationContext.getProperty(GeoMesaConfigController).isSet
+    useControllerService = context.getProperty(GeoMesaConfigController).isSet
 
     if (!useControllerService) {
       val required = Seq(InstanceIdParam, ZookeepersParam, UserParam, CatalogParam).map(_.getName)
       val missing = AccumuloProperties.exists { p =>
-        required.contains(p.getName) && !validationContext.getProperty(p).isSet
+        required.contains(p.getName) && !context.getProperty(p).isSet
       }
 
       // require either controller-service or all of {zoo,instance,user,catalog}
@@ -59,7 +59,7 @@ abstract class AccumuloProcessor extends AbstractDataStoreProcessor(AccumuloProc
       // Require precisely one of password/keytabPath
       val authentication = Seq(PasswordParam, KeytabPathParam).map(_.getName)
       val numSecurityParams = AccumuloProperties.count { p =>
-        authentication.contains(p.getName) && validationContext.getProperty(p).isSet
+        authentication.contains(p.getName) && context.getProperty(p).isSet
       }
       if (numSecurityParams != 1) {
         result.add(invalid("Precisely one of password and keytabPath must be set"))

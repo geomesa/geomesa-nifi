@@ -55,11 +55,11 @@ abstract class GeoToolsProcessor extends AbstractDataStoreProcessor(Seq.empty) {
   }
 
   // custom validate properties based on the specific datastore
-  override def customValidate(validationContext: ValidationContext): java.util.Collection[ValidationResult] = {
+  override protected def customValidate(context: ValidationContext): java.util.Collection[ValidationResult] = {
     val result = new java.util.ArrayList[ValidationResult]()
-    result.addAll(super.customValidate(validationContext))
+    result.addAll(super.customValidate(context))
 
-    val dsName = validationContext.getProperty(dataStoreName).getValue
+    val dsName = context.getProperty(dataStoreName).getValue
 
     def invalid(name: String, reason: String): ValidationResult =
       new ValidationResult.Builder().input(name).valid(false).explanation(reason).build()
@@ -72,7 +72,7 @@ abstract class GeoToolsProcessor extends AbstractDataStoreProcessor(Seq.empty) {
       val required = dsParams.filter(_.isRequired)
       logger.debug(s"Required props for DataSore $dsName are ${required.mkString(", ")}")
 
-      val names = validationContext.getProperties.asScala.map(_._1.getName).toSet
+      val names = context.getProperties.asScala.map(_._1.getName).toSet
 
       required.foreach { p =>
         val name = p.getName

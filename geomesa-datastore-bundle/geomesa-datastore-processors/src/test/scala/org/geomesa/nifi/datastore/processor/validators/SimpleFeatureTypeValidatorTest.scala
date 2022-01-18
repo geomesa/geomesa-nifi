@@ -21,7 +21,6 @@ class SimpleFeatureTypeValidatorTest {
   )
 
   private val invalidInputs = List(
-    "",
     "dsjhgjkdsfhgkjfdshgjisfkh",
     "geomesa { sfts {} }",
     "geomesa { sfts { twitter = {}} }"

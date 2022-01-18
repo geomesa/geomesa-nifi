@@ -14,7 +14,7 @@ import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.schema.inference.SchemaInferenceUtil
 import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureTypeProcessor, FeatureWriters}
+import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureTypeProcessor}
 import org.geomesa.nifi.datastore.processor.records.Properties
 import org.geomesa.nifi.datastore.processor.{CompatibilityMode, RecordUpdateProcessor, Relationships}
 import org.geotools.data.{DataStoreFinder, Transaction}
@@ -59,6 +59,39 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
       runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
+      runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
+      runner.run()
+      runner.assertTransferCount(Relationships.SuccessRelationship, 1)
+      runner.assertTransferCount(Relationships.FailureRelationship, 0)
+    } finally {
+      runner.shutdown()
+    }
+
+    val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+    Assert.assertNotNull(ds)
+    try {
+      val sft = ds.getSchema("example")
+      Assert.assertNotNull(sft)
+      val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+      logger.debug(features.mkString(";"))
+      Assert.assertEquals(3, features.length)
+    } finally {
+      ds.dispose()
+    }
+  }
+
+  @Test
+  def testSpecValidation(): Unit = {
+    val catalog = s"${root}IngestSpec"
+    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    try {
+      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      runner.setProperty(FeatureTypeProcessor.Properties.SftSpec,
+        "fid:Int,name:String,age:Int,dtg:Date,geom:Point:srid=4326")
+      runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
+      runner.assertNotValid()
+      runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
       runner.run()
       runner.assertTransferCount(Relationships.SuccessRelationship, 1)
