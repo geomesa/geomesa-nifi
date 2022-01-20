@@ -36,6 +36,14 @@ trait PropertyDescriptorUtils extends LazyLogging {
   }
 
   /**
+   * Create nifi property descriptors based on geotools data store parameters
+   *
+   * @param params params
+   * @return
+   */
+  def createPropertyDescriptors(params: Seq[Param]): Seq[PropertyDescriptor] = params.map(createPropertyDescriptor)
+
+  /**
    * Creates a nifi property descriptor based on a geotools data store parameter
    *
    * @param param param

@@ -99,7 +99,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |    <geomesa:example fid="23623">
       |      <gml:name>Harry</gml:name>
       |      <geomesa:age>20</geomesa:age>
-      |      <geomesa:dtg>2015-05-06T00:00:00.000Z</geomesa:dtg>
+      |      <geomesa:dtg>2015-05-06T00:00:00Z</geomesa:dtg>
       |      <geomesa:geom>
       |        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#4326">
       |          <gml:coordinates>-100.2365,23</gml:coordinates>
@@ -111,7 +111,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |    <geomesa:example fid="26236">
       |      <gml:name>Hermione</gml:name>
       |      <geomesa:age>25</geomesa:age>
-      |      <geomesa:dtg>2015-06-07T00:00:00.000Z</geomesa:dtg>
+      |      <geomesa:dtg>2015-06-07T00:00:00Z</geomesa:dtg>
       |      <geomesa:geom>
       |        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#4326">
       |          <gml:coordinates>40.232,-53.2356</gml:coordinates>
@@ -123,7 +123,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |    <geomesa:example fid="3233">
       |      <gml:name>Severus</gml:name>
       |      <geomesa:age>30</geomesa:age>
-      |      <geomesa:dtg>2015-10-23T00:00:00.000Z</geomesa:dtg>
+      |      <geomesa:dtg>2015-10-23T00:00:00Z</geomesa:dtg>
       |      <geomesa:geom>
       |        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#4326">
       |          <gml:coordinates>3,-62.23</gml:coordinates>
@@ -146,7 +146,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |    <geomesa:example gml:id="23623">
       |      <gml:name>Harry</gml:name>
       |      <geomesa:age>20</geomesa:age>
-      |      <geomesa:dtg>2015-05-06T00:00:00.000Z</geomesa:dtg>
+      |      <geomesa:dtg>2015-05-06T00:00:00Z</geomesa:dtg>
       |      <geomesa:geom>
       |        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#4326" srsDimension="2">
       |          <gml:pos>-100.2365 23</gml:pos>
@@ -156,7 +156,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |    <geomesa:example gml:id="26236">
       |      <gml:name>Hermione</gml:name>
       |      <geomesa:age>25</geomesa:age>
-      |      <geomesa:dtg>2015-06-07T00:00:00.000Z</geomesa:dtg>
+      |      <geomesa:dtg>2015-06-07T00:00:00Z</geomesa:dtg>
       |      <geomesa:geom>
       |        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#4326" srsDimension="2">
       |          <gml:pos>40.232 -53.2356</gml:pos>
@@ -166,7 +166,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |    <geomesa:example gml:id="3233">
       |      <gml:name>Severus</gml:name>
       |      <geomesa:age>30</geomesa:age>
-      |      <geomesa:dtg>2015-10-23T00:00:00.000Z</geomesa:dtg>
+      |      <geomesa:dtg>2015-10-23T00:00:00Z</geomesa:dtg>
       |      <geomesa:geom>
       |        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#4326" srsDimension="2">
       |          <gml:pos>3 -62.23</gml:pos>

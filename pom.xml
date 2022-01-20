@@ -64,7 +64,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>3.3.0</geomesa.version>
+        <geomesa.version>3.4.0-SNAPSHOT</geomesa.version>
         <gt.version>23.3</gt.version>
         <scala.version>2.12.13</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
@@ -361,6 +361,11 @@
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-redis-datastore_${scala.binary.version}</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-gt-partitioning_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
 

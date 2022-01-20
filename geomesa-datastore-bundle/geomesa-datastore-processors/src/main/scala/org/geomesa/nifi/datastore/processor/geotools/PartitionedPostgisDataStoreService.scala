@@ -9,11 +9,12 @@
 package org.geomesa.nifi.datastore.processor.geotools
 
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
-import org.geotools.data.postgis.PostgisNGDataStoreFactory
+import org.locationtech.geomesa.gt.partition.postgis.PartitionedPostgisDataStoreFactory
 
-class PostgisDataStoreService
-    extends GeoMesaDataStoreService[PostgisNGDataStoreFactory](PostgisDataStoreService.Parameters)
+class PartitionedPostgisDataStoreService
+    extends GeoMesaDataStoreService[PartitionedPostgisDataStoreFactory](PartitionedPostgisDataStoreService.Parameters)
 
-object PostgisDataStoreService extends JdbcPropertyDescriptorUtils {
-  private val Parameters = createPropertyDescriptors(new PostgisNGDataStoreFactory().getParametersInfo.toSeq)
+object PartitionedPostgisDataStoreService extends JdbcPropertyDescriptorUtils {
+  private val Parameters = createPropertyDescriptors(new PartitionedPostgisDataStoreFactory().getParametersInfo.toSeq)
 }
+
