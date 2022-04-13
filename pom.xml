@@ -76,7 +76,7 @@
         <zookeer.version>3.5.9</zookeer.version>
         <zkclient.version>0.10</zkclient.version>
         <curator.version>4.3.0</curator.version>
-        <nifi.version>1.12.1</nifi.version>
+        <nifi.version>1.15.3</nifi.version>
         <hadoop.version>2.8.5</hadoop.version>
         <fasterxml.jackson.version>2.9.7</fasterxml.jackson.version>
         <aws.java.sdk.version>1.11.412</aws.java.sdk.version>
