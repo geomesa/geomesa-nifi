@@ -332,6 +332,11 @@
                 <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-metrics-graphite_2.12</artifactId>
+                <version>${geomesa.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
