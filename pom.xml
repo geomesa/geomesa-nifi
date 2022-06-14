@@ -64,7 +64,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>3.4.0</geomesa.version>
+        <geomesa.version>3.4.1</geomesa.version>
         <gt.version>23.3</gt.version>
         <scala.version>2.12.13</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
