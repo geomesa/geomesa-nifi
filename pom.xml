@@ -168,6 +168,29 @@
                 <artifactId>nifi-standard-processors</artifactId>
                 <version>${nifi.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <!-- this artifact relies on a non-secure repo and maven won't resolve it -->
+                    <exclusion>
+                        <groupId>com.fluenda</groupId>
+                        <artifactId>ParCEFone</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.burgstaller</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-syslog-utils</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- managed submodules -->
