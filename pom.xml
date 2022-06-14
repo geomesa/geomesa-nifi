@@ -4,7 +4,7 @@
 
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi</artifactId>
-    <version>3.4.0</version>
+    <version>3.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>GeoMesa-NiFi</name>
