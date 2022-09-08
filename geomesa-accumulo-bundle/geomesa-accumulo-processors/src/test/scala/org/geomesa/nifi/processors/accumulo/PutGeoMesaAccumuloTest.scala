@@ -752,7 +752,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
         i += 1
       }
-      runner.run()
+      runner.run(3)
       runner.assertTransferCount(Relationships.SuccessRelationship, i)
       runner.assertTransferCount(Relationships.FailureRelationship, 0)
       while (i > 0) {

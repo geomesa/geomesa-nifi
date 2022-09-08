@@ -8,7 +8,6 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -31,7 +30,6 @@ import scala.util.control.NonFatal
 /**
   * Record-based ingest processor for geotools data stores
   */
-@CapabilityDescription("Ingest records into GeoMesa")
 trait RecordIngestProcessor extends DataStoreIngestProcessor with UserDataProcessor {
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =

@@ -9,19 +9,15 @@
 package org.geomesa.nifi.datastore.processor
 package mixins
 
-import java.util.Collections
-
-import org.apache.nifi.annotation.behavior.InputRequirement
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.lifecycle.OnAdded
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processor.{AbstractProcessor, ProcessContext, ProcessorInitializationContext, Relationship}
-import org.opengis.feature.simple.SimpleFeatureType
 
-@InputRequirement(Requirement.INPUT_REQUIRED)
+import java.util.Collections
+
 abstract class BaseProcessor extends AbstractProcessor {
 
   import BaseProcessor.Properties.ExtraClasspaths

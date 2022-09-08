@@ -9,7 +9,6 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
@@ -23,7 +22,6 @@ import scala.util.control.NonFatal
 /**
   * Converter ingest processor for geotools data stores
   */
-@CapabilityDescription("Convert and ingest data files into GeoMesa")
 trait ConverterIngestProcessor extends DataStoreIngestProcessor with ConvertInputProcessor {
 
   override protected def createIngest(

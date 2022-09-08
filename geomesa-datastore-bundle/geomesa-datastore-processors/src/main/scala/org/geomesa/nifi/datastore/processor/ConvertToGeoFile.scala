@@ -8,13 +8,9 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import java.io.{File, OutputStream}
-import java.nio.file.Files
-import java.util.UUID
-import java.util.zip.GZIPOutputStream
-
 import org.apache.commons.io.FilenameUtils
-import org.apache.nifi.annotation.behavior.{WritesAttribute, WritesAttributes}
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
+import org.apache.nifi.annotation.behavior._
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -33,17 +29,30 @@ import org.locationtech.geomesa.tools.`export`.formats._
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, PathUtils}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import java.io.{File, OutputStream}
+import java.nio.file.Files
+import java.util.UUID
+import java.util.zip.GZIPOutputStream
 import scala.util.control.NonFatal
 
 @Tags(Array("OGC", "geo", "convert", "converter", "simple feature", "geotools", "geomesa",
   "parquet", "orc", "arrow", "gml", "geojson", "csv", "leaflet"))
 @CapabilityDescription("Convert incoming files into OGC data files using GeoMesa Converters")
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@ReadsAttributes(
+  Array(
+    new ReadsAttribute(attribute = "geomesa.converter", description = "GeoMesa converter name or configuration"),
+    new ReadsAttribute(attribute = "geomesa.sft.name", description = "GeoMesa SimpleFeatureType name"),
+    new ReadsAttribute(attribute = "geomesa.sft.spec", description = "GeoMesa SimpleFeatureType specification")
+  )
+)
 @WritesAttributes(
   Array(
     new WritesAttribute(attribute = "geomesa.convert.successes", description = "Number of features written successfully"),
     new WritesAttribute(attribute = "geomesa.convert.failures", description = "Number of features with errors")
   )
 )
+@SupportsBatching
 class ConvertToGeoFile extends ConvertInputProcessor {
 
   import ConvertToGeoFile.FlowFileExportStream

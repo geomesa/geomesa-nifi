@@ -11,7 +11,6 @@ package org.geomesa.nifi.datastore.processor
 package mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import org.apache.nifi.annotation.behavior.{SupportsBatching, WritesAttribute, WritesAttributes}
 import org.apache.nifi.annotation.lifecycle._
 import org.apache.nifi.components.{PropertyDescriptor, PropertyValue}
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -40,19 +39,10 @@ import scala.util.{Failure, Success, Try}
 /**
   * Abstract ingest processor for geotools data stores
   */
-@WritesAttributes(
-  Array(
-    new WritesAttribute(attribute = "geomesa.ingest.successes", description = "Number of features written successfully"),
-    new WritesAttribute(attribute = "geomesa.ingest.failures", description = "Number of features with errors")
-  )
-)
-@SupportsBatching
 trait DataStoreIngestProcessor extends DataStoreProcessor {
 
   import DataStoreIngestProcessor.Properties._
   import Properties.NifiBatchSize
-
-  import scala.collection.JavaConverters._
 
   @volatile
   private var ingest: IngestProcessor = _
@@ -117,30 +107,28 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
-    val flowFiles = session.get(context.getProperty(NifiBatchSize).evaluateAttributeExpressions().asInteger())
-    logger.debug(s"Processing ${flowFiles.size()} files in batch")
-    if (flowFiles != null && flowFiles.size > 0) {
-      flowFiles.asScala.foreach { file =>
-        val name = fullName(file)
-        try {
-          logger.debug(s"Processing ${ingest.getClass.getName} with file $name")
-          val result = ingest.ingest(context, session, file, name)
-          var output = file
-          output = session.putAttribute(output, Attributes.IngestSuccessCount, result.success.toString)
-          output = session.putAttribute(output, Attributes.IngestFailureCount, result.failure.toString)
-          logger.debug(
-            s"Ingested file ${fullName(output)} with ${result.success} successes and ${result.failure} failures")
-          if (result.success > 0L) {
-            session.transfer(output, Relationships.SuccessRelationship)
-          } else {
-            session.transfer(output, Relationships.FailureRelationship)
-          }
-        } catch {
-          case NonFatal(e) =>
-            logger.error(s"Error processing file ${fullName(file)}:", e)
-            session.transfer(file, Relationships.FailureRelationship)
-        }
+    val file = session.get()
+    if (file == null) {
+      return
+    }
+    val name = fullName(file)
+    try {
+      logger.debug(s"Processing ${ingest.getClass.getName} with file $name")
+      val result = ingest.ingest(context, session, file, name)
+      var output = file
+      output = session.putAttribute(output, Attributes.IngestSuccessCount, result.success.toString)
+      output = session.putAttribute(output, Attributes.IngestFailureCount, result.failure.toString)
+      logger.debug(
+        s"Ingested file ${fullName(output)} with ${result.success} successes and ${result.failure} failures")
+      if (result.success > 0L) {
+        session.transfer(output, Relationships.SuccessRelationship)
+      } else {
+        session.transfer(output, Relationships.FailureRelationship)
       }
+    } catch {
+      case NonFatal(e) =>
+        logger.error(s"Error processing file ${fullName(file)}:", e)
+        session.transfer(file, Relationships.FailureRelationship)
     }
   }
 

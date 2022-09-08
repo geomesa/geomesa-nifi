@@ -9,8 +9,6 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
-import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -33,10 +31,6 @@ import scala.util.control.NonFatal
 /**
   * Avro ingest processor for geotools data stores
   */
-@CapabilityDescription("Ingest GeoAvro files into GeoMesa")
-@ReadsAttributes(
-  Array(new ReadsAttribute(attribute = "geomesa.sft.name", description = "GeoMesa SimpleFeatureType name"))
-)
 trait AvroIngestProcessor extends DataStoreIngestProcessor with FeatureTypeProcessor {
 
   import AvroIngestProcessor.Properties.UseProvidedFid

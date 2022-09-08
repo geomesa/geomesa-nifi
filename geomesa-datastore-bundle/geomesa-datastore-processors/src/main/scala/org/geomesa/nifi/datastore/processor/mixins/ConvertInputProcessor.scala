@@ -15,7 +15,6 @@ import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
-import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
 import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnShutdown, OnStopped}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -37,11 +36,6 @@ import scala.util.control.NonFatal
 /**
   * Converter processor for parsing simple features
   */
-@ReadsAttributes(
-  Array(
-    new ReadsAttribute(attribute = "geomesa.converter", description = "GeoMesa converter name or configuration")
-  )
-)
 trait ConvertInputProcessor extends FeatureTypeProcessor {
 
   import ConvertInputProcessor.Attributes.ConverterAttribute
