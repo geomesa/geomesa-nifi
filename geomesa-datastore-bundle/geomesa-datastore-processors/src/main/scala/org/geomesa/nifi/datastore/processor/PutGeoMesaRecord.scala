@@ -8,8 +8,18 @@
 
 package org.geomesa.nifi.datastore.processor
 
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
+import org.apache.nifi.annotation.behavior.{InputRequirement, SupportsBatching, WritesAttribute, WritesAttributes}
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 
 @Tags(Array("geomesa", "geo", "ingest", "records", "accumulo", "geotools"))
 @CapabilityDescription("Ingest records into GeoMesa")
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@WritesAttributes(
+  Array(
+    new WritesAttribute(attribute = "geomesa.ingest.successes", description = "Number of features written successfully"),
+    new WritesAttribute(attribute = "geomesa.ingest.failures", description = "Number of features with errors")
+  )
+)
+@SupportsBatching
 class PutGeoMesaRecord extends RecordIngestProcessor

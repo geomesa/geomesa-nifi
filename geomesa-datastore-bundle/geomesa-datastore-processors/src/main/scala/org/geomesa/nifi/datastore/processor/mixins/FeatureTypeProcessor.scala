@@ -9,7 +9,6 @@
 package org.geomesa.nifi.datastore.processor.mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import org.apache.nifi.annotation.behavior.{ReadsAttribute, ReadsAttributes}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
@@ -22,12 +21,6 @@ import org.opengis.feature.simple.SimpleFeatureType
 /**
   * Mixin trait for configuring feature types via typesafe config
   */
-@ReadsAttributes(
-  Array(
-    new ReadsAttribute(attribute = "geomesa.sft.name", description = "GeoMesa SimpleFeatureType name"),
-    new ReadsAttribute(attribute = "geomesa.sft.spec", description = "GeoMesa SimpleFeatureType specification")
-  )
-)
 trait FeatureTypeProcessor extends UserDataProcessor {
 
   import FeatureTypeProcessor.Attributes.{SftNameAttribute, SftSpecAttribute}

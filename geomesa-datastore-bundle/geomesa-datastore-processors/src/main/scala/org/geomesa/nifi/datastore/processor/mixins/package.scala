@@ -8,9 +8,7 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.expression.ExpressionLanguageScope
-import org.apache.nifi.processor.util.StandardValidators
+import org.apache.nifi.components.{PropertyDescriptor, Validator}
 
 package object mixins {
 
@@ -19,11 +17,10 @@ package object mixins {
     val NifiBatchSize: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("BatchSize")
+          .displayName("BatchSize (deprecated)")
           .required(false)
-          .description("Number of FlowFiles to execute in a single batch")
-          .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .defaultValue("5")
+          .description("Deprecated - use scheduled run duration instead")
+          .addValidator(Validator.VALID)
           .build()
   }
 }

@@ -46,9 +46,9 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 @TriggerWhenEmpty
-@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags(Array("kafka", "geomesa", "ingress", "get", "input", "record"))
 @CapabilityDescription("Reads Kafka messages from a GeoMesa data source and writes them out as NiFi records")
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes(
   Array(
     new WritesAttribute(attribute = "record.count", description = "The number of records written to the flow file"),
