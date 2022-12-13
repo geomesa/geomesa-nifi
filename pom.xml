@@ -334,7 +334,7 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-metrics-graphite_2.12</artifactId>
+                <artifactId>geomesa-metrics-graphite_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
 
@@ -986,7 +986,8 @@
                     <!-- 3.0.0-M2 was released 2021-12-27. -->
                     <version>3.0.0-M2</version>
                     <configuration>
-                        <deployAtEnd>true</deployAtEnd>
+                        <!-- deployAtEnd doesn't work with the nar extension -->
+                        <deployAtEnd>false</deployAtEnd>
                     </configuration>
                 </plugin>
                 <plugin>
