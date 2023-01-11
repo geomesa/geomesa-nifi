@@ -51,9 +51,8 @@ class AvroToPutGeoMesa extends DataStoreIngestProcessor with FeatureTypeProcesso
 
   import AvroToPutGeoMesa.Properties.UseProvidedFid
 
-  override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
-    super.getPrimaryProperties ++ Seq(UseProvidedFid)
-
+  override protected def getSecondaryProperties: Seq[PropertyDescriptor] =
+    Seq(UseProvidedFid) ++ super.getSecondaryProperties ++ Seq(ExtraClasspaths)
 
   // noinspection ScalaDeprecation
   override protected def createIngest(

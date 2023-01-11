@@ -25,8 +25,8 @@ trait UserDataProcessor extends BaseProcessor {
 
   import UserDataProcessor.Properties.SftUserData
 
-  override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
-    super.getPrimaryProperties ++ Seq(SftUserData)
+  override protected def getSecondaryProperties: Seq[PropertyDescriptor] =
+    super.getSecondaryProperties ++ Seq(SftUserData)
 
   /**
    * Load the configured user data, based on processor and flow file properties

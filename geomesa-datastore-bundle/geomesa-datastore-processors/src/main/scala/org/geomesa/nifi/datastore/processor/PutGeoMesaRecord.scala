@@ -19,11 +19,10 @@ import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.Record
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.PutGeoMesaRecord.CountHolder
-import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureWriters, UserDataProcessor}
+import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureWriters}
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
 import org.geotools.data._
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.WithClose
 
 import java.io.InputStream
@@ -41,7 +40,7 @@ import scala.util.control.NonFatal
   )
 )
 @SupportsBatching
-class PutGeoMesaRecord extends DataStoreIngestProcessor with UserDataProcessor {
+class PutGeoMesaRecord extends DataStoreIngestProcessor {
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
     super.getPrimaryProperties ++ PutGeoMesaRecord.Props
@@ -87,14 +86,8 @@ class PutGeoMesaRecord extends DataStoreIngestProcessor with UserDataProcessor {
         override def process(in: InputStream): Unit = {
           WithClose(recordReaderFactory.createRecordReader(file, in, logger)) { reader =>
             val converter = SimpleFeatureRecordConverter(reader.getSchema, opts)
-            val userData = loadFeatureTypeUserData(converter.sft, context, file)
-            val sft = if (userData.isEmpty) { converter.sft } else {
-              val copy = SimpleFeatureTypes.copy(converter.sft)
-              copy.getUserData.putAll(userData)
-              copy
-            }
             // create or update the feature type if needed
-            checkSchema(sft)
+            checkSchema(converter.sft)
 
             @tailrec
             def nextRecord: Record = {
@@ -108,7 +101,7 @@ class PutGeoMesaRecord extends DataStoreIngestProcessor with UserDataProcessor {
               nextRecord
             }
 
-            writers.borrow(sft.getTypeName, file) { writer =>
+            writers.borrow(converter.sft.getTypeName, file) { writer =>
               var record = nextRecord
               while (record != null) {
                 try {

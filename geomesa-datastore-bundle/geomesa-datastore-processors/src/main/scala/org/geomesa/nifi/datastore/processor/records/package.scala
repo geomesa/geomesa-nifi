@@ -148,6 +148,7 @@ package object records {
         .displayName("Schema user data")
         .description("User data used to configure the GeoMesa SimpleFeatureType, in the form 'key1=value1,key2=value2'")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+         .defaultValue("${geomesa.sft.user-data}")
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(false)

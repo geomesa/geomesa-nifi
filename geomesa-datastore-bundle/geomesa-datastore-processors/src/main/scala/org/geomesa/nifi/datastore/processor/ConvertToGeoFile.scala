@@ -61,8 +61,11 @@ class ConvertToGeoFile extends ConvertInputProcessor {
   override protected def getShips: Seq[Relationship] =
     super.getShips ++ Seq(Relationships.OriginalRelationship)
 
+  override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
+    super.getPrimaryProperties ++ Seq(OutputFormat, GzipLevel, IncludeHeaders)
+
   override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
-    super.getTertiaryProperties ++ Seq(OutputFormat, GzipLevel, IncludeHeaders)
+    super.getTertiaryProperties ++ Seq(ExtraClasspaths)
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
     var input = session.get()

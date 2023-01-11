@@ -11,6 +11,7 @@ package org.geomesa.nifi.datastore.processor
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior._
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
@@ -48,6 +49,9 @@ class PutGeoMesa extends DataStoreIngestProcessor with ConvertInputProcessor {
       mode: CompatibilityMode): IngestProcessor = {
     new ConverterIngest(dataStore, writers, mode)
   }
+
+  override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
+    Seq(ExtraClasspaths) ++ super.getTertiaryProperties
 
   /**
    * Converter ingest
