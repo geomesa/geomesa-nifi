@@ -56,7 +56,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   final def onEnabled(context: ConfigurationContext): Unit = {
     params.clear()
     getDataStoreParams(context).foreach { case (k, v) => params.put(k, v) }
-    logParams("Enabled", params.asScala)
+    logParams("Enabled", params.asScala.toMap)
   }
 
   @OnDisabled
@@ -89,9 +89,11 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     }
   }
 
-  private def logParams(phase: String, params: scala.collection.Map[String, _]): Unit = {
-    lazy val safeToLog = params.map { case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}" }
-    getLogger.trace(s"$phase: DataStore parameters: ${safeToLog.mkString(", ")}")
+  private def logParams(phase: String, params: Map[String, _ <: AnyRef]): Unit = {
+    def mask(kv: (String, Any)): String = kv match {
+      case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}"
+    }
+    getLogger.trace(s"$phase: DataStore parameters: ${params.map(mask(_)).mkString(", ")}")
   }
 
   override def toString: String = s"${getClass.getSimpleName}[id=$getIdentifier]"

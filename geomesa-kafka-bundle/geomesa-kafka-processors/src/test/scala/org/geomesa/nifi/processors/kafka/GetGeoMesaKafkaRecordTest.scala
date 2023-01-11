@@ -119,14 +119,15 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.shutdown()
       }
 
-      result mustEqual
-          """id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes
-            |0,string0,0,2.0,0,2.0,true,0d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (0 10),2020-02-02T00:00:00Z,"[1, 2, 0]","{20=20, 0=0}",00
-            |1,string1,1,2.1,1,2.1,false,1d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (1 10),2020-02-02T01:00:00Z,"[1, 2, 1]","{21=21, 1=1}",11
-            |2,string2,2,2.2,2,2.2,true,2d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (2 10),2020-02-02T02:00:00Z,"[1, 2, 2]","{2=2, 22=22}",22
-            |3,string3,3,2.3,3,2.3,false,3d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (3 10),2020-02-02T03:00:00Z,"[1, 2, 3]","{23=23, 3=3}",33
-            |4,string4,4,2.4,4,2.4,true,4d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (4 10),2020-02-02T04:00:00Z,"[1, 2, 4]","{24=24, 4=4}",44
-            |""".stripMargin
+      val lines = result.split("\n")
+      lines must haveLength(6)
+      lines.head mustEqual "id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes"
+      foreach(Range(0, 5)) { i =>
+        // split up checks to avoid inconsistent ordering in the map iteration
+        lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),2020-02-02T0$i:00:00Z,"[1, 2, $i]","{""")
+        foreach(Seq(s"$i=$i", s"2$i=2$i"))(entry => lines(i + 1) must contain(entry))
+        lines(i + 1) must endWith(s"""}",$i$i""")
+      }
     }
 
     "get records with visibilities" in {
@@ -187,14 +188,15 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
         runner.shutdown()
       }
 
-      result mustEqual
-          """id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes,user-data
-            |0,string0,0,2.0,0,2.0,true,0d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (0 10),2020-02-02T00:00:00Z,'[1, 2, 0]','{20=20, 0=0}',00,'{"bar":"2020-02-02T00:00:00.000Z","foo":0}'
-            |1,string1,1,2.1,1,2.1,false,1d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (1 10),2020-02-02T01:00:00Z,'[1, 2, 1]','{21=21, 1=1}',11,'{"bar":"2020-02-02T01:00:00.000Z","foo":1}'
-            |2,string2,2,2.2,2,2.2,true,2d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (2 10),2020-02-02T02:00:00Z,'[1, 2, 2]','{2=2, 22=22}',22,'{"bar":"2020-02-02T02:00:00.000Z","foo":2}'
-            |3,string3,3,2.3,3,2.3,false,3d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (3 10),2020-02-02T03:00:00Z,'[1, 2, 3]','{23=23, 3=3}',33,'{"bar":"2020-02-02T03:00:00.000Z","foo":0}'
-            |4,string4,4,2.4,4,2.4,true,4d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT (4 10),2020-02-02T04:00:00Z,'[1, 2, 4]','{24=24, 4=4}',44,'{"bar":"2020-02-02T04:00:00.000Z","foo":1}'
-            |""".stripMargin
+      val lines = result.split("\n")
+      lines must haveLength(6)
+      lines.head mustEqual "id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes,user-data"
+      foreach(Range(0, 5)) { i =>
+        // split up checks to avoid inconsistent ordering in the map iteration
+        lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),2020-02-02T0$i:00:00Z,'[1, 2, $i]','{""")
+        foreach(Seq(s"$i=$i", s"2$i=2$i"))(entry => lines(i + 1) must contain(entry))
+        lines(i + 1) must endWith(s"""}',$i$i,'{"bar":"2020-02-02T0$i:00:00.000Z","foo":${i % 3}}'""")
+      }
     }
 
     "get records in GeoAvro format" in {

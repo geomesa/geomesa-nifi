@@ -193,7 +193,7 @@ object AvroToPutGeoMesa {
    */
   def convert(in: SimpleFeatureType, out: SimpleFeatureType): SimpleFeature => SimpleFeature = {
     val outGeometryLocalName = Option(out.getGeometryDescriptor).map(_.getLocalName).orNull
-    val inToOut: Seq[SimpleFeature => AnyRef] = out.getAttributeDescriptors.asScala.map { outAttributeDescriptor =>
+    val inToOut: Seq[SimpleFeature => AnyRef] = out.getAttributeDescriptors.asScala.toSeq.map { outAttributeDescriptor =>
       val outLocalName = outAttributeDescriptor.getLocalName
       in.indexOf(outLocalName) match {
         case inIndex if inIndex >= 0 =>
