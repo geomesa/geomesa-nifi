@@ -1,0 +1,2 @@
+org.geomesa.nifi.processors.gt.PartitionedPostgisDataStoreService
+org.geomesa.nifi.processors.gt.PostgisDataStoreService

@@ -8,9 +8,6 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
-
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.csv.{CSVRecordSetWriter, CSVUtils}
 import org.apache.nifi.serialization.DateTimeUtils
@@ -20,7 +17,7 @@ import org.geomesa.nifi.datastore.processor.records.{GeoAvroRecordSetWriterFacto
 import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
-import org.locationtech.geomesa.features.avro.AvroDataFileReader
+import org.locationtech.geomesa.features.avro.io.AvroDataFileReader
 import org.locationtech.geomesa.kafka.EmbeddedKafka
 import org.locationtech.geomesa.security.SecureSimpleFeature
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
@@ -28,6 +25,9 @@ import org.locationtech.geomesa.utils.io.WithClose
 import org.opengis.feature.simple.SimpleFeatureType
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
+import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
 
 @RunWith(classOf[JUnitRunner])
 class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {

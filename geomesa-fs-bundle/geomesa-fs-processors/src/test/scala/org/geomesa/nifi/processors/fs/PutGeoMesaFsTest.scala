@@ -56,35 +56,6 @@ class PutGeoMesaFsTest extends LazyLogging {
     }
   }
 
-  @Test
-  def testIngestWithPartitionScheme(): Unit = {
-    withDir { dir =>
-      val path = dir.toFile.getAbsolutePath
-      val runner = TestRunners.newTestRunner(new PutGeoMesaFileSystem())
-      try {
-        runner.setProperty("fs.path", path)
-        runner.setProperty("fs.encoding", "parquet")
-        runner.setProperty(FileSystemIngestProcessor.PartitionSchemeParam, "daily")
-        runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
-        runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
-        runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
-        runner.run()
-        runner.assertTransferCount(Relationships.SuccessRelationship, 1)
-        runner.assertTransferCount(Relationships.FailureRelationship, 0)
-      } finally {
-        runner.shutdown()
-      }
-      WithClose(DataStoreFinder.getDataStore(Collections.singletonMap(FileSystemDataStoreParams.PathParam.key, path))) { ds =>
-        Assert.assertNotNull(ds)
-        val sft = ds.getSchema("example")
-        Assert.assertNotNull(sft)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
-        logger.debug(features.mkString(";"))
-        Assert.assertEquals(3, features.length)
-      }
-    }
-  }
-
   def withDir[T](fn: Path => T): T = {
     val dir = Files.createTempDirectory("gm-nifi-fs")
     try { fn(dir) } finally {

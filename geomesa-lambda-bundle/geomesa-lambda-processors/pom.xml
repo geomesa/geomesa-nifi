@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>org.geomesa.nifi</groupId>
-        <artifactId>geomesa-lambda-bundle</artifactId>
+        <artifactId>geomesa-lambda-bundle_2.12</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-lambda-processors</artifactId>
+    <artifactId>geomesa-lambda-processors_2.12</artifactId>
     <packaging>jar</packaging>
 
     <description>GeoMesa Lambda DataStore processor implementations</description>
@@ -18,13 +18,13 @@
 
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-datastore-services-api</artifactId>
+            <artifactId>geomesa-datastore-services-api_${scala.binary.version}</artifactId>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-datastore-processors</artifactId>
+            <artifactId>geomesa-datastore-processors_${scala.binary.version}</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -75,23 +75,7 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.geotools</groupId>
-                    <artifactId>gt-main</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-opengis</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-cql</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-metadata</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-render</artifactId>
+                    <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>javax.media</groupId>
@@ -134,21 +118,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_${scala.binary.version}</artifactId>
-            <exclusions>
-                <!-- exclude dependencies provided by datastore-services-api-nar -->
-                <exclusion>
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.typesafe.scala-logging</groupId>
-                    <artifactId>scala-logging_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>

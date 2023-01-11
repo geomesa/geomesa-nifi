@@ -107,7 +107,7 @@ class ConvertToGeoFile extends ConvertInputProcessor {
               new FlowFileExportStream(compressed)
             }
             val exporter = format match {
-              case ExportFormat.Arrow   => new ArrowExporter(stream, ConvertToGeoFile.getArrowHints(sft), Map.empty)
+              case ExportFormat.Arrow   => new ArrowExporter(stream, ConvertToGeoFile.getArrowHints(sft))
               case ExportFormat.Avro    => new AvroExporter(new FlowFileExportStream(out), gzip)
               case ExportFormat.Bin     => new BinExporter(stream, new Hints())
               case ExportFormat.Csv     => DelimitedExporter.csv(stream, headers)

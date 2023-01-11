@@ -11,6 +11,7 @@ package mixins
 
 import org.apache.nifi.annotation.lifecycle.OnAdded
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.components.resource.{ResourceCardinality, ResourceType}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor.util.StandardValidators
@@ -107,6 +108,7 @@ object BaseProcessor {
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .dynamicallyModifiesClasspath(true)
+          .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
           .build()
   }
 }

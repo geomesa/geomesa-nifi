@@ -404,6 +404,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
 
   val ProcessorDescriptors: Seq[PropertyDescriptor] = Seq(
     createPropertyDescriptor(KafkaDataStoreParams.Brokers),
+    createPropertyDescriptor(KafkaDataStoreParams.Catalog),
     createPropertyDescriptor(KafkaDataStoreParams.Zookeepers),
     createPropertyDescriptor(KafkaDataStoreParams.ZkPath),
     TypeName,

@@ -13,10 +13,10 @@ import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.schema.inference.SchemaInferenceUtil
-import org.apache.nifi.util.TestRunners
-import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureTypeProcessor}
+import org.apache.nifi.util.{TestRunner, TestRunners}
+import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, DataStoreProcessor, FeatureTypeProcessor}
 import org.geomesa.nifi.datastore.processor.records.Properties
-import org.geomesa.nifi.datastore.processor.{CompatibilityMode, RecordUpdateProcessor, Relationships}
+import org.geomesa.nifi.datastore.processor._
 import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.accumulo.MiniCluster
@@ -24,7 +24,7 @@ import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
 import org.locationtech.geomesa.convert.ConverterConfigLoader
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.ScalaSimpleFeature
-import org.locationtech.geomesa.features.avro.AvroDataFileWriter
+import org.locationtech.geomesa.features.avro.io.AvroDataFileWriter
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypeLoader, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
@@ -44,19 +44,27 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
 
   // note the table needs to be different to prevent tests from conflicting with each other
   lazy val dsParams: Map[String, String] = Map(
-    AccumuloDataStoreParams.InstanceIdParam.key -> MiniCluster.cluster.getInstanceName,
-    AccumuloDataStoreParams.ZookeepersParam.key -> MiniCluster.cluster.getZooKeepers,
-    AccumuloDataStoreParams.UserParam.key       -> MiniCluster.Users.root.name,
-    AccumuloDataStoreParams.PasswordParam.key   -> MiniCluster.Users.root.password
+    AccumuloDataStoreParams.InstanceNameParam.key -> MiniCluster.cluster.getInstanceName,
+    AccumuloDataStoreParams.ZookeepersParam.key   -> MiniCluster.cluster.getZooKeepers,
+    AccumuloDataStoreParams.UserParam.key         -> MiniCluster.Users.root.name,
+    AccumuloDataStoreParams.PasswordParam.key     -> MiniCluster.Users.root.password
   )
+
+  def configureAccumuloService(runner: TestRunner, catalog: String): Unit = {
+    val service = new AccumuloDataStoreService()
+    runner.addControllerService("data-store", service)
+    dsParams.foreach { case (k, v) => runner.setProperty(service, k, v) }
+    runner.setProperty(service, AccumuloDataStoreParams.CatalogParam.key, catalog)
+    runner.enableControllerService(service)
+    runner.setProperty(DataStoreProcessor.Properties.DataStoreService, "data-store")
+  }
 
   @Test
   def testIngest(): Unit = {
     val catalog = s"${root}Ingest"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
@@ -83,10 +91,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testSpecValidation(): Unit = {
     val catalog = s"${root}IngestSpec"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftSpec,
         "fid:Int,name:String,age:Int,dtg:Date,geom:Point:srid=4326")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
@@ -116,10 +123,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testIngestConvertAttributes(): Unit = {
     val catalog = s"${root}IngestConvertAttributes"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(ConvertInputProcessor.Properties.ConvertFlowFileAttributes, "true")
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(FeatureTypeProcessor.Attributes.SftSpecAttribute, "example")
@@ -150,10 +156,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testIngestConfigureAttributes(): Unit = {
     val catalog = s"${root}IngestConfigureAttributes"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       val attributes = new java.util.HashMap[String, String]()
       attributes.put(FeatureTypeProcessor.Attributes.SftSpecAttribute, "example")
       attributes.put(ConvertInputProcessor.Attributes.ConverterAttribute, "example-csv")
@@ -181,10 +186,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testIngestConfigureAttributeOverride(): Unit = {
     val catalog = s"${root}IngestConfigureAttributeOverride"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       val attributes = new java.util.HashMap[String, String]()
@@ -213,10 +217,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testAvroIngest(): Unit = {
     val catalog = s"${root}AvroIngest"
-    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
       runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Exact.toString)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
@@ -264,10 +267,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
 
     val is = new ByteArrayInputStream(baos.toByteArray)
 
-    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Existing.toString)
 
@@ -312,10 +314,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
 
     val is = new ByteArrayInputStream(baos.toByteArray)
 
-    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
       runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Existing.toString)
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example-csv.avro"))
@@ -368,10 +369,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         |  ]
         |}
         |""".stripMargin
-    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new AvroToPutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.FeatureNameOverride, "example")
       runner.setProperty(DataStoreIngestProcessor.Properties.SchemaCompatibilityMode, CompatibilityMode.Existing.toString)
       runner.setProperty(FeatureTypeProcessor.Properties.SftSpec, spec)
@@ -402,10 +402,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testRecordIngest(): Unit = {
     val catalog = s"${root}RecordIngest"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumuloRecord())
+    val runner = TestRunners.newTestRunner(new PutGeoMesaRecord())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       val service = new AvroReader()
       runner.addControllerService("avro-record-reader", service)
       runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "embedded-avro-schema")
@@ -464,10 +463,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testRecordIngestFlowFileAttributes(): Unit = {
     val catalog = s"${root}RecordIngestAttributes"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumuloRecord())
+    val runner = TestRunners.newTestRunner(new PutGeoMesaRecord())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       val service = new AvroReader()
       runner.addControllerService("avro-record-reader", service)
       runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "embedded-avro-schema")
@@ -532,7 +530,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testUpdateIngest(): Unit = {
     val catalog = s"${root}UpdateIngest"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
 
     def checkResults(ids: Seq[String], names: Seq[String], dates: Seq[Date], geoms: Seq[String]): Unit = {
       val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
@@ -554,8 +552,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
 
     val df = new SimpleDateFormat("yyyy-MM-dd")
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
@@ -599,7 +596,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testAppendThenUpdateIngest(): Unit = {
     val catalog = s"${root}AppendUpdateIngest"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
 
     def checkResults(ages: Seq[Int], dates: Seq[Date], geoms: Seq[String]): Unit = {
       val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
@@ -622,8 +619,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
 
     val df = new SimpleDateFormat("yyyy-MM-dd")
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       runner.setProperty(DataStoreIngestProcessor.Properties.WriteMode, "${geomesa.write.mode}")
@@ -657,7 +653,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testUpdateRecord(): Unit = {
     val catalog = s"${root}UpdateRecord"
-    val runner = TestRunners.newTestRunner(new UpdateGeoMesaAccumuloRecord())
+    val runner = TestRunners.newTestRunner(new UpdateGeoMesaRecord())
 
     val df = new SimpleDateFormat("yyyy-MM-dd")
     try {
@@ -697,11 +693,11 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         runner.addControllerService("json-record-reader", service)
         runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA)
         runner.enableControllerService(service)
-        params.foreach { case (k, v) => runner.setProperty(k, v) }
+        configureAccumuloService(runner, catalog)
         runner.setProperty(Properties.RecordReader, "json-record-reader")
         runner.setProperty(Properties.TypeName, "${type-name}")
         runner.setProperty(Properties.FeatureIdCol, "${id-col}")
-        runner.setProperty(RecordUpdateProcessor.Properties.LookupCol, "${id-col}")
+        runner.setProperty(UpdateGeoMesaRecord.Properties.LookupCol, "${id-col}")
 
         // update one name
         runner.enqueue(
@@ -718,7 +714,7 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
         )
 
         // update the name and feature id based on matching on age
-        runner.setProperty(RecordUpdateProcessor.Properties.LookupCol, "${match-col}")
+        runner.setProperty(UpdateGeoMesaRecord.Properties.LookupCol, "${match-col}")
         runner.enqueue(
           new ByteArrayInputStream("""{"fid":"26237","name":"Hermione Granger","age":25}""".getBytes(StandardCharsets.UTF_8)),
           Map("type-name"-> "example", "id-col" -> "fid", "match-col" -> "age").asJava)
@@ -740,10 +736,9 @@ class PutGeoMesaAccumuloTest extends LazyLogging {
   @Test
   def testIngestCounts(): Unit = {
     val catalog = s"${root}Counts"
-    val runner = TestRunners.newTestRunner(new PutGeoMesaAccumulo())
+    val runner = TestRunners.newTestRunner(new PutGeoMesa())
     try {
-      dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
-      runner.setProperty(AccumuloDataStoreParams.CatalogParam.key, catalog)
+      configureAccumuloService(runner, catalog)
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
 

@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>org.geomesa.nifi</groupId>
-        <artifactId>geomesa-hbase-bundle</artifactId>
+        <artifactId>geomesa-hbase-bundle_2.12</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-hbase-processors</artifactId>
+    <artifactId>geomesa-hbase-processors_2.12</artifactId>
     <packaging>jar</packaging>
 
     <description>GeoMesa HBase processor implementations</description>
@@ -18,13 +18,13 @@
 
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-datastore-services-api</artifactId>
+            <artifactId>geomesa-datastore-services-api_${scala.binary.version}</artifactId>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.geomesa.nifi</groupId>
-            <artifactId>geomesa-datastore-processors</artifactId>
+            <artifactId>geomesa-datastore-processors_${scala.binary.version}</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -66,23 +66,7 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.geotools</groupId>
-                    <artifactId>gt-main</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-opengis</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-cql</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-metadata</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.geotools</groupId>
-                    <artifactId>gt-render</artifactId>
+                    <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>javax.media</groupId>
@@ -105,32 +89,14 @@
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-protocol</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!-- provided dependencies inherited from our parent nar -->
