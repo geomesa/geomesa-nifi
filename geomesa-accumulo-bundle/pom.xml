@@ -5,16 +5,16 @@
 
     <parent>
         <groupId>org.geomesa.nifi</groupId>
-        <artifactId>geomesa-nifi</artifactId>
+        <artifactId>geomesa-nifi_2.12</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-accumulo-bundle</artifactId>
+    <artifactId>geomesa-accumulo-bundle_2.12</artifactId>
     <packaging>pom</packaging>
 
     <modules>
-        <module>geomesa-accumulo1-nar</module>
-        <module>geomesa-accumulo2-nar</module>
+        <module>geomesa-accumulo20-nar</module>
+        <module>geomesa-accumulo21-nar</module>
         <module>geomesa-accumulo-processors</module>
     </modules>
 

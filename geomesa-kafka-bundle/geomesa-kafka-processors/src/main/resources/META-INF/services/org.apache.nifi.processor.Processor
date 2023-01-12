@@ -1,9 +1,1 @@
-org.geomesa.nifi.processors.kafka.PutGeoMesaKafka
-org.geomesa.nifi.processors.kafka.PutGeoMesaKafkaRecord
-org.geomesa.nifi.processors.kafka.AvroToPutGeoMesaKafka
 org.geomesa.nifi.processors.kafka.GetGeoMesaKafkaRecord
-org.geomesa.nifi.datastore.processor.ConvertToGeoAvro
-org.geomesa.nifi.datastore.processor.geotools.AvroToPutGeoTools
-org.geomesa.nifi.datastore.processor.geotools.PutGeoTools
-org.geomesa.nifi.datastore.processor.geotools.PutGeoToolsRecord
-org.geomesa.nifi.datastore.processor.geotools.UpdateGeoToolsRecord

@@ -8,18 +8,16 @@
 
 package org.geomesa.nifi.datastore.processor.service
 
-import java.io.{ByteArrayInputStream, StringWriter}
-import java.nio.charset.StandardCharsets
-
 import com.amazonaws.auth.AWSSessionCredentials
 import org.apache.hadoop.conf.Configuration
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.context.PropertyContext
-import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService
 import org.geotools.data.DataStoreFactorySpi
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
+import java.io.{ByteArrayInputStream, StringWriter}
+import java.nio.charset.StandardCharsets
 import scala.reflect.ClassTag
 
 /**

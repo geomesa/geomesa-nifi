@@ -38,9 +38,6 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   private val stores = Collections.newSetFromMap(new ConcurrentHashMap[DataStore, java.lang.Boolean]())
   private val valid = new AtomicReference[java.util.Collection[ValidationResult]](null)
 
-  override final def getDataStoreParams: java.util.Map[String, _] =
-    Collections.unmodifiableMap[String, AnyRef](params)
-
   override final def loadDataStore: DataStore = {
     val store = tryGetDataStore(params).get
     stores.add(store)
@@ -56,7 +53,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   final def onEnabled(context: ConfigurationContext): Unit = {
     params.clear()
     getDataStoreParams(context).foreach { case (k, v) => params.put(k, v) }
-    logParams("Enabled", params.asScala)
+    logParams("Enabled", params.asScala.toMap)
   }
 
   @OnDisabled
@@ -89,9 +86,11 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     }
   }
 
-  private def logParams(phase: String, params: scala.collection.Map[String, _]): Unit = {
-    lazy val safeToLog = params.map { case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}" }
-    getLogger.trace(s"$phase: DataStore parameters: ${safeToLog.mkString(", ")}")
+  private def logParams(phase: String, params: Map[String, _ <: AnyRef]): Unit = {
+    def mask(kv: (String, Any)): String = kv match {
+      case (k, v) => s"$k -> ${if (sensitive.contains(k)) { "***" } else { v }}"
+    }
+    getLogger.trace(s"$phase: DataStore parameters: ${params.map(mask(_)).mkString(", ")}")
   }
 
   override def toString: String = s"${getClass.getSimpleName}[id=$getIdentifier]"

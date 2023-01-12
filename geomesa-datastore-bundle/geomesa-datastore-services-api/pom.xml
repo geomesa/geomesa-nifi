@@ -5,93 +5,16 @@
 
     <parent>
         <groupId>org.geomesa.nifi</groupId>
-        <artifactId>geomesa-datastore-bundle</artifactId>
+        <artifactId>geomesa-datastore-bundle_2.12</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-datastore-services-api</artifactId>
+    <artifactId>geomesa-datastore-services-api_2.12</artifactId>
     <packaging>jar</packaging>
 
     <description>GeoMesa controller services API</description>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-index-api_${scala.binary.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
-            <exclusions>
-                <!-- exclude geomesa-fs jars so that we can use dynamic classloading (i.e. for postgres) as needed -->
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-metrics-graphite_${scala.binary.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-process-vector_${scala.binary.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
-            <exclusions>
-                <!-- exclude geomesa-fs jars so that we can use dynamic classloading (i.e. for postgres) as needed -->
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-orc_${scala.binary.version}</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
-            <classifier>data</classifier>
-            <version>${geomesa.version}</version>
-            <exclusions>
-                <!-- exclude geomesa-fs jars so that we can use dynamic classloading (i.e. for postgres) as needed -->
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-orc_${scala.binary.version}</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-compiler</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-reflect</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.geotools</groupId>
@@ -108,41 +31,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.curator</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-aws</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.xerial.snappy</groupId>
-            <artifactId>snappy-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.1</version>
         </dependency>
 
         <!-- provided dependencies -->

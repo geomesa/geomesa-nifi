@@ -11,16 +11,12 @@ package mixins
 
 import org.apache.nifi.annotation.lifecycle.OnAdded
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.logging.ComponentLog
-import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processor.{AbstractProcessor, ProcessContext, ProcessorInitializationContext, Relationship}
 
 import java.util.Collections
 
 abstract class BaseProcessor extends AbstractProcessor {
-
-  import BaseProcessor.Properties.ExtraClasspaths
 
   import scala.collection.JavaConverters._
 
@@ -69,7 +65,7 @@ abstract class BaseProcessor extends AbstractProcessor {
    *
    * @return
    */
-  protected def getSecondaryProperties: Seq[PropertyDescriptor] = Seq(ExtraClasspaths)
+  protected def getSecondaryProperties: Seq[PropertyDescriptor] = Seq.empty
 
   /**
    * Get tertiary processor params - these will come third in the UI
@@ -94,19 +90,6 @@ abstract class BaseProcessor extends AbstractProcessor {
 }
 
 object BaseProcessor {
-
   def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =
     props.toStream.flatMap(p => Option(context.getProperty(p).getValue)).headOption
-
-  object Properties {
-    val ExtraClasspaths: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("ExtraClasspaths")
-          .required(false)
-          .description("Add additional resources to the classpath")
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-          .dynamicallyModifiesClasspath(true)
-          .build()
-  }
 }

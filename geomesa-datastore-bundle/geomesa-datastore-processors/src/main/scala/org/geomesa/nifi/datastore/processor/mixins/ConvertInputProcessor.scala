@@ -77,9 +77,9 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
     }
   )
 
-  override protected def getPrimaryProperties: Seq[PropertyDescriptor] = {
+  override protected def getSecondaryProperties: Seq[PropertyDescriptor] = {
     converterName = ConvertInputProcessor.Properties.converterName(ConverterConfigLoader.listConverterNames)
-    super.getPrimaryProperties ++
+    super.getSecondaryProperties ++
         Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes, ConverterMetricReporters)
   }
 

@@ -34,9 +34,9 @@ trait FeatureTypeProcessor extends UserDataProcessor {
     }
   )
 
-  override protected def getPrimaryProperties: Seq[PropertyDescriptor] = {
+  override protected def getSecondaryProperties: Seq[PropertyDescriptor] = {
     sftName = FeatureTypeProcessor.Properties.sftName(SimpleFeatureTypeLoader.listTypeNames)
-    Seq(sftName, SftSpec, FeatureNameOverride) ++ super.getPrimaryProperties
+    Seq(sftName, SftSpec, FeatureNameOverride) ++ super.getSecondaryProperties
   }
 
   override protected def customValidate(context: ValidationContext): java.util.Collection[ValidationResult] = {

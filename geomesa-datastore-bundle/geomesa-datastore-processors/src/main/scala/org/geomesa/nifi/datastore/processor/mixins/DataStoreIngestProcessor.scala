@@ -42,7 +42,6 @@ import scala.util.{Failure, Success, Try}
 trait DataStoreIngestProcessor extends DataStoreProcessor {
 
   import DataStoreIngestProcessor.Properties._
-  import Properties.NifiBatchSize
 
   @volatile
   private var ingest: IngestProcessor = _
@@ -158,7 +157,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
     super.getTertiaryProperties ++ Seq(SchemaCompatibilityMode, WriteMode, ModifyAttribute)
 
   override protected def getConfigProperties: Seq[PropertyDescriptor] =
-    super.getConfigProperties ++ Seq(FeatureWriterCaching, FeatureWriterCacheTimeout, NifiBatchSize)
+    super.getConfigProperties ++ Seq(FeatureWriterCaching, FeatureWriterCacheTimeout)
 
   /**
    * Log an error from writing a given feature

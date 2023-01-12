@@ -8,8 +8,6 @@
 
 package org.geomesa.nifi.datastore.processor.records
 
-import java.io.OutputStream
-
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.OnEnabled
 import org.apache.nifi.components.PropertyDescriptor
@@ -19,8 +17,9 @@ import org.apache.nifi.schema.access.SchemaNameAsAttribute
 import org.apache.nifi.serialization.record.{Record, RecordSchema}
 import org.apache.nifi.serialization.{AbstractRecordSetWriter, RecordSetWriterFactory}
 import org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory.{GeoAvroRecordSetWriter, Props}
-import org.locationtech.geomesa.features.avro.AvroDataFileWriter
+import org.locationtech.geomesa.features.avro.io.AvroDataFileWriter
 
+import java.io.OutputStream
 import scala.collection.JavaConverters._
 
 @Tags(Array("avro", "geoavro", "result", "set", "recordset", "record", "writer", "serializer", "row"))

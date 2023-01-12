@@ -31,8 +31,8 @@ trait DataStoreProcessor extends BaseProcessor {
     }
   }
 
-  override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
-    Seq(DataStoreService) ++ super.getTertiaryProperties
+  override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
+    Seq(DataStoreService) ++ super.getPrimaryProperties
 }
 
 object DataStoreProcessor {

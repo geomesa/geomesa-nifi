@@ -10,8 +10,7 @@ package org.geomesa.nifi.datastore.processor.records
 
 import java.math.BigInteger
 import java.util.{Date, UUID}
-
-import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
+import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, LoadingCache}
 import com.google.gson.GsonBuilder
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.serialization.SimpleRecordSchema
@@ -126,7 +125,6 @@ class SimpleFeatureRecordConverter(
 
 object SimpleFeatureRecordConverter extends LazyLogging {
 
-  import org.locationtech.geomesa.utils.conversions.JavaConverters.OptionalToScala
   import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
 
   import scala.collection.JavaConverters._
@@ -135,19 +133,20 @@ object SimpleFeatureRecordConverter extends LazyLogging {
 
   private val gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").create()
 
-  private val cache = Caffeine.newBuilder().build(
-    new CacheLoader[(RecordSchema, RecordConverterOptions), Either[Throwable, SimpleFeatureRecordConverter]] {
-      override def load(
-          key: (RecordSchema, RecordConverterOptions)): Either[Throwable, SimpleFeatureRecordConverter] = {
-        try {
-          val (schema, options) = key
-          Right(createConverterFromSchema(schema, options))
-        } catch {
-          case NonFatal(e) => Left(e)
+  private val cache: LoadingCache[(RecordSchema, RecordConverterOptions), Either[Throwable, SimpleFeatureRecordConverter]] =
+    Caffeine.newBuilder().build(
+      new CacheLoader[(RecordSchema, RecordConverterOptions), Either[Throwable, SimpleFeatureRecordConverter]] {
+        override def load(
+            key: (RecordSchema, RecordConverterOptions)): Either[Throwable, SimpleFeatureRecordConverter] = {
+          try {
+            val (schema, options) = key
+            Right(createConverterFromSchema(schema, options))
+          } catch {
+            case NonFatal(e) => Left(e)
+          }
         }
       }
-    }
-  )
+    )
 
   /**
    * Create a converter based on a feature type (useful for creating records from features)
@@ -224,8 +223,8 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       options: RecordConverterOptions): SimpleFeatureRecordConverter = {
     val typeName =
       options.typeName
-          .orElse(schema.getSchemaName.asScala)
-          .orElse(schema.getIdentifier.getName.asScala)
+          .orElse(Option(schema.getSchemaName.orElse(null)))
+          .orElse(Option(schema.getIdentifier.getName.orElse(null)))
           .getOrElse(throw new IllegalArgumentException("No schema name defined in schema or processor"))
 
     // validate options

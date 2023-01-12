@@ -11,10 +11,8 @@ package org.geomesa.nifi.processors.kafka
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.context.PropertyContext
-import org.apache.nifi.controller.ConfigurationContext
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams.{ProducerConfig, TopicPartitions, TopicReplication}
 import org.locationtech.geomesa.kafka.data.{KafkaDataStoreFactory, KafkaDataStoreParams}
 
 @Tags(Array("geomesa", "geotools", "geo", "kafka"))
@@ -27,8 +25,11 @@ class KafkaDataStoreService
 }
 
 object KafkaDataStoreService extends PropertyDescriptorUtils {
+
+  import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams._
+
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
   val Properties: Seq[PropertyDescriptor] =
-    createPropertyDescriptors(KafkaDataStoreFactory) ++
-        Seq(ProducerConfig, TopicPartitions, TopicReplication).map(createPropertyDescriptor)
+    Seq(Brokers, Catalog, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication)
+        .map(createPropertyDescriptor)
 }

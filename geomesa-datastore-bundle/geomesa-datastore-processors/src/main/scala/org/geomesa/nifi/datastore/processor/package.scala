@@ -8,11 +8,25 @@
 
 package org.geomesa.nifi.datastore
 
-import org.apache.nifi.components.ValidationResult
+import org.apache.nifi.components.{PropertyDescriptor, ValidationResult}
+import org.apache.nifi.components.resource.{ResourceCardinality, ResourceType}
+import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.Relationship
+import org.apache.nifi.processor.util.StandardValidators
 
 package object processor {
+
+  val ExtraClasspaths: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+        .name("ExtraClasspaths")
+        .required(false)
+        .description("Add additional resources to the classpath")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .dynamicallyModifiesClasspath(true)
+        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
+        .build()
 
   /**
    * Full name of a flow file
