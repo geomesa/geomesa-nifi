@@ -90,11 +90,6 @@ abstract class BaseProcessor extends AbstractProcessor {
 }
 
 object BaseProcessor {
-
   def getFirst(context: ProcessContext, props: Seq[PropertyDescriptor]): Option[String] =
     props.toStream.flatMap(p => Option(context.getProperty(p).getValue)).headOption
-
-  object Properties {
-
-  }
 }

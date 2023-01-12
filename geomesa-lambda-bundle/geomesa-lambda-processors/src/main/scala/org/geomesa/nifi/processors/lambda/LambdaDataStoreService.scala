@@ -15,6 +15,7 @@ import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.data.DataStore
+import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
 import org.locationtech.geomesa.lambda.data.{LambdaDataStore, LambdaDataStoreFactory, LambdaDataStoreParams}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
@@ -51,10 +52,11 @@ class LambdaDataStoreService
         throw new IllegalArgumentException(
           s"Could not load datastore from controller service ${controller.getClass.getName}")
       }
-      val catalog = controller.getDataStoreParams.asScala.collectFirst {
-        case (k, v: String) if k.contains("catalog") => v
+      val catalog = persistence match {
+        case gm: GeoMesaDataStore[_] => gm.config.catalog
+        case _ => "nifi"
       }
-      config = LambdaDataStoreParams.parse(params, catalog.getOrElse("nifi"))
+      config = LambdaDataStoreParams.parse(params, catalog)
       Success(new LambdaDataStore(persistence, config))
     } catch {
       case NonFatal(e) =>

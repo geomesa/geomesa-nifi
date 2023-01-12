@@ -38,9 +38,6 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   private val stores = Collections.newSetFromMap(new ConcurrentHashMap[DataStore, java.lang.Boolean]())
   private val valid = new AtomicReference[java.util.Collection[ValidationResult]](null)
 
-  override final def getDataStoreParams: java.util.Map[String, _] =
-    Collections.unmodifiableMap[String, AnyRef](params)
-
   override final def loadDataStore: DataStore = {
     val store = tryGetDataStore(params).get
     stores.add(store)

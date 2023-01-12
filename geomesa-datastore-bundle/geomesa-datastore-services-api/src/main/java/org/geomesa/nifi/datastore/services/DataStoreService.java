@@ -13,8 +13,6 @@ import org.geotools.data.DataStore;
 
 public interface DataStoreService extends ControllerService {
 
-    java.util.Map<String, ?> getDataStoreParams();
-
     DataStore loadDataStore();
 
     void dispose(DataStore ds);
