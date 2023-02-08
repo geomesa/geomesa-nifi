@@ -986,7 +986,7 @@
                     <!-- 3.0.0-M2 was released 2021-12-27. -->
                     <version>3.0.0-M2</version>
                     <configuration>
-                        <deployAtEnd>true</deployAtEnd>
+                        <deployAtEnd>false</deployAtEnd>
                     </configuration>
                 </plugin>
                 <plugin>
