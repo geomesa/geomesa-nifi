@@ -8,29 +8,25 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreProcessor, FeatureTypeProcessor}
 import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
 import org.geotools.data.DataStoreFinder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.EmbeddedKafka
+import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
-import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class PutGeoMesaKafkaTest extends Specification with LazyLogging {
+class PutGeoMesaKafkaTest extends KafkaContainerTest {
 
   import scala.collection.JavaConverters._
 
   sequential
 
-  private lazy val kafka: EmbeddedKafka = new EmbeddedKafka()
-
   lazy val dsParams = Map(
-    "kafka.brokers" -> kafka.brokers // note: zk-less usage
+    "kafka.brokers" -> brokers // note: zk-less usage
   )
 
   // we use class name to prevent spillage between unit tests
@@ -75,9 +71,5 @@ class PutGeoMesaKafkaTest extends Specification with LazyLogging {
         ds.dispose()
       }
     }
-  }
-
-  step {
-    kafka.close()
   }
 }

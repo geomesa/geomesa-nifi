@@ -8,7 +8,6 @@
 
 package org.geomesa.nifi.processors.kafka
 
-import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.csv.{CSVRecordSetWriter, CSVUtils}
 import org.apache.nifi.serialization.DateTimeUtils
 import org.apache.nifi.util.TestRunners
@@ -18,28 +17,26 @@ import org.geotools.data.{DataStoreFinder, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.avro.io.AvroDataFileReader
-import org.locationtech.geomesa.kafka.EmbeddedKafka
+import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.security.SecureSimpleFeature
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
 import org.opengis.feature.simple.SimpleFeatureType
-import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
 @RunWith(classOf[JUnitRunner])
-class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
+class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
+
   sequential
 
   import scala.collection.JavaConverters._
 
-  var kafka: EmbeddedKafka = _
-
   lazy val dsParams = Map(
-    "kafka.brokers"    -> kafka.brokers,
-    "kafka.zookeepers" -> kafka.zookeepers
+    "kafka.brokers"    -> brokers,
+    "kafka.zookeepers" -> zookeepers
   )
 
   val sftSpec: String = "string:String,int:Integer,double:Double,long:Long,float:Float," +
@@ -80,8 +77,8 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
     sf
   }
 
-  step {
-    kafka = new EmbeddedKafka()
+  override def beforeAll(): Unit = {
+    super.beforeAll()
     WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
       ds must not(beNull)
       ds.createSchema(sft)
@@ -285,9 +282,5 @@ class GetGeoMesaKafkaRecordTest extends Specification with LazyLogging {
       featuresRead.map(_.getID) must not(containAnyOf(featuresWithVis.map(_.getID)))
       featuresRead.map(_.getAttributes) mustEqual featuresWithVis.map(_.getAttributes)
     }
-  }
-
-  step {
-    kafka.close()
   }
 }
