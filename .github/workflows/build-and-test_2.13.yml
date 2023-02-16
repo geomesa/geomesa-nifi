@@ -3,6 +3,9 @@ name: build-and-test_2.13
 on:
   push:
   pull_request:
+  # run nightly to pick up any errors caused by changes in main geomesa
+  schedule:
+    - cron: '30 2 * * *' # 0230 UTC, 2130 EST
 
 jobs:
   build-scala:
