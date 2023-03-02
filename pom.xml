@@ -68,14 +68,14 @@
         <geomesa.version>4.0.0-SNAPSHOT</geomesa.version>
         <nifi.version>1.19.1</nifi.version>
 
-        <scala.version>2.12.13</scala.version>
+        <scala.version>2.12.17</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
 
         <avro.version>1.11.1</avro.version> <!-- version bundled with nifi 1.19.1 -->
         <guava.version>31.1-jre</guava.version> <!-- version bundled with nifi 1.19.1 -->
 
         <!-- versions from geomesa -->
-        <gt.version>28.0</gt.version>
+        <gt.version>28.2</gt.version>
         <accumulo.version>2.0.1</accumulo.version>
         <thrift.version>0.12.0</thrift.version>
         <zookeeper.version>3.5.10</zookeeper.version>
