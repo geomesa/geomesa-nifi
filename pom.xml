@@ -1111,6 +1111,7 @@
                     <version>2.5.3</version>
                     <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
+                        <tagNameFormat>geomesa-nifi-@{project.version}</tagNameFormat>
                     </configuration>
                 </plugin>
                 <plugin>
