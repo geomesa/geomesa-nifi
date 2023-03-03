@@ -16,7 +16,10 @@ import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.opengis.feature.simple.SimpleFeature
 import org.specs2.runner.JUnitRunner
+
+import scala.concurrent.duration.DurationInt
 
 @RunWith(classOf[JUnitRunner])
 class PutGeoMesaKafkaTest extends KafkaContainerTest {
@@ -57,16 +60,22 @@ class PutGeoMesaKafkaTest extends KafkaContainerTest {
         runner.shutdown()
       }
 
-      val ds =
-        DataStoreFinder.getDataStore((dsParams ++
-            Map(KafkaDataStoreParams.Catalog.key -> catalog, KafkaDataStoreParams.ConsumerReadBack.key -> "Inf")).asJava)
+      val readback =
+        Map(
+          KafkaDataStoreParams.Catalog.key -> catalog,
+          KafkaDataStoreParams.ConsumerReadBack.key -> "Inf",
+          KafkaDataStoreParams.LazyLoad.key -> "false"
+        )
+      val ds = DataStoreFinder.getDataStore((dsParams ++ readback).asJava)
       ds must not(beNull)
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
-        logger.debug(features.mkString(";"))
-        features must haveLength(3)
+
+        def checkFeatures(): List[SimpleFeature] =
+          SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+
+        eventually(40, 100.millis)(checkFeatures() must haveLength(3))
       } finally {
         ds.dispose()
       }
