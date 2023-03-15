@@ -7,6 +7,9 @@ fi
 if [[ -f /flow.xml.gz ]]; then
   cp /flow.xml.gz /opt/nifi/nifi-current/conf/
 fi
+if [[ -f /logback.xml ]]; then
+  cp /logback.xml /opt/nifi/nifi-current/conf/
+fi
 
 # delegate to the normal nifi entrypoint
 exec /opt/nifi/scripts/start.sh
