@@ -21,7 +21,7 @@ function checkNar() {
   fi
 }
 
-nar="$(find $dir -name "geomesa-$1*.nar")"
+nar="$(find $dir/geomesa-* -name "geomesa-$1*.nar")"
 datastoreNar="$(find $dir/geomesa-datastore-bundle/geomesa-datastore-services-nar/target -name "geomesa*.nar")"
 servicesApiNar="$(find $dir/geomesa-datastore-bundle/geomesa-datastore-services-api-nar/target -name "geomesa*.nar")"
 
@@ -48,6 +48,7 @@ docker run --rm \
   -v "$servicesApiNar:/opt/nifi/nifi-current/extensions/$(basename $servicesApiNar):ro" \
   -v "$dir/build/docker/flow.xml.gz:/flow.xml.gz:ro" \
   -v "$dir/build/docker/flow.json.gz:/flow.json.gz:ro" \
+  -v "$dir/build/docker/logback.xml:/logback.xml:ro" \
   -v "$dir/build/docker/entrypoint.sh:/entrypoint.sh:ro" \
   -v "$dir/build/docker/ingest:/ingest:ro" \
   --entrypoint "/entrypoint.sh" \
