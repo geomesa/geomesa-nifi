@@ -1,0 +1,21 @@
+scan:
+  # we only want to scan the nars themselves as they are the only consumed artifacts
+  skip-files:
+    - 'pom.xml'
+    - 'geomesa-accumulo-bundle/geomesa-accumulo-processors/pom.xml'
+    - 'geomesa-accumulo-bundle/pom.xml'
+    - 'geomesa-datastore-bundle/geomesa-datastore-processors/pom.xml'
+    - 'geomesa-datastore-bundle/geomesa-datastore-services-api/pom.xml'
+    - 'geomesa-datastore-bundle/pom.xml'
+    - 'geomesa-fs-bundle/geomesa-fs-processors/pom.xml'
+    - 'geomesa-fs-bundle/pom.xml'
+    - 'geomesa-gt-bundle/geomesa-gt-processors/pom.xml'
+    - 'geomesa-gt-bundle/pom.xml'
+    - 'geomesa-hbase-bundle/geomesa-hbase-processors/pom.xml'
+    - 'geomesa-hbase-bundle/pom.xml'
+    - 'geomesa-kafka-bundle/geomesa-kafka-processors/pom.xml'
+    - 'geomesa-kafka-bundle/pom.xml'
+    - 'geomesa-lambda-bundle/geomesa-lambda-processors/pom.xml'
+    - 'geomesa-lambda-bundle/pom.xml'
+    - 'geomesa-redis-bundle/geomesa-redis-processors/pom.xml'
+    - 'geomesa-redis-bundle/pom.xml'
