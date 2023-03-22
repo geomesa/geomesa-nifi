@@ -1,3 +1,4 @@
+debug: true
 scan:
   # we only want to scan the nars themselves as they are the only consumed artifacts
   skip-files:
