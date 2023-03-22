@@ -12,15 +12,102 @@ jobs:
 
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
-      - name: Run Trivy vulnerability scanner in repo mode
+      - name: Create output directory
+        run: mkdir sarif
+      - name: Trivy geomesa-accumulo20-nar
         uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
         with:
           scan-type: 'fs'
           vuln-type: 'library'
           format: 'sarif'
-          output: 'trivy-results.sarif'
-          skip-files: 'pom.xml,geomesa-accumulo-bundle/geomesa-accumulo-processors/pom.xml,geomesa-accumulo-bundle/pom.xml,geomesa-datastore-bundle/geomesa-datastore-processors/pom.xml,geomesa-datastore-bundle/geomesa-datastore-services-api/pom.xml,geomesa-datastore-bundle/pom.xml,geomesa-fs-bundle/geomesa-fs-processors/pom.xml,geomesa-fs-bundle/pom.xml,geomesa-gt-bundle/geomesa-gt-processors/pom.xml,geomesa-gt-bundle/pom.xml,geomesa-hbase-bundle/geomesa-hbase-processors/pom.xml,geomesa-hbase-bundle/pom.xml,geomesa-kafka-bundle/geomesa-kafka-processors/pom.xml,geomesa-kafka-bundle/pom.xml,geomesa-lambda-bundle/geomesa-lambda-processors/pom.xml,geomesa-lambda-bundle/pom.xml,geomesa-redis-bundle/geomesa-redis-processors/pom.xml,geomesa-redis-bundle/pom.xml'
-      - name: Upload Trivy scan results to GitHub Security tab
+          output: 'sarif/geomesa-accumulo20-nar.sarif'
+          scan-ref: './geomesa-accumulo-bundle/geomesa-accumulo20-nar/'
+      - name: Trivy geomesa-accumulo21-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-accumulo21-nar.sarif'
+          scan-ref: './geomesa-accumulo-bundle/geomesa-accumulo21-nar/'
+      - name: Trivy geomesa-datastore-services-api-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-datastore-services-api-nar.sarif'
+          scan-ref: './geomesa-datastore-bundle/geomesa-datastore-services-api-nar/'
+      - name: Trivy geomesa-datastore-services-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-datastore-services-nar.sarif'
+          scan-ref: './geomesa-datastore-bundle/geomesa-datastore-services-nar/'
+      - name: Trivy geomesa-fs-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-fs-nar.sarif'
+          scan-ref: './geomesa-fs-bundle/geomesa-fs-nar/'
+      - name: Trivy geomesa-gt-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-gt-nar.sarif'
+          scan-ref: './geomesa-gt-bundle/geomesa-gt-nar/'
+      - name: Trivy geomesa-hbase1-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-hbase1-nar.sarif'
+          scan-ref: './geomesa-hbase-bundle/geomesa-hbase1-nar/'
+      - name: Trivy geomesa-hbase2-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-hbase2-nar.sarif'
+          scan-ref: './geomesa-hbase-bundle/geomesa-hbase2-nar/'
+      - name: Trivy geomesa-kafka-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-kafka-nar.sarif'
+          scan-ref: './geomesa-kafka-bundle/geomesa-kafka-nar/'
+      - name: Trivy geomesa-lambda-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-lambda-nar.sarif'
+          scan-ref: './geomesa-lambda-bundle/geomesa-lambda-nar/'
+      - name: Trivy geomesa-redis-nar
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # 0.9.2
+        with:
+          scan-type: 'fs'
+          vuln-type: 'library'
+          format: 'sarif'
+          output: 'sarif/geomesa-redis-nar.sarif'
+          scan-ref: './geomesa-redis-bundle/geomesa-redis-nar/'
+      - name: Fix library paths
+        run: >-
+          for file in $(ls sarif); do
+            sed -i "s|library/|${file%.sarif}/|" "sarif/$file"
+          done
+      - name: Upload sarifs
         uses: github/codeql-action/upload-sarif@17573ee1cc1b9d061760f3a006fc4aac4f944fd5 # v2.2.4
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'sarif'
