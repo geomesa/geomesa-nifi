@@ -3,6 +3,9 @@ name: trivy-scan
 on:
   push:
   pull_request:
+  # run weekly to pick up any new CVEs
+  schedule:
+    - cron: '30 2 * * 1' # 0230 UTC, 2130 EST on Monday nights
 
 jobs:
   scan:
