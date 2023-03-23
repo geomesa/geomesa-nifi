@@ -121,6 +121,7 @@ jobs:
       - name: Fix library paths
         run: >-
           for file in $(ls sarif); do
+            cat "sarif/$file"
             sed -i "s|library/|${file%.sarif}/|" "sarif/$file"
           done
       - name: Upload sarifs
