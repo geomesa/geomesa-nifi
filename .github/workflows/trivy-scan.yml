@@ -25,6 +25,7 @@ jobs:
       - name: Extract NARs
         run: >-
           for file in $(find . -name '*.nar'); do
+            rm -r $(dirname "$file")/META-INF
             unzip -qd $(dirname "$file") "$file"
           done
       - name: Create output directory
