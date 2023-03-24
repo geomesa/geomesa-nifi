@@ -83,6 +83,11 @@
                     <groupId>com.google.errorprone</groupId>
                     <artifactId>error_prone_annotations</artifactId>
                 </exclusion>
+                <exclusion>
+                    <!-- exclude due to CVEs against bundled jackson -->
+                    <groupId>org.apache.parquet</groupId>
+                    <artifactId>parquet-jackson</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
