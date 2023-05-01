@@ -1,11 +1,11 @@
 #! /usr/bin/env bash
 # runs a nifi docker at https://localhost:8443/
 # requires nars to be built, first
-dir="$(cd "`dirname "$0"`/.."; pwd)"
+dir="$(cd "$(dirname "$0")/.." || exit; pwd)"
 if [[ -z "$1" ]]; then
   echo "Usage: list-nar.sh <nar-to-list>"
   echo "Available NARs:"
-  find $dir -name "geomesa-*-nar" -type d | sort | sed 's|.*/geomesa-\([a-z0-9]\+\)-nar|  \1|'
+  find "$dir" -name "geomesa-*-nar" -type d | sort | sed 's|.*/geomesa-\([a-z0-9]\+\)-nar|  \1|'
   exit 1
 fi
 
@@ -21,7 +21,7 @@ function checkNar() {
   fi
 }
 
-nar="$(find $dir/geomesa-* -name "geomesa-$1*.nar")"
+nar="$(find "$dir"/geomesa-* -name "geomesa-$1*.nar")"
 
 checkNar "$nar" "$1"
 echo "$nar"
