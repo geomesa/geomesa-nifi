@@ -67,7 +67,7 @@ docker run --rm \
   --network host \
   -e NIFI_WEB_HTTP_HOST=0.0.0.0 \
   -e NIFI_WEB_HTTP_PORT=8080 \
-  -e "NIFI_WEB_PROXY_HOST=$(nslookup "$(hostname)" | grep Name | awk '{ print $2 }'):8080" \
+  -e "NIFI_WEB_PROXY_HOST=$(nslookup "$(hostname)" | grep Name | head -n1 | awk '{ print $2 }'):8080" \
   -e SINGLE_USER_CREDENTIALS_USERNAME=nifi \
   -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \

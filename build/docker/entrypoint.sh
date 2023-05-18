@@ -4,6 +4,9 @@
 if [[ -f /flow.json.gz ]]; then
   cp /flow.json.gz /opt/nifi/nifi-current/conf/
 fi
+if [[ -f /flow.xml.gz ]]; then
+  cp /flow.xml.gz /opt/nifi/nifi-current/conf/
+fi
 if [[ -f /logback.xml ]]; then
   cp /logback.xml /opt/nifi/nifi-current/conf/
 fi

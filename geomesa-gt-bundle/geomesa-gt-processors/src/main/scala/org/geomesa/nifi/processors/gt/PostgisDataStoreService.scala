@@ -8,9 +8,12 @@
 
 package org.geomesa.nifi.processors.gt
 
+import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geotools.data.postgis.PostgisNGDataStoreFactory
 
+@Tags(Array("geomesa", "geotools", "geo", "postgis"))
+@CapabilityDescription("Service for connecting to PostGIS stores")
 class PostgisDataStoreService
     extends GeoMesaDataStoreService[PostgisNGDataStoreFactory](PostgisDataStoreService.Parameters)
 

@@ -1,3 +1,5 @@
 org.geomesa.nifi.processors.gt.GeoToolsDataStoreService
 org.geomesa.nifi.processors.gt.PartitionedPostgisDataStoreService
 org.geomesa.nifi.processors.gt.PostgisDataStoreService
+org.geomesa.nifi.datastore.processor.geotools.PartitionedPostgisDataStoreService
+org.geomesa.nifi.datastore.processor.geotools.PostgisDataStoreService
