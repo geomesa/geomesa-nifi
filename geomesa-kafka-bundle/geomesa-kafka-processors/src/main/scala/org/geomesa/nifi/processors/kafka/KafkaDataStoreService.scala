@@ -30,6 +30,6 @@ object KafkaDataStoreService extends PropertyDescriptorUtils {
 
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
   val Properties: Seq[PropertyDescriptor] =
-    Seq(Brokers, Catalog, Zookeepers, ZkPath, ProducerConfig, TopicPartitions, TopicReplication)
+    Seq(Brokers, Catalog, Zookeepers, ZkPath, ProducerConfig, SerializationType, TopicPartitions, TopicReplication)
         .map(createPropertyDescriptor)
 }
