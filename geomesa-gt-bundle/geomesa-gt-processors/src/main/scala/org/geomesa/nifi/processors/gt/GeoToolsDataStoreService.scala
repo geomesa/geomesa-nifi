@@ -9,6 +9,7 @@
 package org.geomesa.nifi.processors.gt
 
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading
+import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnEnabled}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.context.PropertyContext
@@ -29,6 +30,8 @@ import scala.util.{Failure, Success, Try}
 
 // instance classloading resolves some issues with DataStoreFactories finding their dependencies
 @RequiresInstanceClassLoading
+@Tags(Array("OGC", "geo", "simple feature", "geotools", "geomesa"))
+@CapabilityDescription("Manages a connection to an arbitrary GeoTools data store")
 class GeoToolsDataStoreService extends AbstractControllerService with DataStoreService {
 
   import scala.collection.JavaConverters._
