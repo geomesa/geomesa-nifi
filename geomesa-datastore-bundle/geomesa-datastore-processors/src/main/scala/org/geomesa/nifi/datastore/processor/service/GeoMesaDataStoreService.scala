@@ -19,7 +19,7 @@ import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicLong
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
@@ -36,7 +36,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   private val params = new java.util.HashMap[String, AnyRef]()
   private val sensitive = descriptors.collect { case d if d.isSensitive => d.getName }.toSet
   private val stores = Collections.newSetFromMap(new ConcurrentHashMap[DataStore, java.lang.Boolean]())
-  private val valid = new AtomicReference[java.util.Collection[ValidationResult]](null)
+  private val validateAt = new AtomicLong(-1L)
 
   override final def loadDataStore: DataStore = {
     val store = tryGetDataStore(params).get
@@ -69,20 +69,27 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     GeoMesaDataStoreService.tryGetDataStore[T](params)
 
   override def onPropertyModified(descriptor: PropertyDescriptor, oldValue: String, newValue: String): Unit =
-    valid.set(null)
+    validateAt.set(-1L)
 
   override protected def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = descriptors.asJava
 
   override protected def customValidate(context: ValidationContext): java.util.Collection[ValidationResult] = {
-    Option(valid.get).getOrElse {
+    val now = System.currentTimeMillis()
+    if (now < validateAt.get) {
+      Collections.emptySet()
+    } else {
       val params = getDataStoreParams(context)
       logParams("Validation", params)
-      val result = tryGetDataStore(params.asJava) match {
-        case Success(ds) => ds.dispose(); Collections.emptySet[ValidationResult]()
-        case Failure(e)  => Collections.singleton(invalid(getClass.getSimpleName, e))
+      tryGetDataStore(params.asJava) match {
+        case Failure(e) =>
+          // invalid results will be checked by nifi every 5 seconds
+          Collections.singleton(invalid(getClass.getSimpleName, e))
+        case Success(ds) =>
+          ds.dispose()
+          // if valid, only re-check every minute to reduce the overhead of continuously getting a datastore
+          validateAt.set(now + 60000L)
+          Collections.emptySet()
       }
-      valid.set(result)
-      result
     }
   }
 
