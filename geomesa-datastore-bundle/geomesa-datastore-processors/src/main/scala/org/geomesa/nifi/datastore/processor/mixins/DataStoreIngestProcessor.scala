@@ -53,17 +53,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
 
-    val threads = math.max(context.getMaxConcurrentTasks, 1)
-    val store = loadDataStore(context)
-    stores = if (store.getClass.getSimpleName.equals("JDBCDataStore")) {
-      // JDBCDataStore has synchronized blocks in the write method that prevent multi-threading,
-      // the synchronization is to allow for generated fids from the database.
-      // generally, this shouldn't be an issue since we use provided fids,
-      // but running with 1 thread would restore the old behavior
-      Seq.fill[DataStore](threads - 1)(loadDataStore(context)) :+ store
-    } else {
-      Seq.fill[DataStore](threads)(store)
-    }
+    stores = loadDataStores(context)
 
     try {
       val schemaCompatibility = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
@@ -94,7 +84,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
       }
 
       try {
-        ingest = createIngest(context, store, writers, schemaCompatibility)
+        ingest = createIngest(context, stores.head, writers, schemaCompatibility)
       } catch {
         case NonFatal(e) => writers.close(); throw e
       }
@@ -102,7 +92,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
       case NonFatal(e) => stores.foreach(disposeDataStore(_, Option(context))); throw e
     }
 
-    logger.info(s"Initialized datastore ${store.getClass.getSimpleName} with ingest ${ingest.getClass.getSimpleName}")
+    logger.info(s"Initialized datastore ${stores.head.getClass.getSimpleName} with ingest ${ingest.getClass.getSimpleName}")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {

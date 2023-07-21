@@ -16,6 +16,7 @@ import org.locationtech.geomesa.gt.partition.postgis.PartitionedPostgisDataStore
 @CapabilityDescription("Service for connecting to GeoMesa partitioned PostGIS stores")
 class PartitionedPostgisDataStoreService
     extends GeoMesaDataStoreService[PartitionedPostgisDataStoreFactory](PartitionedPostgisDataStoreService.Parameters)
+        with JdbcDataStoreService
 
 object PartitionedPostgisDataStoreService extends JdbcPropertyDescriptorUtils {
   private val Parameters = createPropertyDescriptors(new PartitionedPostgisDataStoreFactory().getParametersInfo.toSeq)

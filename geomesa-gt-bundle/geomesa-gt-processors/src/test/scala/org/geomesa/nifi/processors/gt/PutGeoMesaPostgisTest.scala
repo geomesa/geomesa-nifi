@@ -12,7 +12,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor._
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
-import org.geotools.data.DataStoreFinder
+import org.geomesa.nifi.datastore.services.DataStoreService
+import org.geotools.data.{DataStore, DataStoreFinder}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.gt.partition.postgis.PartitionedPostgisDataStoreParams
 import org.locationtech.jts.geom.Point
@@ -113,6 +114,24 @@ class PutGeoMesaPostgisTest extends Specification with BeforeAfterAll with LazyL
         runner.setProperty(PutGeoMesa.Properties.InitSchemas, "test=foo\nfoo=bar")
         runner.assertNotValid()
         ok
+      } finally {
+        runner.shutdown()
+      }
+    }
+
+    "Create separate data stores to prevent synchronization around writers" in {
+      val runner = TestRunners.newTestRunner(new PutGeoMesa())
+      try {
+        configurePostgisService(runner)
+        val service = runner.getControllerService[DataStoreService]("data-store", classOf[DataStoreService])
+        val Array(store1, store2, store3) = service.loadDataStores(3).toArray(Array.empty[DataStore])
+        try {
+          store1 must not(be(store2))
+          store2 must not(be(store3))
+          store3 must not(be(store1))
+        } finally {
+          Seq(store1, store2, store3).foreach(_.dispose())
+        }
       } finally {
         runner.shutdown()
       }

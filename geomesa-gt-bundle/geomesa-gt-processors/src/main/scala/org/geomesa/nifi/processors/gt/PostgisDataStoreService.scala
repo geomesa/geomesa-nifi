@@ -16,6 +16,7 @@ import org.geotools.data.postgis.PostgisNGDataStoreFactory
 @CapabilityDescription("Service for connecting to PostGIS stores")
 class PostgisDataStoreService
     extends GeoMesaDataStoreService[PostgisNGDataStoreFactory](PostgisDataStoreService.Parameters)
+        with JdbcDataStoreService
 
 object PostgisDataStoreService extends JdbcPropertyDescriptorUtils {
   private val Parameters = createPropertyDescriptors(new PostgisNGDataStoreFactory().getParametersInfo.toSeq)

@@ -71,6 +71,7 @@ docker run --rm \
   -e SINGLE_USER_CREDENTIALS_USERNAME=nifi \
   -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \
+  -e NIFI_JVM_DEBUGGER=true \
   -v "$nar:/opt/nifi/nifi-current/extensions/$(basename "$nar"):ro" \
   -v "$datastoreNar:/opt/nifi/nifi-current/extensions/$(basename "$datastoreNar"):ro" \
   -v "$servicesApiNar:/opt/nifi/nifi-current/extensions/$(basename "$servicesApiNar"):ro" \
