@@ -9,14 +9,12 @@
 package org.geomesa.nifi.processors.gt
 
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
-import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.locationtech.geomesa.gt.partition.postgis.PartitionedPostgisDataStoreFactory
 
 @Tags(Array("geomesa", "geotools", "geo", "postgis"))
 @CapabilityDescription("Service for connecting to GeoMesa partitioned PostGIS stores")
 class PartitionedPostgisDataStoreService
-    extends GeoMesaDataStoreService[PartitionedPostgisDataStoreFactory](PartitionedPostgisDataStoreService.Parameters)
-        with JdbcDataStoreService
+    extends JdbcDataStoreService[PartitionedPostgisDataStoreFactory](PartitionedPostgisDataStoreService.Parameters)
 
 object PartitionedPostgisDataStoreService extends JdbcPropertyDescriptorUtils {
   private val Parameters = createPropertyDescriptors(new PartitionedPostgisDataStoreFactory().getParametersInfo.toSeq)

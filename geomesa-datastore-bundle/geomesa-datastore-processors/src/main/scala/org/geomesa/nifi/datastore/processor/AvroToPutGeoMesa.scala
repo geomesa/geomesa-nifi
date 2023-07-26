@@ -19,7 +19,7 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureTypeProcessor, FeatureWriters}
-import org.geotools.data.DataStore
+import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.util.Converters
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.features.ScalaSimpleFeature
@@ -57,27 +57,29 @@ class AvroToPutGeoMesa extends DataStoreIngestProcessor with FeatureTypeProcesso
   // noinspection ScalaDeprecation
   override protected def createIngest(
       context: ProcessContext,
-      dataStore: DataStore,
+      service: DataStoreService,
       writers: FeatureWriters,
       mode: CompatibilityMode): IngestProcessor = {
     val useProvidedFid = context.getProperty(UseProvidedFid).getValue.toBoolean
-    new AvroIngest(dataStore, writers, mode, useProvidedFid)
+    new AvroIngest(service, writers, mode, useProvidedFid)
   }
 
   /**
    * GeoAvro ingest
    *
-   * @param store data store
+   * @param service data store service
    * @param writers feature writers
    * @param mode field match mode
    * @param useProvidedFid use provided fid
    */
   class AvroIngest(
-      store: DataStore,
+      service: DataStoreService,
       writers: FeatureWriters,
       mode: CompatibilityMode,
       useProvidedFid: Boolean
-    ) extends IngestProcessor(store, writers, mode) {
+    ) extends IngestProcessor(service, writers, mode) {
+
+    private val store = service.loadDataStore()
 
     override def ingest(
         context: ProcessContext,
@@ -134,6 +136,12 @@ class AvroToPutGeoMesa extends DataStoreIngestProcessor with FeatureTypeProcesso
       })
 
       IngestResult(success, failure)
+    }
+
+    override def close(): Unit = {
+      try { service.dispose(store) } finally {
+        super.close()
+      }
     }
 
     private def checkSchemaAndMapping(

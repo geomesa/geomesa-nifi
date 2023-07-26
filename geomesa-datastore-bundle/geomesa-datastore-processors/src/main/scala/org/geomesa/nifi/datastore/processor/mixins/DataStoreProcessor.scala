@@ -21,17 +21,14 @@ trait DataStoreProcessor extends BaseProcessor {
 
   import DataStoreProcessor.Properties.DataStoreService
 
-  import scala.collection.JavaConverters._
+  protected def getDataStoreService(context: ProcessContext): DataStoreService =
+    context.getProperty(DataStoreService).asControllerService(classOf[DataStoreService])
 
-  protected def loadDataStores(context: ProcessContext): Seq[DataStore] = {
-    val threads = math.max(context.getMaxConcurrentTasks, 1)
-    val service = context.getProperty(DataStoreService).asControllerService(classOf[DataStoreService])
-    service.loadDataStores(threads).asScala.toSeq
-  }
-
+  @deprecated
   protected def loadDataStore(context: ProcessContext): DataStore =
     context.getProperty(DataStoreService).asControllerService(classOf[DataStoreService]).loadDataStore()
 
+  @deprecated
   protected def disposeDataStore(ds: DataStore, context: Option[ProcessContext]): Unit = {
     context match {
       case Some(c) => c.getProperty(DataStoreService).asControllerService(classOf[DataStoreService]).dispose(ds)
