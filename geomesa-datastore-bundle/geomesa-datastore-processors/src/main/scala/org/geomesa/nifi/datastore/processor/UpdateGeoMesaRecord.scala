@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.Record
 import org.geomesa.nifi.datastore.processor.UpdateGeoMesaRecord.{AttributeFilter, FidFilter}
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
+import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.data.{DataStore, DataUtilities, Transaction}
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.filter.filterToString
@@ -30,6 +31,7 @@ import org.opengis.feature.simple.SimpleFeature
 import org.opengis.filter.Filter
 
 import java.io.InputStream
+import java.util.concurrent.LinkedBlockingQueue
 import scala.annotation.tailrec
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -54,9 +56,11 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
   import scala.collection.JavaConverters._
 
   @volatile
-  private var ds: DataStore = _
+  private var service: DataStoreService = _
   private var factory: RecordReaderFactory = _
   private var options: OptionExtractor = _
+
+  private val stores = new LinkedBlockingQueue[DataStore]()
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
     super.getPrimaryProperties ++ UpdateGeoMesaRecord.Props
@@ -65,16 +69,11 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
 
-    ds = loadDataStore(context)
+    service = getDataStoreService(context)
+    factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
+    options = OptionExtractor(context, GeometryEncoding.Wkt)
 
-    try {
-      factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
-      options = OptionExtractor(context, GeometryEncoding.Wkt)
-    } catch {
-      case NonFatal(e) => CloseWithLogging(ds); ds = null; throw e
-    }
-
-    logger.info(s"Initialized datastore ${ds.getClass.getSimpleName}")
+    logger.info(s"Initialized DataStoreService ${service.getClass.getSimpleName}")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
@@ -84,8 +83,13 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
     }
 
     val fullFlowFileName = fullName(file)
+    val ds = stores.poll() match {
+      case null => service.loadDataStore()
+      case ds => ds
+    }
     try {
       logger.debug(s"Running ${getClass.getName} on file $fullFlowFileName")
+
       val opts = options(context, file.getAttributes)
       val id = context.getProperty(LookupCol).evaluateAttributeExpressions(file).getValue
       val filterFactory = if (opts.fidField.contains(id)) { FidFilter } else { new AttributeFilter(id) }
@@ -176,6 +180,8 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
       case NonFatal(e) =>
         logger.error(s"Error processing file $fullFlowFileName:", e)
         session.transfer(file, Relationships.FailureRelationship)
+    } finally {
+      stores.put(ds)
     }
   }
 
@@ -185,10 +191,8 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
   def cleanup(): Unit = {
     logger.info("Processor shutting down")
     val start = System.currentTimeMillis()
-    if (ds != null) {
-      CloseWithLogging(ds)
-      ds = null
-    }
+    stores.iterator().asScala.foreach(service.dispose)
+    stores.clear()
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 }

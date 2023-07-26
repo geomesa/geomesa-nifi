@@ -19,7 +19,7 @@ import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCallback
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureWriters}
-import org.geotools.data._
+import org.geomesa.nifi.datastore.services.DataStoreService
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
@@ -50,10 +50,10 @@ class PutGeoMesa extends DataStoreIngestProcessor with ConvertInputProcessor {
 
   override protected def createIngest(
       context: ProcessContext,
-      dataStore: DataStore,
+      service: DataStoreService,
       writers: FeatureWriters,
       mode: CompatibilityMode): IngestProcessor = {
-    val ingest = new ConverterIngest(dataStore, writers, mode)
+    val ingest = new ConverterIngest(service, writers, mode)
     // due to validation, should be all Rights
     ingest.init(PutGeoMesa.initSchemas(context).map { case Right(sft) => sft })
     ingest
@@ -65,12 +65,12 @@ class PutGeoMesa extends DataStoreIngestProcessor with ConvertInputProcessor {
   /**
    * Converter ingest
    *
-   * @param store data store
+   * @param service data store service
    * @param writers feature writers
    * @param mode schema compatibility mode
    */
-  class ConverterIngest(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
-      extends IngestProcessor(store, writers, mode) {
+  class ConverterIngest(service: DataStoreService, writers: FeatureWriters, mode: CompatibilityMode)
+      extends IngestProcessor(service, writers, mode) {
 
     def init(sfts: Seq[SimpleFeatureType]): Unit = sfts.foreach(checkSchema)
 

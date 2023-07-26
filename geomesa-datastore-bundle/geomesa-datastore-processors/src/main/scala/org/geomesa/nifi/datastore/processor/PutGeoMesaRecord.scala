@@ -22,6 +22,7 @@ import org.geomesa.nifi.datastore.processor.PutGeoMesaRecord.CountHolder
 import org.geomesa.nifi.datastore.processor.mixins.{DataStoreIngestProcessor, FeatureWriters}
 import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
+import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.data._
 import org.locationtech.geomesa.utils.io.WithClose
 
@@ -47,29 +48,29 @@ class PutGeoMesaRecord extends DataStoreIngestProcessor {
 
   override protected def createIngest(
       context: ProcessContext,
-      dataStore: DataStore,
+      service: DataStoreService,
       writers: FeatureWriters,
       mode: CompatibilityMode): IngestProcessor = {
     val factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
     val options = OptionExtractor(context, GeometryEncoding.Wkt)
-    new RecordIngest(dataStore, writers, factory, options, mode)
+    new RecordIngest(service, writers, factory, options, mode)
   }
 
   /**
    * Record based ingest
    *
-   * @param store data store
+   * @param service data store service
    * @param writers feature writers
    * @param recordReaderFactory record reader factory
    * @param options converter options
    */
   class RecordIngest(
-      store: DataStore,
+      service: DataStoreService,
       writers: FeatureWriters,
       recordReaderFactory: RecordReaderFactory,
       options: OptionExtractor,
       mode: CompatibilityMode
-    ) extends IngestProcessor(store, writers, mode) {
+    ) extends IngestProcessor(service, writers, mode) {
 
     import scala.collection.JavaConverters._
 

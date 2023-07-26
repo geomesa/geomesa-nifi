@@ -124,7 +124,9 @@ class PutGeoMesaPostgisTest extends Specification with BeforeAfterAll with LazyL
       try {
         configurePostgisService(runner)
         val service = runner.getControllerService[DataStoreService]("data-store", classOf[DataStoreService])
-        val Array(store1, store2, store3) = service.loadDataStores(3).toArray(Array.empty[DataStore])
+        val store1 = service.loadDataStore()
+        val store2 = service.loadDataStore()
+        val store3 = service.loadDataStore()
         try {
           store1 must not(be(store2))
           store2 must not(be(store3))
