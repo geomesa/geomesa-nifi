@@ -30,8 +30,6 @@ class LambdaDataStoreService
 
   import LambdaDataStoreService.DataStoreService
 
-  import scala.collection.JavaConverters._
-
   override protected def getDataStoreParams(context: PropertyContext): Map[String, _ <: AnyRef] = {
     super.getDataStoreParams(context) ++
         Option(context.getProperty(DataStoreService))
@@ -39,7 +37,7 @@ class LambdaDataStoreService
           .toMap
   }
 
-  override protected def tryGetDataStore(params: java.util.Map[String, AnyRef]): Try[DataStore] = {
+  override protected def tryGetDataStore(): Try[DataStore] = {
     var persistence: DataStore = null
     var config: LambdaConfig = null
     try {

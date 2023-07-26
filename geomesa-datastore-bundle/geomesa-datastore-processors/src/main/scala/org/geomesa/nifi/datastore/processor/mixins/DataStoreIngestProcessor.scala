@@ -20,19 +20,20 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.DynamicWriters
-import org.geomesa.nifi.datastore.processor.mixins.FeatureWriters.WriteMode.{Append, Modify}
-import org.geomesa.nifi.datastore.processor.mixins.FeatureWriters.{ModifyWriters, PooledWriters, SimpleWriter, SingletonWriters}
+import org.geomesa.nifi.datastore.processor.mixins.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.validators.WriteModeValidator
+import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.data._
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
+import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.Closeable
 import java.util.Collections
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
@@ -47,52 +48,46 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
   private var ingest: IngestProcessor = _
 
   @volatile
-  private var stores: Seq[DataStore] = _
+  private var service: DataStoreService = _
 
   @OnScheduled
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
 
-    stores = loadDataStores(context)
+    service = getDataStoreService(context)
 
-    try {
-      val schemaCompatibility = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
+    val schemaCompatibility = CompatibilityMode.withName(context.getProperty(SchemaCompatibilityMode).getValue)
 
-      val writers = {
-        val mode = context.getProperty(WriteMode)
-        val attr = context.getProperty(ModifyAttribute)
-        val cacheTimeout = Option(context.getProperty(FeatureWriterCaching).getValue.toBoolean).collect {
-          case true =>
-            val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
-            FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS).toLong
-        }
-        lazy val modify = {
-          val value = mode.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue
-          DataStoreIngestProcessor.ModifyMode.equalsIgnoreCase(value)
-        }
-        if (mode.isExpressionLanguagePresent || (modify && attr.isExpressionLanguagePresent)) {
-          new DynamicWriters(stores, mode, attr, cacheTimeout)
-        } else {
-          val writeMode =
-            if (modify) {
-              Modify(Option(attr.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue))
-            } else {
-              Append
-            }
-          FeatureWriters(stores, writeMode, cacheTimeout)
-        }
+    val writers = {
+      val mode = context.getProperty(WriteMode)
+      val attr = context.getProperty(ModifyAttribute)
+      val cacheTimeout = Option(context.getProperty(FeatureWriterCaching).getValue.toBoolean).collect {
+        case true =>
+          val timeout = context.getProperty(FeatureWriterCacheTimeout).evaluateAttributeExpressions().getValue
+          FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS).toLong
       }
-
-      try {
-        ingest = createIngest(context, stores.head, writers, schemaCompatibility)
-      } catch {
-        case NonFatal(e) => writers.close(); throw e
+      lazy val modify = {
+        val value = mode.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue
+        DataStoreIngestProcessor.ModifyMode.equalsIgnoreCase(value)
       }
-    } catch {
-      case NonFatal(e) => stores.foreach(disposeDataStore(_, Option(context))); throw e
+      if (mode.isExpressionLanguagePresent || (modify && attr.isExpressionLanguagePresent)) {
+        new DynamicWriters(service, mode, attr, cacheTimeout)
+      } else if (modify) {
+        val attribute = Option(attr.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue)
+        FeatureWriters.modifier(service, attribute)
+      } else {
+        FeatureWriters.appender(service, cacheTimeout)
+      }
     }
 
-    logger.info(s"Initialized datastore ${stores.head.getClass.getSimpleName} with ingest ${ingest.getClass.getSimpleName}")
+    try {
+      ingest = createIngest(context, service, writers, schemaCompatibility)
+    } catch {
+      case NonFatal(e) => CloseWithLogging(writers); throw e
+    }
+
+    logger.info(
+      s"Initialized DataStoreService ${service.getClass.getSimpleName} with ingest ${ingest.getClass.getSimpleName}")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
@@ -136,10 +131,6 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
       CloseWithLogging(ingest)
       ingest = null
     }
-    if (stores != null) {
-      stores.foreach(disposeDataStore(_, context))
-      stores = null
-    }
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
@@ -160,23 +151,35 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
 
   protected def createIngest(
       context: ProcessContext,
-      dataStore: DataStore,
+      service: DataStoreService,
       writers: FeatureWriters,
       mode: CompatibilityMode): IngestProcessor
 
   /**
    * Abstraction over ingest methods
    *
-   * @param store data store
+   * @param service data store service
    * @param writers feature writers
    */
-  abstract class IngestProcessor(store: DataStore, writers: FeatureWriters, mode: CompatibilityMode)
+  abstract class IngestProcessor(service: DataStoreService, writers: FeatureWriters, mode: CompatibilityMode)
       extends Closeable {
 
+    private val refresher = ExitingExecutor(new ScheduledThreadPoolExecutor(1))
+
     private val schemaCheckCache =
-      Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build[SimpleFeatureType, Try[Unit]](
+      Caffeine.newBuilder().build[SimpleFeatureType, Try[Unit]](
         new CacheLoader[SimpleFeatureType, Try[Unit]]() {
-          override def load(sft: SimpleFeatureType): Try[Unit] = Try(doCheckSchema(sft))
+          override def load(sft: SimpleFeatureType): Try[Unit] = {
+            // we schedule a refresh, vs using the built-in Caffeine refresh which will only refresh after a
+            // request. If there are not very many requests, then the deferred value will always be out of date
+            refresher.schedule(new Runnable() { override def run(): Unit = refresh(sft) }, 1, TimeUnit.HOURS)
+            Try {
+              val store = service.loadDataStore()
+              try { doCheckSchema(store, sft) } finally {
+                service.dispose(store)
+              }
+            }
+          }
         }
       )
 
@@ -195,7 +198,12 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
         file: FlowFile,
         fileName: String): IngestResult
 
-    override def close(): Unit = store.dispose()
+    override def close(): Unit = {
+      CloseWithLogging(writers)
+      refresher.shutdownNow()
+    }
+
+    private def refresh(sft: SimpleFeatureType): Unit = schemaCheckCache.refresh(sft)
 
     /**
      * Check and update the schema in the data store, as needed.
@@ -209,7 +217,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
      */
     protected def checkSchema(sft: SimpleFeatureType): Unit = schemaCheckCache.get(sft).get // throw any error
 
-    private def doCheckSchema(sft: SimpleFeatureType): Unit = {
+    private def doCheckSchema(store: DataStore, sft: SimpleFeatureType): Unit = {
       store match {
         case gm: GeoMesaDataStore[_] =>
           gm.checkSchemaCompatibility(sft.getTypeName, sft) match {
@@ -297,24 +305,19 @@ object DataStoreIngestProcessor {
   /**
    * Dynamically creates append or modify writers based on flow file attributes
    *
-   * @param stores data stores
+   * @param service data store service
    * @param mode write mode property value
    * @param attribute identifying attribute property value
    * @param caching timeout for caching in millis
    */
-  class DynamicWriters(stores: Seq[DataStore], mode: PropertyValue, attribute: PropertyValue, caching: Option[Long])
+  class DynamicWriters(service: DataStoreService, mode: PropertyValue, attribute: PropertyValue, caching: Option[Long])
       extends FeatureWriters {
 
-    private val queue = new LinkedBlockingQueue[DataStore](stores.asJava)
-
-    private val appender = caching match {
-      case None => new SingletonWriters(queue)
-      case Some(timeout) => new PooledWriters(queue, timeout)
-    }
+    private val appender = FeatureWriters.appender(service, caching)
 
     private val modifiers = Caffeine.newBuilder().build[Option[String], FeatureWriters](
       new CacheLoader[Option[String], FeatureWriters] {
-        override def load(k: Option[String]): FeatureWriters = new ModifyWriters(queue, k, caching)
+        override def load(k: Option[String]): FeatureWriters = FeatureWriters.modifier(service, k)
       }
     )
 

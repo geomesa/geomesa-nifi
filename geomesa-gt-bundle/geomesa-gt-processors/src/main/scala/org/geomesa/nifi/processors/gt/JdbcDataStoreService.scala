@@ -8,19 +8,24 @@
 
 package org.geomesa.nifi.processors.gt
 
-import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.DataStore
+import org.apache.nifi.components.PropertyDescriptor
+import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
+import org.geotools.data.{DataStore, DataStoreFactorySpi}
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 
-trait JdbcDataStoreService extends DataStoreService {
+import scala.reflect.ClassTag
 
-  import scala.collection.JavaConverters._
-
-  override def loadDataStores(count: Int): java.util.List[DataStore] = {
-    require(count > 0, s"Count must be > 0: $count")
-    // JDBCDataStore has synchronized blocks in the write method that prevent multi-threading,
-    // the synchronization is to allow for generated fids from the database.
-    // generally, this shouldn't be an issue since we use provided fids,
-    // but running with 1 thread would restore the old behavior
-    Seq.fill(count)(loadDataStore()).asJava
-  }
+/**
+ * JDBCDataStore has synchronized blocks in the write method that prevent multi-threading.
+ * To get around that, we create new stores whenever requested instead of re-using a single store.
+ * The JDBCDataStore synchronization is to allow for generated fids from the database.
+ * Generally, this shouldn't be an issue since we use provided fids,
+ * but running with 1 thread would restore the old behavior.
+ *
+ * @param descriptors data store descriptors
+ */
+class JdbcDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: Seq[PropertyDescriptor])
+    extends GeoMesaDataStoreService[T](descriptors) {
+  override def loadDataStore: DataStore = tryGetDataStore().get
+  override def dispose(ds: DataStore): Unit = CloseWithLogging(ds)
 }

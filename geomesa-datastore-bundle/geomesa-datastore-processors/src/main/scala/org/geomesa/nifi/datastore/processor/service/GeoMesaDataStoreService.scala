@@ -18,7 +18,6 @@ import org.geotools.data.{DataStore, DataStoreFactorySpi}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import java.util.Collections
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -33,39 +32,43 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
 
   import scala.collection.JavaConverters._
 
-  private val params = new java.util.HashMap[String, AnyRef]()
+  protected val params = new java.util.HashMap[String, AnyRef]()
   private val sensitive = descriptors.collect { case d if d.isSensitive => d.getName }.toSet
-  private val stores = Collections.newSetFromMap(new ConcurrentHashMap[DataStore, java.lang.Boolean]())
   private val validateAt = new AtomicLong(-1L)
+  private var store: DataStore = _
 
-  override final def loadDataStore: DataStore = {
-    val store = tryGetDataStore(params).get
-    stores.add(store)
+  override def loadDataStore: DataStore = synchronized {
+    if (store == null) {
+      store = tryGetDataStore().get
+    }
     store
   }
 
-  override final def dispose(ds: DataStore): Unit = {
-    stores.remove(ds)
-    CloseWithLogging(ds)
+  override def dispose(ds: DataStore): Unit = synchronized {
+    if (ds != null && !ds.eq(store)) {
+      CloseWithLogging(ds)
+    }
   }
 
   @OnEnabled
-  final def onEnabled(context: ConfigurationContext): Unit = {
+  def onEnabled(context: ConfigurationContext): Unit = {
     params.clear()
     getDataStoreParams(context).foreach { case (k, v) => params.put(k, v) }
     logParams("Enabled", params.asScala.toMap)
   }
 
   @OnDisabled
-  final def onDisabled(): Unit = {
-    stores.asScala.foreach(CloseWithLogging(_))
-    stores.clear()
+  def onDisabled(): Unit = synchronized {
+    if (store != null) {
+      CloseWithLogging(store)
+      store = null
+    }
   }
 
   protected def getDataStoreParams(context: PropertyContext): Map[String, _ <: AnyRef] =
     GeoMesaDataStoreService.getDataStoreParams(context, descriptors)
 
-  protected def tryGetDataStore(params: java.util.Map[String, AnyRef]): Try[DataStore] =
+  protected def tryGetDataStore(): Try[DataStore] =
     GeoMesaDataStoreService.tryGetDataStore[T](params)
 
   override def onPropertyModified(descriptor: PropertyDescriptor, oldValue: String, newValue: String): Unit =
@@ -80,7 +83,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     } else {
       val params = getDataStoreParams(context)
       logParams("Validation", params)
-      tryGetDataStore(params.asJava) match {
+      GeoMesaDataStoreService.tryGetDataStore[T](params.asJava) match {
         case Failure(e) =>
           // invalid results will be checked by nifi every 5 seconds
           Collections.singleton(invalid(getClass.getSimpleName, e))
