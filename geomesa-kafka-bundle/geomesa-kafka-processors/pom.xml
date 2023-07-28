@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.geomesa.nifi</groupId>
         <artifactId>geomesa-kafka-bundle_2.12</artifactId>
-        <version>4.0.2-SNAPSHOT</version>
+        <version>4.0.2</version>
     </parent>
 
     <artifactId>geomesa-kafka-processors_2.12</artifactId>
