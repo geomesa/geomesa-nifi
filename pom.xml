@@ -66,7 +66,7 @@
 
     <properties>
         <geomesa.version>4.0.0</geomesa.version>
-        <nifi.version>1.19.1</nifi.version>
+        <nifi.version>1.23.0</nifi.version>
 
         <scala.version>2.12.17</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
@@ -1141,7 +1141,7 @@
                 <plugin>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-nar-maven-plugin</artifactId>
-                    <version>1.5.0</version>
+                    <version>1.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>
