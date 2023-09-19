@@ -4,7 +4,7 @@
 
     <groupId>org.geomesa.nifi</groupId>
     <artifactId>geomesa-nifi_2.12</artifactId>
-    <version>4.0.3-SNAPSHOT</version>
+    <version>4.0.3</version>
     <packaging>pom</packaging>
 
     <name>GeoMesa-NiFi</name>
@@ -120,7 +120,7 @@
         <connection>scm:git:git@github.com:geomesa/geomesa-nifi.git</connection>
         <developerConnection>scm:git:git@github.com:geomesa/geomesa-nifi.git</developerConnection>
         <url>https://github.com/geomesa/geomesa-nifi</url>
-        <tag>geomesa-nifi-4.0.0</tag>
+        <tag>geomesa-nifi-4.0.3</tag>
     </scm>
 
     <dependencyManagement>
