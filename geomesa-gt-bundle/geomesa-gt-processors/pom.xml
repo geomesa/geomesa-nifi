@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.geomesa.nifi</groupId>
         <artifactId>geomesa-gt-bundle_2.12</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.4-SNAPSHOT</version>
     </parent>
 
     <artifactId>geomesa-gt-processors_2.12</artifactId>
