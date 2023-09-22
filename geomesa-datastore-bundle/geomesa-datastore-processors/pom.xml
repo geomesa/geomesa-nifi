@@ -14,6 +14,16 @@
 
     <description>Core datastore processors</description>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
 
         <!-- provided dependencies inherited from the geomesa-datastore-services-api-nar -->
@@ -62,6 +72,13 @@
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
+            <exclusions>
+                <exclusion>
+                    <!-- exclude due to CVEs against protobuf-java -->
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
@@ -88,6 +105,13 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- exclude dependency with CVEs (protobuf-java 2.5.0) -->
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- test -->

@@ -18,4 +18,14 @@
         <module>geomesa-hbase-processors</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.hbase1.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 </project>
