@@ -103,6 +103,7 @@
         <commons-configuration2.version>2.9.0</commons-configuration2.version> <!-- managed from 2.5.0 -->
         <commons-beanutils.version>1.9.4</commons-beanutils.version> <!-- managed from 1.9.3 -->
         <httpclient.version>4.5.14</httpclient.version>
+        <parquet.version>1.13.1</parquet.version>
 
         <!-- aws version -->
         <aws.java.sdk.version>1.12.555</aws.java.sdk.version>
@@ -925,6 +926,18 @@
                         <artifactId>commons-beanutils-core</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <!-- GeoMesa converter dependencies -->
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-column</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-hadoop</artifactId>
+                <version>${parquet.version}</version>
             </dependency>
 
             <!-- scala -->
