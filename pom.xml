@@ -96,7 +96,7 @@
         <gson.version>2.10.1</gson.version>
         <snappy-java.version>1.1.10.3</snappy-java.version> <!-- managed from 1.1.1.6 -->
         <protobuf-java.version>3.24.3</protobuf-java.version>
-        <protobuf-java.hbase1.version>2.6.1</protobuf-java.hbase1.version> <!-- needs to be 2.x for hbase1 -->
+        <protobuf-java.hbase.version>2.6.1</protobuf-java.hbase.version> <!-- needs to be 2.x for hbase1 -->
         <json-path.version>2.8.0</json-path.version> <!-- managed from 2.7.0 -->
         <nimbus-jose-jwt.version>9.35</nimbus-jose-jwt.version> <!-- managed from 9.8.1 -->
         <commons-configuration.version>1.10</commons-configuration.version> <!-- managed from 1.6 -->
@@ -853,6 +853,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-configuration2</artifactId>
                 <version>${commons-configuration2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.version}</version>
             </dependency>
 
             <!-- Netty 4.x used by arrow, hadoop, hbase, and c* -->

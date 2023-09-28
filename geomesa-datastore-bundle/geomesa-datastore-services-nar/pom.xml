@@ -132,6 +132,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf-java.hbase.version}</version>
+        </dependency>
 
         <!-- provided dependencies inherited from the geomesa-datastore-services-api-nar -->
         <dependency>

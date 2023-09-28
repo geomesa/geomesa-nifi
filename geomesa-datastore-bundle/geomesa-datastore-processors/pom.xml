@@ -14,16 +14,6 @@
 
     <description>Core datastore processors</description>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${protobuf-java.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
 
         <!-- provided dependencies inherited from the geomesa-datastore-services-api-nar -->
