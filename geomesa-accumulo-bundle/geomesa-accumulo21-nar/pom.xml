@@ -15,7 +15,7 @@
     <description>GeoMesa Accumulo 2.1 nar</description>
 
     <properties>
-        <accumulo.version>2.1.1</accumulo.version>
+        <accumulo.version>2.1.2</accumulo.version>
         <thrift.version>0.17.0</thrift.version>
     </properties>
 
