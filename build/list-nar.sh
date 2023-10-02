@@ -1,13 +1,10 @@
 #! /usr/bin/env bash
 # runs a nifi docker at https://localhost:8443/
 # requires nars to be built, first
-dir="$(cd "$(dirname "$0")/.." || exit; pwd)"
-if [[ -z "$1" ]]; then
-  echo "Usage: list-nar.sh <nar-to-list>"
-  echo "Available NARs:"
-  find "$dir" -name "geomesa-*-nar" -type d | sort | sed 's|.*/geomesa-\([a-z0-9]\+\)-nar|  \1|'
-  exit 1
-fi
+dir="$(cd "$(dirname "$0")/.." || exit 1; pwd)"
+
+# find available nars
+mapfile -t nars < <( find "$dir"/geomesa-* -name "geomesa-*-nar" -type d | sort | sed 's|.*/geomesa-\([a-z0-9-]\+\)-nar|\1|' )
 
 function checkNar() {
   local nar="$1"
@@ -21,8 +18,26 @@ function checkNar() {
   fi
 }
 
-nar="$(find "$dir"/geomesa-* -name "geomesa-$1*.nar")"
+if [[ -n "$1" ]]; then
+  declare -a filtered=()
+  for nar in "${nars[@]}"; do
+    echo "$nar" | grep -q "$1" && filtered+=("$nar")
+  done
+  if [[ ${#filtered[@]} -eq 0 ]]; then
+    echo "$1 is not a valid nar - available nars:"
+    for nar in "${nars[@]}"; do
+      echo "  $nar"
+    done
+    exit 1
+  else
+    nars=( "${filtered[@]}" )
+  fi
+fi
 
-checkNar "$nar" "$1"
-echo "$nar"
-unzip -l "$nar" | grep dep | awk '{print $4}' | sort
+for nar in "${nars[@]}"; do
+  file="$(find "$dir"/geomesa-* -name "geomesa-${nar}-nar_*.nar")"
+  checkNar "$file" "$nar"
+  echo "$nar::"
+  unzip -l "$file" | grep bundled-dependencies | sed 's|.*bundled-dependencies/||' | grep -v '^$' | sort
+  echo ""
+done

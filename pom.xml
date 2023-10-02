@@ -66,45 +66,55 @@
 
     <properties>
         <geomesa.version>4.1.0-SNAPSHOT</geomesa.version>
-        <nifi.version>1.23.0</nifi.version>
+        <nifi.version>1.23.2</nifi.version>
 
         <scala.version>2.12.17</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
 
-        <avro.version>1.11.1</avro.version> <!-- version bundled with nifi 1.19.1 -->
-        <guava.version>31.1-jre</guava.version> <!-- version bundled with nifi 1.19.1 -->
+        <avro.version>1.11.3</avro.version>
+        <guava.version>32.1.2-jre</guava.version>
 
         <!-- versions from geomesa -->
         <gt.version>28.2</gt.version>
         <accumulo.version>2.0.1</accumulo.version>
         <thrift.version>0.12.0</thrift.version>
         <zookeeper.version>3.5.10</zookeeper.version>
-        <hadoop.version>3.3.4</hadoop.version>
-        <hbase.version>2.5.3-hadoop3</hbase.version>
+        <hadoop.version>3.3.6</hadoop.version>
+        <hbase.version>2.5.5-hadoop3</hbase.version>
         <hbase-1.version>1.4.14</hbase-1.version>
         <kafka.version>2.8.2</kafka.version>
         <zkclient.version>0.11</zkclient.version>
-        <postgres.version>42.5.1</postgres.version>
+        <postgres.version>42.6.0</postgres.version>
 
         <curator.version>4.3.0</curator.version>
-        <netty.version>4.1.85.Final</netty.version>
-        <fasterxml.jackson.version>2.14.1</fasterxml.jackson.version>
+        <netty.version>4.1.98.Final</netty.version>
+        <fasterxml.jackson.version>2.15.2</fasterxml.jackson.version>
         <fasterxml.woodstox.version>5.4.0</fasterxml.woodstox.version> <!-- managed from 5.3.0 -->
         <commons.net.version>3.9.0</commons.net.version> <!-- managed from 3.1 -->
         <commons.text.version>1.10.0</commons.text.version>
         <wildfly.openssl.version>1.1.3.Final</wildfly.openssl.version> <!-- managed from 1.0.7.Final -->
-        <gson.version>2.10</gson.version>
+        <gson.version>2.10.1</gson.version>
+        <snappy-java.version>1.1.10.5</snappy-java.version> <!-- managed from 1.1.1.6 -->
+        <protobuf-java.version>3.24.3</protobuf-java.version>
+        <protobuf-java.hbase.version>2.6.1</protobuf-java.hbase.version> <!-- needs to be 2.x for hbase1 -->
+        <json-path.version>2.8.0</json-path.version> <!-- managed from 2.7.0 -->
+        <nimbus-jose-jwt.version>9.35</nimbus-jose-jwt.version> <!-- managed from 9.8.1 -->
+        <commons-configuration.version>1.10</commons-configuration.version> <!-- managed from 1.6 -->
+        <commons-configuration2.version>2.9.0</commons-configuration2.version> <!-- managed from 2.5.0 -->
+        <commons-beanutils.version>1.9.4</commons-beanutils.version> <!-- managed from 1.9.3 -->
+        <httpclient.version>4.5.14</httpclient.version>
+        <parquet.version>1.13.1</parquet.version>
 
         <!-- aws version -->
-        <aws.java.sdk.version>1.12.376</aws.java.sdk.version>
+        <aws.java.sdk.version>1.12.559</aws.java.sdk.version>
 
         <slf4j.version>1.7.36</slf4j.version>
         <scalalogging.version>3.9.5</scalalogging.version>
-        <reload4j.version>1.2.22</reload4j.version>
+        <reload4j.version>1.2.25</reload4j.version>
 
-        <specs2.version>4.9.2</specs2.version>
-        <junit.version>4.13.1</junit.version>
-        <testcontainers.version>1.17.6</testcontainers.version>
+        <specs2.version>4.20.2</specs2.version>
+        <junit.version>4.13.2</junit.version>
+        <testcontainers.version>1.19.0</testcontainers.version>
 
         <test.redis.docker.tag>7-alpine</test.redis.docker.tag>
         <test.postgres.docker.tag>15.1</test.postgres.docker.tag>
@@ -114,6 +124,23 @@
         <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit</maven.test.jvmargs>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Maven plugin versions, latest as of 2023-09-20 -->
+        <build-helper-maven-plugin.version>3.4.0</build-helper-maven-plugin.version>
+        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
+        <maven-assembly-plugin.version>3.6.0</maven-assembly-plugin.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <scala-maven-plugin.version>3.4.6</scala-maven-plugin.version>
+        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <maven-shade-plugin.version>3.5.0</maven-shade-plugin.version>
+        <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
+        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+        <nifi-nar-maven-plugin.version>1.5.1</nifi-nar-maven-plugin.version>
+        <license-maven-plugin.version>4.2</license-maven-plugin.version>
+        <maven-checkstyle-plugin.version>3.3.0</maven-checkstyle-plugin.version>
     </properties>
 
     <scm>
@@ -326,7 +353,6 @@
             </dependency>
 
             <!-- geomesa -->
-
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
@@ -357,7 +383,6 @@
                 <artifactId>geomesa-metrics-graphite_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-accumulo-datastore_${scala.binary.version}</artifactId>
@@ -393,7 +418,6 @@
                 <artifactId>geomesa-gt-partitioning_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
@@ -447,7 +471,6 @@
             </dependency>
 
             <!-- data store dependencies -->
-
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
                 <artifactId>accumulo-core</artifactId>
@@ -501,6 +524,16 @@
                 <groupId>org.apache.hbase</groupId>
                 <artifactId>hbase-client</artifactId>
                 <version>${hbase.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hbase</groupId>
@@ -510,6 +543,10 @@
                     <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -547,6 +584,17 @@
                 <version>${postgres.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${hadoop.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
@@ -660,6 +708,11 @@
                 <version>${hadoop.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-auth</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
                 <version>${aws.java.sdk.version}</version>
@@ -679,12 +732,22 @@
                 <artifactId>aws-java-sdk-dynamodb</artifactId>
                 <version>${aws.java.sdk.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.jayway.jsonpath</groupId>
+                <artifactId>json-path</artifactId>
+                <version>${json-path.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
+            </dependency>
 
             <!-- manage various hadoop dependencies to more recent versions -->
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
-                <version>1.1.1.6</version>
+                <version>${snappy-java.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -717,6 +780,11 @@
                 <version>${fasterxml.jackson.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${fasterxml.jackson.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
                 <artifactId>jackson-module-paranamer</artifactId>
                 <version>${fasterxml.jackson.version}</version>
@@ -741,7 +809,11 @@
                 <artifactId>wildfly-openssl</artifactId>
                 <version>${wildfly.openssl.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus-jose-jwt.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-client</artifactId>
@@ -757,29 +829,35 @@
                 <artifactId>curator-recipes</artifactId>
                 <version>${curator.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-text</artifactId>
                 <version>${commons.text.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
                 <version>${gson.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-configuration2</artifactId>
+                <version>${commons-configuration2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.version}</version>
             </dependency>
 
             <!-- Netty 4.x used by arrow, hadoop, hbase, and c* -->
@@ -840,12 +918,12 @@
             <dependency>
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
-                <version>1.9.4</version>
+                <version>${commons-beanutils.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-configuration</groupId>
                 <artifactId>commons-configuration</artifactId>
-                <version>1.6</version>
+                <version>${commons-configuration.version}</version>
                 <exclusions>
                     <exclusion>
                         <!-- exclude commons-beanutils-core, which doesn't exist in 1.9.3 -->
@@ -855,8 +933,19 @@
                 </exclusions>
             </dependency>
 
-            <!-- scala -->
+            <!-- GeoMesa converter dependencies -->
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-column</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-hadoop</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
 
+            <!-- scala -->
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
@@ -997,8 +1086,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <!-- 3.1.0 was released 2017-08-13. -->
-                    <version>3.1.0</version>
+                    <version>${maven-assembly-plugin.version}</version>
                     <configuration>
                         <tarLongFileMode>posix</tarLongFileMode>
                     </configuration>
@@ -1006,8 +1094,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <!-- 3.8.0 was released 2018-07-26. -->
-                    <version>3.8.0</version>
+                    <version>${maven-compiler-plugin.version}</version>
                     <configuration>
                         <!-- Turn off 'useIncrementalCompilation' to keep this plugin
                              from recompiling Java files that the scala-maven-plugin
@@ -1025,8 +1112,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <!-- 3.4.4 was released 2018-11-01.  It requires Maven version >= 3.3.9. -->
-                    <version>3.4.4</version>
+                    <version>${scala-maven-plugin.version}</version>
                     <configuration>
                         <dependencies>
                             <dependency>
@@ -1054,13 +1140,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <!-- 3.0.0-M4 was released 2019-11-13 -->
-                    <version>3.0.0-M4</version>
+                    <version>${maven-surefire-plugin.version}</version>
                     <dependencies>
                         <dependency>
                             <groupId>org.apache.maven.surefire</groupId>
                             <artifactId>surefire-junit4</artifactId>
-                            <version>3.0.0-M4</version>
+                            <version>${maven-surefire-plugin.version}</version>
                         </dependency>
                     </dependencies>
                     <configuration>
@@ -1089,13 +1174,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <!-- 3.1.0 was released 2018-04-23. -->
-                    <version>3.1.0</version>
+                    <version>${maven-resources-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.3.0</version> <!-- released 2022-09-12 -->
+                    <version>${maven-jar-plugin.version}</version>
                     <configuration>
                         <archive>
                             <!-- automatic module config for java 9+ compatibility -->
@@ -1109,14 +1193,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <!-- 3.2.1 was released 2018-11-12. -->
-                    <version>3.2.1</version>
+                    <version>${maven-shade-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <!-- 3.0.0-M2 was released 2021-12-27. -->
-                    <version>3.0.0-M2</version>
+                    <version>${maven-deploy-plugin.version}</version>
                     <configuration>
                         <!-- deployAtEnd doesn't work with the nar extension -->
                         <deployAtEnd>false</deployAtEnd>
@@ -1125,14 +1207,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <!-- 3.0.1 was released 2016-06-18. -->
-                    <version>3.0.1</version>
+                    <version>${maven-source-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <!-- 2.5.3 was released 2015-10-17 and is the latest as of 2018-11-29. -->
-                    <version>2.5.3</version>
+                    <version>${maven-release-plugin.version}</version>
                     <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <tagNameFormat>geomesa-nifi-@{project.version}</tagNameFormat>
@@ -1141,13 +1221,12 @@
                 <plugin>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-nar-maven-plugin</artifactId>
-                    <version>1.5.1</version>
+                    <version>${nifi-nar-maven-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <!-- 3.0 was released 2016-08-20 and is the latest as of 2018-11-30. -->
-                    <version>3.0</version>
+                    <version>${license-maven-plugin.version}</version>
                     <configuration>
                         <header>build/copyright/ccri.txt</header>
                         <validHeaders>
@@ -1175,8 +1254,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <!-- 3.0.0 was released 2018-01-07. -->
-                    <version>3.0.0</version>
+                    <version>${maven-checkstyle-plugin.version}</version>
                     <dependencies>
                         <dependency>
                             <groupId>org.slf4j</groupId>
@@ -1193,12 +1271,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.0.0-M2</version>
+                    <version>${maven-enforcer-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>3.3.0</version> <!-- released 2022-01-04 -->
+                    <version>${build-helper-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -1254,7 +1332,7 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
-                            <failOnError>true</failOnError>
+                            <failsOnError>true</failsOnError>
                             <checkstyleRules>
                                 <module name="Checker">
                                     <module name="NewlineAtEndOfFile" />

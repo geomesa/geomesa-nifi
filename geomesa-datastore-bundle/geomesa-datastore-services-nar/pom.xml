@@ -83,11 +83,6 @@
                     <groupId>com.google.errorprone</groupId>
                     <artifactId>error_prone_annotations</artifactId>
                 </exclusion>
-                <exclusion>
-                    <!-- exclude due to CVEs against bundled jackson -->
-                    <groupId>org.apache.parquet</groupId>
-                    <artifactId>parquet-jackson</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -136,6 +131,11 @@
                     <artifactId>aws-java-sdk-core</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf-java.hbase.version}</version>
         </dependency>
 
         <!-- provided dependencies inherited from the geomesa-datastore-services-api-nar -->
