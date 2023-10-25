@@ -72,33 +72,34 @@
         <scala.binary.version>2.12</scala.binary.version>
 
         <avro.version>1.11.3</avro.version>
-        <guava.version>32.1.2-jre</guava.version>
+        <guava.version>32.1.3-jre</guava.version>
 
         <!-- versions from geomesa -->
         <gt.version>28.2</gt.version>
         <accumulo.version>2.0.1</accumulo.version>
         <thrift.version>0.12.0</thrift.version>
-        <zookeeper.version>3.5.10</zookeeper.version>
+        <zookeeper.version>3.7.2</zookeeper.version>
         <hadoop.version>3.3.6</hadoop.version>
-        <hbase.version>2.5.5-hadoop3</hbase.version>
+        <hbase.version>2.5.6-hadoop3</hbase.version>
         <hbase-1.version>1.4.14</hbase-1.version>
         <kafka.version>2.8.2</kafka.version>
         <zkclient.version>0.11</zkclient.version>
         <postgres.version>42.6.0</postgres.version>
 
         <curator.version>4.3.0</curator.version>
-        <netty.version>4.1.98.Final</netty.version>
-        <fasterxml.jackson.version>2.15.2</fasterxml.jackson.version>
+        <netty.version>4.1.100.Final</netty.version>
+        <jetty.version>9.4.53.v20231009</jetty.version>
+        <fasterxml.jackson.version>2.15.3</fasterxml.jackson.version>
         <fasterxml.woodstox.version>5.4.0</fasterxml.woodstox.version> <!-- managed from 5.3.0 -->
-        <commons.net.version>3.9.0</commons.net.version> <!-- managed from 3.1 -->
+        <commons.net.version>3.10.0</commons.net.version> <!-- managed from 3.1 -->
         <commons.text.version>1.10.0</commons.text.version>
         <wildfly.openssl.version>1.1.3.Final</wildfly.openssl.version> <!-- managed from 1.0.7.Final -->
         <gson.version>2.10.1</gson.version>
         <snappy-java.version>1.1.10.5</snappy-java.version> <!-- managed from 1.1.1.6 -->
-        <protobuf-java.version>3.24.3</protobuf-java.version>
+        <protobuf-java.version>3.24.4</protobuf-java.version>
         <protobuf-java.hbase.version>2.6.1</protobuf-java.hbase.version> <!-- needs to be 2.x for hbase1 -->
         <json-path.version>2.8.0</json-path.version> <!-- managed from 2.7.0 -->
-        <nimbus-jose-jwt.version>9.35</nimbus-jose-jwt.version> <!-- managed from 9.8.1 -->
+        <nimbus-jose-jwt.version>9.37</nimbus-jose-jwt.version> <!-- managed from 9.8.1 -->
         <commons-configuration.version>1.10</commons-configuration.version> <!-- managed from 1.6 -->
         <commons-configuration2.version>2.9.0</commons-configuration2.version> <!-- managed from 2.5.0 -->
         <commons-beanutils.version>1.9.4</commons-beanutils.version> <!-- managed from 1.9.3 -->
@@ -106,7 +107,7 @@
         <parquet.version>1.13.1</parquet.version>
 
         <!-- aws version -->
-        <aws.java.sdk.version>1.12.559</aws.java.sdk.version>
+        <aws.java.sdk.version>1.12.572</aws.java.sdk.version>
 
         <slf4j.version>1.7.36</slf4j.version>
         <scalalogging.version>3.9.5</scalalogging.version>
@@ -114,7 +115,7 @@
 
         <specs2.version>4.20.2</specs2.version>
         <junit.version>4.13.2</junit.version>
-        <testcontainers.version>1.19.0</testcontainers.version>
+        <testcontainers.version>1.19.1</testcontainers.version>
 
         <test.redis.docker.tag>7-alpine</test.redis.docker.tag>
         <test.postgres.docker.tag>15.1</test.postgres.docker.tag>
@@ -912,6 +913,73 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>3.6.2.Final</version>
+            </dependency>
+
+            <!-- Jetty used by hadoop/hbase2.x -->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-http</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-io</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-security</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util-ajax</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-webapp</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-xml</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-common</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-api</artifactId>
+                <version>${jetty.version}</version>
             </dependency>
 
             <!-- manage some hadoop dependencies -->
