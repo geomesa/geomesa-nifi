@@ -142,5 +142,42 @@ class SimpleFeatureRecordConverterTest extends Specification with LazyLogging {
       feature.getAttribute("geom") mustEqual WKTUtils.read("POINT (45 55)")
       feature.getAttribute("user") mustEqual """{"name":"myname","weight":30.0,"height":10.0}"""
     }
+
+    "keep the feature ID as an attribute" in {
+      val schema = {
+        val id = new StandardSchemaIdentifier.Builder().name("test").build()
+        val fields =
+          Seq(
+            new RecordField("name", RecordFieldType.STRING.getDataType),
+            new RecordField("dtg", RecordFieldType.DATE.getDataType),
+            new RecordField("geom", RecordFieldType.STRING.getDataType)
+          )
+        new SimpleRecordSchema(fields.asJava, id)
+      }
+
+      val opts = RecordConverterOptions(
+        fidField = Some("name"),
+        fidIsAttribute = true,
+        geomFields = Seq(GeometryColumn("geom", classOf[Point], default = true))
+      )
+      val converter = SimpleFeatureRecordConverter(schema, opts)
+      converter.sft.getTypeName mustEqual "test"
+      converter.sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual
+          Seq("name", "dtg", "geom")
+      converter.sft.getAttributeDescriptors.asScala.map(_.getType.getBinding) mustEqual
+          Seq(classOf[String], classOf[Date], classOf[Point])
+
+      val record = new MapRecord(schema, new java.util.HashMap[String, AnyRef])
+      record.setValue("name", "myname")
+      record.setValue("dtg", FastConverter.convert("2020-01-01T00:00:00.000Z", classOf[Date]))
+      record.setValue("geom", "POINT (45 55)")
+
+      val feature = converter.convert(record)
+      feature.getID mustEqual "myname"
+      feature.getAttribute("name") mustEqual "myname"
+      feature.getAttribute("dtg") must not(beNull)
+      feature.getAttribute("dtg") mustEqual record.getValue("dtg")
+      feature.getAttribute("geom") mustEqual WKTUtils.read("POINT (45 55)")
+    }
   }
 }
