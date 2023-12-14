@@ -245,7 +245,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
 
     val converters = schema.getFields.asScala.flatMap { field =>
       val name = field.getFieldName
-      if (options.fidField.contains(name) || options.visField.contains(name)) {
+      if ((options.fidField.contains(name) && !options.fidIsAttribute) || options.visField.contains(name)) {
         Seq.empty
       } else {
         options.geomFields.find(_.name == name) match {

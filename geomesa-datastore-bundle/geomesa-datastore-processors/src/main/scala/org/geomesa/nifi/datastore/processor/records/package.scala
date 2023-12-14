@@ -70,6 +70,18 @@ package object records {
         .required(false)
         .build()
 
+     val FeatureIdIsAttribute: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("feature-id-is-attribute")
+        .displayName("Keep Feature ID as attribute")
+        .description("Keep the Feature ID column as an attribute in the feature type")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue("false")
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .required(false)
+        .build()
+
     val GeometryCols: PropertyDescriptor =
       new PropertyDescriptor.Builder()
         .name("geometry-cols")
@@ -205,6 +217,7 @@ package object records {
   case class RecordConverterOptions(
       typeName: Option[String] = None,
       fidField: Option[String] = None,
+      fidIsAttribute: Boolean = false,
       geomFields: Seq[GeometryColumn] = Seq.empty,
       encoding: GeometryEncoding.GeometryEncoding = GeometryEncoding.Wkt,
       jsonFields: Seq[String] = Seq.empty,
@@ -244,6 +257,7 @@ package object records {
 
       val typeName = TypeNameExtractor.static(context)
       val fidCol = FeatureIdExtractor.static(context)
+      val fidIsAttribute = FidIsAttributeExtractor.static(context)
       val geomCols = GeometryColsExtractor.static(context)
       val geomEncoding = encoding match {
         case GeometryEncoding.Wkt => GeometryEncodingWktExtractor.static(context)
@@ -255,10 +269,10 @@ package object records {
       val userData = UserDataExtractor.static(context)
 
       val dynamic =
-        new DynamicConfiguration(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
+        new DynamicConfiguration(typeName, fidCol, fidIsAttribute, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
 
       val static =
-        Seq(typeName, fidCol, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
+        Seq(typeName, fidCol, fidIsAttribute, geomCols, geomEncoding, jsonCols, dtgCol, visCol, userData)
             .forall(_.isInstanceOf[StaticEvaluation[_]])
 
       if (!static) { dynamic } else {
@@ -285,6 +299,7 @@ package object records {
     class DynamicConfiguration(
         typeName: PropertyExtractor[Option[String]],
         fidCol: PropertyExtractor[Option[String]],
+        fidIsAttribute: PropertyExtractor[Option[String]],
         geomCols: PropertyExtractor[Seq[GeometryColumn]],
         geomEncoding: PropertyExtractor[GeometryEncoding],
         jsonCols: PropertyExtractor[Seq[String]],
@@ -297,14 +312,15 @@ package object records {
           context: PropertyContext,
           variables: java.util.Map[String, String]): RecordConverterOptions = {
         RecordConverterOptions(
-          typeName   = typeName.apply(context, variables),
-          fidField   = fidCol.apply(context, variables),
-          geomFields = geomCols.apply(context, variables),
-          encoding   = geomEncoding.apply(context, variables),
-          jsonFields = jsonCols.apply(context, variables),
-          dtgField   = dtgCol.apply(context, variables),
-          visField   = visCol.apply(context, variables),
-          userData   = userData.apply(context, variables)
+          typeName       = typeName.apply(context, variables),
+          fidField       = fidCol.apply(context, variables),
+          fidIsAttribute = fidIsAttribute.apply(context, variables).exists(_.toBoolean),
+          geomFields     = geomCols.apply(context, variables),
+          encoding       = geomEncoding.apply(context, variables),
+          jsonFields     = jsonCols.apply(context, variables),
+          dtgField       = dtgCol.apply(context, variables),
+          visField       = visCol.apply(context, variables),
+          userData       = userData.apply(context, variables)
         )
       }
     }
@@ -363,6 +379,7 @@ package object records {
 
     private object TypeNameExtractor extends OptionEvaluation(TypeName)
     private object FeatureIdExtractor extends OptionEvaluation(FeatureIdCol)
+    private object FidIsAttributeExtractor extends OptionEvaluation(FeatureIdIsAttribute)
     private object DefaultDateExtractor extends OptionEvaluation(DefaultDateCol)
     private object VisibilitiesExtractor extends OptionEvaluation(VisibilitiesCol)
 

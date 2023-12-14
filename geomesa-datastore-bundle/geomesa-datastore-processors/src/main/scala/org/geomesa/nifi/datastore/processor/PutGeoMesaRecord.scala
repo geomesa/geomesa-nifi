@@ -138,6 +138,7 @@ object PutGeoMesaRecord {
     RecordReader,
     TypeName,
     FeatureIdCol,
+    FeatureIdIsAttribute,
     GeometryCols,
     GeometrySerializationDefaultWkt,
     JsonCols,

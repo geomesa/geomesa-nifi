@@ -506,7 +506,49 @@ class PutGeoMesaAccumuloTest extends Specification with LazyLogging {
         ds.dispose()
       }
     }
-  
+
+    "RecordIngestFidAttribute" in {
+      val catalog = s"${root}RecordIngestFidAttribute"
+      val runner = TestRunners.newTestRunner(new PutGeoMesaRecord())
+      try {
+        configureAccumuloService(runner, catalog)
+        val service = new JsonTreeReader()
+        runner.addControllerService("json-record-reader", service)
+        runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA)
+        runner.enableControllerService(service)
+        runner.setProperty(Properties.RecordReader, "json-record-reader")
+        runner.setProperty(Properties.FeatureIdCol, "fid")
+        runner.setProperty(Properties.FeatureIdIsAttribute, "true")
+        runner.setProperty(Properties.GeometryCols, "*geom:Point")
+        runner.setProperty(Properties.TypeName, "example")
+        val record = """{"fid":"23623","name":"Harry Potter","geom":"POINT(1 1)"}"""
+        runner.enqueue(new ByteArrayInputStream(record.getBytes(StandardCharsets.UTF_8)))
+
+        runner.run()
+        runner.assertTransferCount(Relationships.SuccessRelationship, 1)
+        runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      } finally {
+        runner.shutdown()
+      }
+
+      val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+      ds must not(beNull)
+      try {
+        val sft = ds.getSchema("example")
+        sft must not(beNull)
+        sft.getAttributeCount mustEqual 3
+        sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual Seq("fid", "name", "geom")
+        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+        logger.debug(features.mkString(";"))
+        features must haveLength(1)
+        features.head.getID mustEqual "23623"
+        features.head.getAttribute("name") mustEqual "Harry Potter"
+        features.head.getAttribute("geom") mustEqual WKTUtils.read("POINT(1 1)")
+      } finally {
+        ds.dispose()
+      }
+    }
+
     "UpdateIngest" in {
       val catalog = s"${root}UpdateIngest"
       val runner = TestRunners.newTestRunner(new PutGeoMesa())
