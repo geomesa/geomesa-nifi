@@ -14,12 +14,12 @@ import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, Ge
 import org.apache.commons.pool2.{BasePooledObjectFactory, PooledObject}
 import org.apache.nifi.flowfile.FlowFile
 import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.{DataStore, FeatureWriter, Transaction}
+import org.geotools.api.data.{DataStore, FeatureWriter, Transaction}
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.filter.FilterHelper
 import org.locationtech.geomesa.utils.geotools.FeatureUtils
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.Closeable
 import java.util.concurrent.LinkedBlockingQueue

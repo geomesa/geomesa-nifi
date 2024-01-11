@@ -14,7 +14,7 @@ import org.apache.nifi.context.PropertyContext
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.DataStore
+import org.geotools.api.data.DataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
 import org.locationtech.geomesa.lambda.data.{LambdaDataStore, LambdaDataStoreFactory, LambdaDataStoreParams}

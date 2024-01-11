@@ -10,7 +10,7 @@ package org.geomesa.nifi.processors
 
 import org.apache.nifi.components.PropertyDescriptor
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.geotools.data.DataAccessFactory.Param
+import org.geotools.api.data.DataAccessFactory.Param
 
 package object gt {
 

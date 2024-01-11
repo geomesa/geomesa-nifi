@@ -23,11 +23,11 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCacheKey
 import org.geomesa.nifi.datastore.processor.validators.{ConverterMetricsValidator, ConverterValidator}
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.InputStream
 import scala.util.control.NonFatal

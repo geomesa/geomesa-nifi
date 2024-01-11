@@ -13,10 +13,10 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
-import org.opengis.feature.simple.SimpleFeatureType
+import org.geotools.api.feature.simple.SimpleFeatureType
 
 import java.io.StringReader
-import java.util.{Collections, Properties}
+import java.util.Properties
 
 /**
   * Mixin trait for configuring feature types user data

@@ -10,7 +10,7 @@ package org.geomesa.nifi.processors.gt
 
 import org.apache.nifi.components.PropertyDescriptor
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
-import org.geotools.data.{DataStore, DataStoreFactorySpi}
+import org.geotools.api.data.{DataStore, DataStoreFactorySpi}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import scala.reflect.ClassTag

@@ -24,13 +24,14 @@ import org.geomesa.nifi.datastore.processor.UpdateGeoMesaRecord.{AttributeFilter
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.processor.records.{GeometryEncoding, OptionExtractor, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.{DataStore, DataUtilities, Transaction}
+import org.geotools.api.data.{DataStore, Transaction}
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.geotools.api.filter.Filter
+import org.geotools.data.DataUtilities
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.filter.filterToString
 import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.filter.Filter
 
 import java.io.InputStream
 import java.util.concurrent.{LinkedBlockingQueue, ScheduledThreadPoolExecutor, TimeUnit}

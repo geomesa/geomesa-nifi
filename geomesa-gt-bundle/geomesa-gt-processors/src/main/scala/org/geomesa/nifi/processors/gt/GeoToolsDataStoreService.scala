@@ -20,7 +20,7 @@ import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.processor.{ExtraClasspaths, invalid}
 import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geomesa.nifi.processors.gt.GeoToolsDataStoreService.StoreManager
-import org.geotools.data.{DataStore, DataStoreFactorySpi, DataStoreFinder}
+import org.geotools.api.data.{DataStore, DataStoreFactorySpi, DataStoreFinder}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import java.util.Collections

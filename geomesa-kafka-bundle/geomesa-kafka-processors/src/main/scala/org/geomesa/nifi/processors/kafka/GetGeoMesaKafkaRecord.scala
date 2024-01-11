@@ -27,6 +27,8 @@ import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializa
 import org.geomesa.nifi.datastore.processor.records.{Expressions, GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
+import org.geotools.api.feature.`type`.GeometryDescriptor
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
 import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreFactory, KafkaDataStoreParams}
@@ -36,8 +38,6 @@ import org.locationtech.geomesa.tools.`export`.formats.FeatureExporter.ByteExpor
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeDescriptor
 import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
-import org.opengis.feature.`type`.GeometryDescriptor
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.Closeable
 import java.util.concurrent.{SynchronousQueue, TimeUnit}

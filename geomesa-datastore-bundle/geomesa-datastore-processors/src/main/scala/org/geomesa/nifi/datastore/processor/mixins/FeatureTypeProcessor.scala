@@ -15,8 +15,8 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.validators.SimpleFeatureTypeValidator
+import org.geotools.api.feature.simple.SimpleFeatureType
 import org.locationtech.geomesa.utils.geotools._
-import org.opengis.feature.simple.SimpleFeatureType
 
 /**
   * Mixin trait for configuring feature types via typesafe config

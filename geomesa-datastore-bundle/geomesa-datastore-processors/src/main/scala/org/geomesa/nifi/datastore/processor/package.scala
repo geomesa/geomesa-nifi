@@ -8,8 +8,8 @@
 
 package org.geomesa.nifi.datastore
 
-import org.apache.nifi.components.{PropertyDescriptor, ValidationResult}
 import org.apache.nifi.components.resource.{ResourceCardinality, ResourceType}
+import org.apache.nifi.components.{PropertyDescriptor, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.Relationship

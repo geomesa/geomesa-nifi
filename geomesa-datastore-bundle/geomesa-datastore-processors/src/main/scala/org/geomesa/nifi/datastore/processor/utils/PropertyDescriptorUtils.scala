@@ -12,8 +12,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.util.StandardValidators
-import org.geotools.data.DataAccessFactory.Param
-import org.geotools.data.Parameter
+import org.geotools.api.data.DataAccessFactory.Param
+import org.geotools.api.data.Parameter
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory.GeoMesaDataStoreInfo
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
