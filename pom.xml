@@ -1309,7 +1309,7 @@
                             <validHeader>build/copyright/ccri.txt</validHeader>
                         </validHeaders>
                         <properties>
-                            <year>2022</year>
+                            <year>2024</year>
                             <owner>Commonwealth Computer Research, Inc.</owner>
                         </properties>
                         <headerDefinitions>
