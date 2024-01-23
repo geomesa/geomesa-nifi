@@ -37,7 +37,7 @@ class LambdaDataStoreService
           .toMap
   }
 
-  override protected def tryGetDataStore(): Try[DataStore] = {
+  override protected def tryGetDataStore(params: java.util.Map[String, _]): Try[DataStore] = {
     var persistence: DataStore = null
     var config: LambdaConfig = null
     try {
