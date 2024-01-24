@@ -26,6 +26,6 @@ import scala.reflect.ClassTag
  */
 class JdbcDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: Seq[PropertyDescriptor])
     extends GeoMesaDataStoreService[T](descriptors) {
-  override def loadDataStore: DataStore = tryGetDataStore().get
+  override def loadDataStore: DataStore = tryGetDataStore(params).get
   override def dispose(ds: DataStore): Unit = CloseWithLogging(ds)
 }

@@ -39,7 +39,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
 
   override def loadDataStore: DataStore = synchronized {
     if (store == null) {
-      store = tryGetDataStore().get
+      store = tryGetDataStore(params).get
     }
     store
   }
@@ -68,7 +68,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   protected def getDataStoreParams(context: PropertyContext): Map[String, _ <: AnyRef] =
     GeoMesaDataStoreService.getDataStoreParams(context, descriptors)
 
-  protected def tryGetDataStore(): Try[DataStore] =
+  protected def tryGetDataStore(params: java.util.Map[String, _]): Try[DataStore] =
     GeoMesaDataStoreService.tryGetDataStore[T](params)
 
   override def onPropertyModified(descriptor: PropertyDescriptor, oldValue: String, newValue: String): Unit =
@@ -83,7 +83,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     } else {
       val params = getDataStoreParams(context)
       logParams("Validation", params)
-      GeoMesaDataStoreService.tryGetDataStore[T](params.asJava) match {
+      tryGetDataStore(params.asJava) match {
         case Failure(e) =>
           // invalid results will be checked by nifi every 5 seconds
           Collections.singleton(invalid(getClass.getSimpleName, e))
