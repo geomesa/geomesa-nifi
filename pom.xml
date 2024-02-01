@@ -68,6 +68,7 @@
         <geomesa.version>5.0.0-SNAPSHOT</geomesa.version>
         <nifi.version>1.24.0</nifi.version>
 
+        <jdk.version>11</jdk.version>
         <scala.version>2.12.18</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
 
@@ -1186,8 +1187,8 @@
                              detects changes and re-compiles the Java files unless this
                              option is turned off.  -->
                         <useIncrementalCompilation>false</useIncrementalCompilation>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>${jdk.version}</source>
+                        <target>${jdk.version}</target>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1213,8 +1214,8 @@
                             <arg>-unchecked</arg>
                             <arg>-deprecation</arg>
                         </args>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>${jdk.version}</source>
+                        <target>${jdk.version}</target>
                         <scalaVersion>${scala.version}</scalaVersion>
                     </configuration>
                 </plugin>
