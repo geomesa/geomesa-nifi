@@ -13,7 +13,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>geomesa-hbase1-nar</module>
         <module>geomesa-hbase2-nar</module>
         <module>geomesa-hbase-processors</module>
     </modules>
