@@ -38,10 +38,11 @@ class LambdaDataStoreService
   }
 
   override protected def tryGetDataStore(params: java.util.Map[String, _]): Try[DataStore] = {
+    var controller: DataStoreService = null
     var persistence: DataStore = null
     var config: LambdaConfig = null
     try {
-      val controller = params.get(DataStoreService.getName).asInstanceOf[DataStoreService]
+      controller = params.get(DataStoreService.getName).asInstanceOf[DataStoreService]
       if (controller == null) {
         throw new IllegalArgumentException("Could not load datastore using provided parameters")
       }
@@ -61,8 +62,8 @@ class LambdaDataStoreService
         if (config != null) {
           CloseWithLogging(config.offsetManager)
         }
-        if (persistence != null) {
-          CloseWithLogging(persistence)
+        if (controller != null) {
+          controller.dispose(persistence)
         }
         Failure(e)
     }
