@@ -50,12 +50,16 @@ class GeoToolsDataStoreService extends AbstractControllerService with DataStoreS
   }
 
   override final def loadDataStore: DataStore = {
-    val store = manager.tryLoadStore().get
+    val store = newDataStore()
     if (store == null) {
       throw new RuntimeException("Could not load data store using configured parameters")
     }
     stores.add(store)
     store
+  }
+
+  override final def newDataStore(): DataStore = {
+    manager.tryLoadStore().get
   }
 
   override final def dispose(ds: DataStore): Unit = {

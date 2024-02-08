@@ -46,7 +46,7 @@ class LambdaDataStoreService
       if (controller == null) {
         throw new IllegalArgumentException("Could not load datastore using provided parameters")
       }
-      persistence = controller.loadDataStore()
+      persistence = controller.newDataStore()
       if (persistence == null) {
         throw new IllegalArgumentException(
           s"Could not load datastore from controller service ${controller.getClass.getName}")
