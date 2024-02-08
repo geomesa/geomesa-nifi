@@ -44,9 +44,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     store
   }
 
-  override def newDataStore(): DataStore = synchronized {
-    tryGetDataStore(params).get
-  }
+  override def newDataStore(): DataStore = tryGetDataStore(params).get
 
   override def dispose(ds: DataStore): Unit = synchronized {
     if (ds != null && !ds.eq(store)) {
@@ -55,7 +53,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   }
 
   @OnEnabled
-  def onEnabled(context: ConfigurationContext): Unit = synchronized {
+  def onEnabled(context: ConfigurationContext): Unit = {
     params.clear()
     getDataStoreParams(context).foreach { case (k, v) => params.put(k, v) }
     logParams("Enabled", params.asScala.toMap)

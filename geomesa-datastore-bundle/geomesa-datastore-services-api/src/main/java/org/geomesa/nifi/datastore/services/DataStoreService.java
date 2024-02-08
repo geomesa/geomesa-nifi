@@ -14,7 +14,8 @@ import org.geotools.data.DataStore;
 public interface DataStoreService extends ControllerService {
 
     /**
-     * Get a {@code DataStore} that may be instance state for this {@code DataStoreService}.
+     * Get a {@code DataStore} that may be instance state for this {@code DataStoreService}. Clean up after use by
+     * calling {@code DataStoreService.dispose(...)} - do not dispose directly.
      */
     DataStore loadDataStore();
 
