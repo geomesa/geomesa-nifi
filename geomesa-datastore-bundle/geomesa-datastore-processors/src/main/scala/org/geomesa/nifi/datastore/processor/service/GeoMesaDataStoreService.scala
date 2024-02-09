@@ -39,10 +39,12 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
 
   override def loadDataStore: DataStore = synchronized {
     if (store == null) {
-      store = tryGetDataStore(params).get
+      store = newDataStore()
     }
     store
   }
+
+  override def newDataStore(): DataStore = tryGetDataStore(params).get
 
   override def dispose(ds: DataStore): Unit = synchronized {
     if (ds != null && !ds.eq(store)) {
