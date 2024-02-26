@@ -87,7 +87,7 @@
         <postgres.version>42.7.2</postgres.version>
 
         <curator.version>5.6.0</curator.version>
-        <netty.version>4.1.100.Final</netty.version> <!-- newer versions require a fix in arrow 15 not yet released -->
+        <netty.version>4.1.106.Final</netty.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <fasterxml.jackson.version>2.16.1</fasterxml.jackson.version>
         <fasterxml.woodstox.version>5.4.0</fasterxml.woodstox.version> <!-- managed from 5.3.0 -->
