@@ -11,12 +11,12 @@ package org.geomesa.nifi.processors.kafka
 import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreProcessor, FeatureTypeProcessor}
 import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
-import org.geotools.data.DataStoreFinder
+import org.geotools.api.data.DataStoreFinder
+import org.geotools.api.feature.simple.SimpleFeature
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
-import org.opengis.feature.simple.SimpleFeature
 import org.specs2.runner.JUnitRunner
 
 import scala.concurrent.duration.DurationInt

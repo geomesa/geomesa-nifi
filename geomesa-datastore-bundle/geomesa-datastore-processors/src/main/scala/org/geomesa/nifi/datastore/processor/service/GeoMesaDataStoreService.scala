@@ -14,7 +14,7 @@ import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, Valida
 import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.controller.{AbstractControllerService, ConfigurationContext}
 import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.{DataStore, DataStoreFactorySpi}
+import org.geotools.api.data.{DataStore, DataStoreFactorySpi}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import java.util.Collections

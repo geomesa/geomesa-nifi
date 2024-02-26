@@ -13,10 +13,10 @@ import org.apache.nifi.csv.{CSVReader, CSVUtils}
 import org.apache.nifi.processors.standard.ConvertRecord
 import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor.records.Properties.{GeometryCols, TypeName}
+import org.geotools.api.feature.simple.SimpleFeature
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.avro.io.AvroDataFileReader
 import org.locationtech.jts.geom.{Geometry, MultiPolygon}
-import org.opengis.feature.simple.SimpleFeature
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 

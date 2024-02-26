@@ -9,7 +9,7 @@
 package org.geomesa.nifi.datastore.services;
 
 import org.apache.nifi.controller.ControllerService;
-import org.geotools.data.DataStore;
+import org.geotools.api.data.DataStore;
 
 public interface DataStoreService extends ControllerService {
 

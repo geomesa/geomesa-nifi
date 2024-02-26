@@ -21,13 +21,13 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCallback
 import org.geomesa.nifi.datastore.processor.validators.GzipLevelValidator
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.index.conf.QueryHints
 import org.locationtech.geomesa.tools.`export`.formats.FeatureExporter.ExportStream
 import org.locationtech.geomesa.tools.`export`.formats.FileSystemExporter.{OrcFileSystemExporter, ParquetFileSystemExporter}
 import org.locationtech.geomesa.tools.`export`.formats._
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, PathUtils}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.{File, OutputStream}
 import java.nio.file.Files

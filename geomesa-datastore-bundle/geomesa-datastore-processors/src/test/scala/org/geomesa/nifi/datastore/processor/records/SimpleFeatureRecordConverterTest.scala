@@ -8,8 +8,6 @@
 
 package org.geomesa.nifi.datastore.processor.records
 
-import java.util.Date
-
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record.`type`.RecordDataType
@@ -22,6 +20,8 @@ import org.locationtech.geomesa.utils.text.WKTUtils
 import org.locationtech.jts.geom.Point
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
+import java.util.Date
 
 @RunWith(classOf[JUnitRunner])
 class SimpleFeatureRecordConverterTest extends Specification with LazyLogging {

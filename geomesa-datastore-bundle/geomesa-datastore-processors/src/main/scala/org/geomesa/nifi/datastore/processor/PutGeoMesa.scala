@@ -20,8 +20,8 @@ import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCallback
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, FeatureWriters}
 import org.geomesa.nifi.datastore.services.DataStoreService
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs}
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.StringReader
 import scala.util.control.NonFatal

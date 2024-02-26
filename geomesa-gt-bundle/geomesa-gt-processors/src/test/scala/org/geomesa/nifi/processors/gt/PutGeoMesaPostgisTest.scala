@@ -13,7 +13,7 @@ import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor._
 import org.geomesa.nifi.datastore.processor.mixins.DataStoreProcessor
 import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.{DataStore, DataStoreFinder}
+import org.geotools.api.data.DataStoreFinder
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.gt.partition.postgis.PartitionedPostgisDataStoreParams
 import org.locationtech.jts.geom.Point

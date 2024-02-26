@@ -8,8 +8,6 @@
 
 package org.geomesa.nifi.datastore.processor.records
 
-import java.math.BigInteger
-import java.util.{Date, UUID}
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, LoadingCache}
 import com.google.gson.GsonBuilder
 import com.typesafe.scalalogging.LazyLogging
@@ -17,6 +15,8 @@ import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record._
 import org.apache.nifi.serialization.record.`type`.{ArrayDataType, ChoiceDataType, MapDataType, RecordDataType}
 import org.geomesa.nifi.datastore.processor.records.SimpleFeatureRecordConverter.FieldConverter
+import org.geotools.api.feature.`type`.AttributeDescriptor
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.feature.AttributeTypeBuilder
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.geotools.util.factory.Hints
@@ -27,9 +27,9 @@ import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleF
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.AttributeOptions
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.locationtech.jts.geom.Geometry
-import org.opengis.feature.`type`.AttributeDescriptor
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import java.math.BigInteger
+import java.util.{Date, UUID}
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 

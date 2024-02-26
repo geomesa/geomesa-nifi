@@ -17,7 +17,7 @@ import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor._
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, DataStoreProcessor, FeatureTypeProcessor}
 import org.geomesa.nifi.datastore.processor.records.Properties
-import org.geotools.data.{DataStoreFinder, Transaction}
+import org.geotools.api.data.{DataStoreFinder, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.MiniCluster
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams

@@ -11,7 +11,7 @@ package org.geomesa.nifi.datastore.processor.mixins
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.processor.ProcessContext
 import org.geomesa.nifi.datastore.services.DataStoreService
-import org.geotools.data.DataStore
+import org.geotools.api.data.DataStore
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 /**

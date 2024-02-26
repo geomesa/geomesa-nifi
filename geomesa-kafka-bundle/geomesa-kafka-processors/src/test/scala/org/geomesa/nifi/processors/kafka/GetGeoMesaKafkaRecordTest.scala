@@ -13,7 +13,8 @@ import org.apache.nifi.serialization.DateTimeUtils
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.Relationships
 import org.geomesa.nifi.datastore.processor.records.{GeoAvroRecordSetWriterFactory, Properties}
-import org.geotools.data.{DataStoreFinder, Transaction}
+import org.geotools.api.data.{DataStoreFinder, Transaction}
+import org.geotools.api.feature.simple.SimpleFeatureType
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.avro.io.AvroDataFileReader
@@ -21,7 +22,6 @@ import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.security.SecureSimpleFeature
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
-import org.opengis.feature.simple.SimpleFeatureType
 import org.specs2.runner.JUnitRunner
 
 import java.io.ByteArrayInputStream

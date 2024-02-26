@@ -8,8 +8,6 @@
 
 package org.geomesa.nifi.datastore.processor
 
-import java.util.Collections
-
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -20,6 +18,8 @@ import org.geomesa.nifi.datastore.processor.records.Properties._
 import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpec.GeomAttributeSpec
 import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpecParser
 import org.locationtech.jts.geom.Geometry
+
+import java.util.Collections
 
 package object records {
 

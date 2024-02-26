@@ -22,13 +22,14 @@ import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.Dyna
 import org.geomesa.nifi.datastore.processor.mixins.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.validators.WriteModeValidator
 import org.geomesa.nifi.datastore.services.DataStoreService
+import org.geotools.api.data._
+import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.data._
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
 import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.CloseWithLogging
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import java.io.Closeable
 import java.util.Collections
