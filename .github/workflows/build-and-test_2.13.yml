@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '11.0.22+7'
+          java-version: '11'
           cache: 'maven'
       - name: Set Scala version
         run: ./build/change-scala-version.sh 2.13

@@ -1217,6 +1217,7 @@
                         <source>${jdk.version}</source>
                         <target>${jdk.version}</target>
                         <scalaVersion>${scala.version}</scalaVersion>
+                        <recompileMode>incremental</recompileMode>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1515,7 +1516,6 @@
                             <groupId>net.alchim31.maven</groupId>
                             <artifactId>scala-maven-plugin</artifactId>
                             <configuration>
-                                <recompileMode>incremental</recompileMode>
                                 <useZincServer>true</useZincServer>
                             </configuration>
                         </plugin>
