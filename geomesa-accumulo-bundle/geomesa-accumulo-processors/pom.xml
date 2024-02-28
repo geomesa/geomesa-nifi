@@ -172,28 +172,22 @@
             <artifactId>mockito-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.accumulo</groupId>
-            <artifactId>accumulo-test</artifactId>
-            <version>${accumulo.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <!-- odd issue resolving some apacheds dependencies -->
-                <exclusion>
-                    <groupId>org.apache.directory.server</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-accumulo-datastore_${scala.binary.version}</artifactId>
             <classifier>tests</classifier>
         </dependency>
         <dependency>
-            <groupId>org.apache.accumulo</groupId>
-            <artifactId>accumulo-minicluster</artifactId>
-            <version>${accumulo.version}</version>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-accumulo-distributed-runtime_${scala.binary.version}</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.testcontainers</groupId>
+            <artifactId>testcontainers-accumulo</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>

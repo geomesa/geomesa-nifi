@@ -33,7 +33,7 @@ import org.locationtech.geomesa.filter.filterToString
 import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 
-import java.io.InputStream
+import java.io.{Closeable, InputStream}
 import java.util.concurrent.{LinkedBlockingQueue, ScheduledThreadPoolExecutor, TimeUnit}
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
@@ -78,7 +78,7 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
     factory = context.getProperty(RecordReader).asControllerService(classOf[RecordReaderFactory])
     options = OptionExtractor(context, GeometryEncoding.Wkt)
 
-    logger.info(s"Initialized DataStoreService ${service.getClass.getSimpleName}")
+    logger.info(s"Initialized with DataStoreService ${service.getClass.getSimpleName}")
   }
 
   override def onTrigger(context: ProcessContext, session: ProcessSession): Unit = {
@@ -222,6 +222,10 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
     val start = System.currentTimeMillis()
     stores.iterator().asScala.foreach(service.dispose)
     stores.clear()
+    if (schemas != null) {
+      CloseWithLogging(schemas)
+      schemas = null
+    }
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 }
@@ -255,7 +259,7 @@ object UpdateGeoMesaRecord {
     override def apply(f: SimpleFeature): Filter = ff.equals(prop, ff.literal(f.getAttribute(name)))
   }
 
-  private class SchemaCache(service: DataStoreService) {
+  private class SchemaCache(service: DataStoreService) extends Closeable {
 
     private val refresher = ExitingExecutor(new ScheduledThreadPoolExecutor(1))
 
@@ -277,6 +281,8 @@ object UpdateGeoMesaRecord {
     private def refresh(typeName: String): Unit = schemaCheckCache.refresh(typeName)
 
     def getSchema(typeName: String): SimpleFeatureType = schemaCheckCache.get(typeName)
+
+    override def close(): Unit = refresher.shutdownNow()
   }
 
   object Properties {
