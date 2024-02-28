@@ -44,11 +44,16 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     store
   }
 
-  override def newDataStore(): DataStore = tryGetDataStore(params).get
+  override def newDataStore(): DataStore = {
+    val store = tryGetDataStore(params).get
+    getLogger.debug(s"Created new datastore: $store")
+    store
+  }
 
   override def dispose(ds: DataStore): Unit = synchronized {
     if (ds != null && !ds.eq(store)) {
       CloseWithLogging(ds)
+      getLogger.debug(s"Disposed of un-managed datastore: $store")
     }
   }
 
@@ -63,6 +68,7 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   def onDisabled(): Unit = synchronized {
     if (store != null) {
       CloseWithLogging(store)
+      getLogger.debug(s"Disposed of managed datastore: $store")
       store = null
     }
   }

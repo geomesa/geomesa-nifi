@@ -22,9 +22,7 @@ public interface DataStoreService extends ControllerService {
     /**
      * Create a new {@code DataStore} that the caller is responsible for disposing.
      */
-    default DataStore newDataStore() {
-        return loadDataStore();
-    }
+    DataStore newDataStore();
 
     /**
      * Dispose a {@code DataStore}.

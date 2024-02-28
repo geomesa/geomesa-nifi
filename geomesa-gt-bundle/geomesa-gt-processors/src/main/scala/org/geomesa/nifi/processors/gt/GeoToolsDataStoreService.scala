@@ -58,9 +58,7 @@ class GeoToolsDataStoreService extends AbstractControllerService with DataStoreS
     store
   }
 
-  override final def newDataStore(): DataStore = {
-    manager.tryLoadStore().get
-  }
+  override final def newDataStore(): DataStore = manager.tryLoadStore().get
 
   override final def dispose(ds: DataStore): Unit = {
     stores.remove(ds)
