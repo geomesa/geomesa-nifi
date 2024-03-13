@@ -15,6 +15,7 @@
     <modules>
         <module>geomesa-accumulo20-nar</module>
         <module>geomesa-accumulo21-nar</module>
+        <module>geomesa-accumulo-its</module>
         <module>geomesa-accumulo-processors</module>
     </modules>
 

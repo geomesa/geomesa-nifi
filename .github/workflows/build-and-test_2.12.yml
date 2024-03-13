@@ -7,6 +7,13 @@ on:
   schedule:
     - cron: '30 2 * * *' # 0230 UTC, 2130 EST
 
+permissions:
+  contents: read
+
+env:
+  MAVEN_CLI_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false --batch-mode
+  MAVEN_TEST_OPTS: -Dtest.fork.count=1
+
 jobs:
   build-scala:
     runs-on: ubuntu-latest
@@ -21,7 +28,11 @@ jobs:
           java-version: '11'
           cache: 'maven'
       - name: Build with Maven
-        run: mvn clean install -B -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+        run: mvn clean install $MAVEN_CLI_OPTS -DskipTests
+      - name: Unit tests
+        run: mvn surefire:test $MAVEN_CLI_OPTS $MAVEN_TEST_OPTS
+      - name: Integration Tests
+        run: mvn failsafe:integration-test failsafe:verify $MAVEN_CLI_OPTS $MAVEN_TEST_OPTS
       - name: Remove GeoMesa artifacts
         run: |
           rm -rf ~/.m2/repository/org/geomesa/nifi

@@ -1,0 +1,778 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 10,
+  "maxEventDrivenThreadCount": 1,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "templates": [],
+  "rootGroup": {
+    "identifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+    "instanceIdentifier": "97534f9d-0185-1000-3cca-c949215f99ff",
+    "name": "NiFi Flow",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [
+      {
+        "identifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+        "instanceIdentifier": "155a1579-018e-1000-ae96-78c532532293",
+        "name": "fetch data",
+        "comments": "",
+        "position": {
+          "x": 640.0,
+          "y": 192.0
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [
+          {
+            "identifier": "bf2aafbb-e7fc-3823-b27b-8c8589ba729d",
+            "instanceIdentifier": "155a5409-018e-1000-eafa-8e11deb4d361",
+            "name": "FetchFile",
+            "comments": "",
+            "position": {
+              "x": 584.0,
+              "y": 329.0
+            },
+            "type": "org.apache.nifi.processors.standard.FetchFile",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-standard-nar",
+              "version": "1.25.0"
+            },
+            "properties": {
+              "Move Conflict Strategy": "Rename",
+              "Log level when file not found": "ERROR",
+              "Log level when permission denied": "ERROR",
+              "File to Fetch": "${absolute.path}/${filename}",
+              "Completion Strategy": "None"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [
+              "failure",
+              "permission.denied",
+              "not.found"
+            ],
+            "scheduledState": "RUNNING",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          },
+          {
+            "identifier": "c5d4cbe2-7353-3e66-b1c7-0cf67891faea",
+            "instanceIdentifier": "155a5408-018e-1000-7e89-cb21f5a9b9f6",
+            "name": "ListFile",
+            "comments": "",
+            "position": {
+              "x": 584.0,
+              "y": 144.0
+            },
+            "type": "org.apache.nifi.processors.standard.ListFile",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-standard-nar",
+              "version": "1.25.0"
+            },
+            "properties": {
+              "Minimum File Age": "0 sec",
+              "et-initial-listing-target": "all",
+              "max-listing-time": "3 mins",
+              "et-time-window": "3 hours",
+              "et-node-identifier": "${hostname()}",
+              "Recurse Subdirectories": "true",
+              "File Filter": "[^\\.].*",
+              "Include File Attributes": "true",
+              "Input Directory Location": "Local",
+              "listing-strategy": "timestamps",
+              "Input Directory": "/ingest",
+              "target-system-timestamp-precision": "auto-detect",
+              "track-performance": "false",
+              "max-performance-metrics": "100000",
+              "Minimum File Size": "0 B",
+              "Ignore Hidden Files": "true",
+              "max-operation-time": "10 secs"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "1 min",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [],
+            "scheduledState": "RUNNING",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          },
+          {
+            "identifier": "a615d4c1-3c41-3dca-9c2a-5f4922d4fa31",
+            "instanceIdentifier": "155a540a-018e-1000-acb1-2012647d21ce",
+            "name": "UpdateAttribute",
+            "comments": "",
+            "position": {
+              "x": 584.0,
+              "y": 520.0
+            },
+            "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-update-attribute-nar",
+              "version": "1.25.0"
+            },
+            "properties": {
+              "Store State": "Do not store state",
+              "canonical-value-lookup-cache-size": "100",
+              "geomesa.id.col": "GLOBALEVENTID",
+              "geomesa.sft.spec": "gdelt2",
+              "geomesa.sft.name": "gdelt",
+              "geomesa.default.dtg.col": "SQLDATE",
+              "geomesa.converter": "gdelt2",
+              "geomesa.sft.user-data": "geomesa.fs.scheme={\"name\":\"daily\",\"options\":{\"dtg-attribute\":\"dtg\"}}",
+              "geomesa.geometry.cols": "WKT"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 25,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [],
+            "scheduledState": "RUNNING",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          }
+        ],
+        "inputPorts": [],
+        "outputPorts": [
+          {
+            "identifier": "cfd8a3e4-cee2-3d7b-a0cb-eea39bb7fb7a",
+            "instanceIdentifier": "155aa65b-018e-1000-fb41-ae9ff5e385a6",
+            "name": "data",
+            "position": {
+              "x": 640.0,
+              "y": 720.0
+            },
+            "type": "OUTPUT_PORT",
+            "concurrentlySchedulableTaskCount": 1,
+            "scheduledState": "RUNNING",
+            "allowRemoteAccess": false,
+            "componentType": "OUTPUT_PORT",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          }
+        ],
+        "connections": [
+          {
+            "identifier": "888d32cc-f57f-3148-84cd-2fcbbbfc5b2d",
+            "instanceIdentifier": "155a642a-018e-1000-316a-3ee1be8f1a08",
+            "name": "",
+            "source": {
+              "id": "c5d4cbe2-7353-3e66-b1c7-0cf67891faea",
+              "type": "PROCESSOR",
+              "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+              "name": "ListFile",
+              "comments": "",
+              "instanceIdentifier": "155a5408-018e-1000-7e89-cb21f5a9b9f6"
+            },
+            "destination": {
+              "id": "bf2aafbb-e7fc-3823-b27b-8c8589ba729d",
+              "type": "PROCESSOR",
+              "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+              "name": "FetchFile",
+              "comments": "",
+              "instanceIdentifier": "155a5409-018e-1000-eafa-8e11deb4d361"
+            },
+            "labelIndex": 1,
+            "zIndex": 0,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute": "",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          },
+          {
+            "identifier": "486c509a-e7c0-3607-b8a9-43fcef640a6c",
+            "instanceIdentifier": "155a7858-018e-1000-15af-ce301da1e5a6",
+            "name": "",
+            "source": {
+              "id": "bf2aafbb-e7fc-3823-b27b-8c8589ba729d",
+              "type": "PROCESSOR",
+              "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+              "name": "FetchFile",
+              "comments": "",
+              "instanceIdentifier": "155a5409-018e-1000-eafa-8e11deb4d361"
+            },
+            "destination": {
+              "id": "a615d4c1-3c41-3dca-9c2a-5f4922d4fa31",
+              "type": "PROCESSOR",
+              "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+              "name": "UpdateAttribute",
+              "comments": "",
+              "instanceIdentifier": "155a540a-018e-1000-acb1-2012647d21ce"
+            },
+            "labelIndex": 1,
+            "zIndex": 0,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute": "",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          },
+          {
+            "identifier": "75d31313-6c6f-3262-a497-4d5d3766687a",
+            "instanceIdentifier": "155ac008-018e-1000-2823-2bd66cb43cfb",
+            "name": "",
+            "source": {
+              "id": "a615d4c1-3c41-3dca-9c2a-5f4922d4fa31",
+              "type": "PROCESSOR",
+              "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+              "name": "UpdateAttribute",
+              "comments": "",
+              "instanceIdentifier": "155a540a-018e-1000-acb1-2012647d21ce"
+            },
+            "destination": {
+              "id": "cfd8a3e4-cee2-3d7b-a0cb-eea39bb7fb7a",
+              "type": "OUTPUT_PORT",
+              "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+              "name": "data",
+              "instanceIdentifier": "155aa65b-018e-1000-fb41-ae9ff5e385a6"
+            },
+            "labelIndex": 1,
+            "zIndex": 0,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute": "",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
+          }
+        ],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [],
+        "variables": {},
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "componentType": "PROCESS_GROUP",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "fb1c6231-e03d-33d9-94b7-b36d1924f702",
+        "instanceIdentifier": "155f125c-018e-1000-2243-31ed06edaff8",
+        "name": "PutGeoMesaRecord",
+        "comments": "",
+        "position": {
+          "x": 1016.0,
+          "y": 648.0
+        },
+        "type": "org.geomesa.nifi.datastore.processor.PutGeoMesaRecord",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-datastore-services-nar_2.12",
+          "version": "5.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "geometry-cols": "${geomesa.geometry.cols}",
+          "write-mode": "append",
+          "schema-compatibility": "Existing",
+          "visibilities-col": "${geomesa.visibilities.col}",
+          "feature-id-is-attribute": "false",
+          "schema-user-data": "${geomesa.sft.user-data}",
+          "json-cols": "${geomesa.json.cols}",
+          "feature-type-name": "gdelt-records",
+          "FeatureWriterCaching": "false",
+          "feature-id-col": "${geomesa.id.col}",
+          "geometry-serialization": "WKT",
+          "record-reader": "155fbf70-018e-1000-7970-f4a7ce550532",
+          "DataStoreService": "2cf6c59c-0189-1000-3fc5-af0917a93f5f",
+          "FeatureWriterCacheTimeout": "5 minutes",
+          "default-date-col": "${geomesa.default.dtg.col}"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success",
+          "failure"
+        ],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "68d2f0c6-2997-340b-af4e-b15d2e4eebd9",
+        "instanceIdentifier": "97547362-0185-1000-c91b-de07455085b5",
+        "name": "PutGeoMesa",
+        "comments": "",
+        "position": {
+          "x": 656.0,
+          "y": 648.0
+        },
+        "type": "org.geomesa.nifi.datastore.processor.PutGeoMesa",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-datastore-services-nar_2.12",
+          "version": "5.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "write-mode": "append",
+          "ConvertFlowFileAttributes": "false",
+          "SftUserData": "${geomesa.sft.user-data}",
+          "schema-compatibility": "Existing",
+          "FeatureWriterCaching": "false",
+          "DataStoreService": "2cf6c59c-0189-1000-3fc5-af0917a93f5f",
+          "FeatureWriterCacheTimeout": "5 minutes"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success",
+          "failure"
+        ],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "94864013-5cfa-3acf-a569-e7bb47a23888",
+        "instanceIdentifier": "15598895-018e-1000-87e4-7561cbabc938",
+        "name": "ConvertToGeoFile",
+        "comments": "",
+        "position": {
+          "x": 296.0,
+          "y": 448.0
+        },
+        "type": "org.geomesa.nifi.datastore.processor.ConvertToGeoFile",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-datastore-services-nar_2.12",
+          "version": "5.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "output-format": "avro",
+          "ConvertFlowFileAttributes": "false",
+          "SftUserData": "${geomesa.sft.user-data}",
+          "include-headers": "true"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "original",
+          "failure"
+        ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "fcbe156e-fe4a-3ca7-a09c-623be9778739",
+        "instanceIdentifier": "155debbf-018e-1000-ba1c-eff04813c1b0",
+        "name": "AvroToPutGeoMesa",
+        "comments": "",
+        "position": {
+          "x": 296.0,
+          "y": 648.0
+        },
+        "type": "org.geomesa.nifi.datastore.processor.AvroToPutGeoMesa",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-datastore-services-nar_2.12",
+          "version": "5.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "write-mode": "append",
+          "FeatureWriterCaching": "false",
+          "SftUserData": "${geomesa.sft.user-data}",
+          "FeatureWriterCacheTimeout": "5 minutes",
+          "schema-compatibility": "Existing",
+          "Use provided feature ID": "true"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success",
+          "failure"
+        ],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [
+      {
+        "identifier": "0357d403-ffdb-35a9-b166-f66f057a6a5a",
+        "instanceIdentifier": "155e14de-018e-1000-16b0-407fe7ce7eb4",
+        "name": "",
+        "source": {
+          "id": "94864013-5cfa-3acf-a569-e7bb47a23888",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "ConvertToGeoFile",
+          "comments": "",
+          "instanceIdentifier": "15598895-018e-1000-87e4-7561cbabc938"
+        },
+        "destination": {
+          "id": "fcbe156e-fe4a-3ca7-a09c-623be9778739",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "AvroToPutGeoMesa",
+          "comments": "",
+          "instanceIdentifier": "155debbf-018e-1000-ba1c-eff04813c1b0"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "2f63ef2c-1853-3adc-8eeb-24950ffa1eea",
+        "instanceIdentifier": "155f2f8d-018e-1000-5e36-cbc0aff16497",
+        "name": "",
+        "source": {
+          "id": "cfd8a3e4-cee2-3d7b-a0cb-eea39bb7fb7a",
+          "type": "OUTPUT_PORT",
+          "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+          "name": "data",
+          "instanceIdentifier": "155aa65b-018e-1000-fb41-ae9ff5e385a6"
+        },
+        "destination": {
+          "id": "fb1c6231-e03d-33d9-94b7-b36d1924f702",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "PutGeoMesaRecord",
+          "comments": "",
+          "instanceIdentifier": "155f125c-018e-1000-2243-31ed06edaff8"
+        },
+        "labelIndex": 0,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [
+          {
+            "x": 1192.0,
+            "y": 408.0
+          }
+        ],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "34eb2cf5-b030-36ff-819d-7f8c499d2af6",
+        "instanceIdentifier": "155d2824-018e-1000-fbbd-be3cadd1b2ef",
+        "name": "",
+        "source": {
+          "id": "cfd8a3e4-cee2-3d7b-a0cb-eea39bb7fb7a",
+          "type": "OUTPUT_PORT",
+          "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+          "name": "data",
+          "instanceIdentifier": "155aa65b-018e-1000-fb41-ae9ff5e385a6"
+        },
+        "destination": {
+          "id": "94864013-5cfa-3acf-a569-e7bb47a23888",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "ConvertToGeoFile",
+          "comments": "",
+          "instanceIdentifier": "15598895-018e-1000-87e4-7561cbabc938"
+        },
+        "labelIndex": 0,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [
+          {
+            "x": 472.0,
+            "y": 408.0
+          }
+        ],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "6479703d-07e5-3fb9-b66d-ec2c90687fcf",
+        "instanceIdentifier": "155d19a3-018e-1000-9c89-d43cde021962",
+        "name": "",
+        "source": {
+          "id": "cfd8a3e4-cee2-3d7b-a0cb-eea39bb7fb7a",
+          "type": "OUTPUT_PORT",
+          "groupId": "9cfc0c93-732b-30fb-a97f-c3cee4240484",
+          "name": "data",
+          "instanceIdentifier": "155aa65b-018e-1000-fb41-ae9ff5e385a6"
+        },
+        "destination": {
+          "id": "68d2f0c6-2997-340b-af4e-b15d2e4eebd9",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "PutGeoMesa",
+          "comments": "",
+          "instanceIdentifier": "97547362-0185-1000-c91b-de07455085b5"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [
+      {
+        "identifier": "08c0bb81-4cbb-3c33-90ce-e5f68357cca5",
+        "instanceIdentifier": "155fbf70-018e-1000-7970-f4a7ce550532",
+        "name": "CSVReader",
+        "comments": "",
+        "type": "org.apache.nifi.csv.CSVReader",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "1.25.0"
+        },
+        "properties": {
+          "ignore-csv-header": "false",
+          "Trim double quote": "true",
+          "CSV Format": "custom",
+          "Quote Character": "\"",
+          "csvutils-allow-duplicate-header-names": "true",
+          "Value Separator": ",",
+          "Record Separator": "\\n",
+          "Escape Character": "\\",
+          "Skip Header Line": "true",
+          "Trim Fields": "true",
+          "schema-name": "${schema.name}",
+          "csv-reader-csv-parser": "commons-csv",
+          "schema-access-strategy": "infer-schema",
+          "csvutils-character-set": "UTF-8",
+          "schema-text": "${avro.schema}"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.apache.nifi.serialization.RecordReaderFactory",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-standard-services-api-nar",
+              "version": "1.25.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "fbd8d02b-283c-3362-9d96-8b350af2d630",
+        "instanceIdentifier": "2cf6c59c-0189-1000-3fc5-af0917a93f5f",
+        "name": "GeoMesaDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.gt.PartitionedPostgisDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-gt-nar_2.12",
+          "version": "5.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "schema": "public",
+          "Evictor run periodicity": "300",
+          "Max open prepared statements": "50",
+          "encode functions": "true",
+          "Batch insert size": "1",
+          "preparedStatements": "true",
+          "database": "postgres",
+          "host": "localhost",
+          "Loose bbox": "true",
+          "SSL mode": "DISABLE",
+          "Estimated extends": "true",
+          "fetch size": "1000",
+          "Expose primary keys": "false",
+          "validate connections": "true",
+          "Support on the fly geometry simplification": "true",
+          "Connection timeout": "20",
+          "create database": "false",
+          "Method used to simplify geometries": "FAST",
+          "port": "5432",
+          "passwd": "enc{92f8569874c74acff4bfff0c280f2230d6acdf3bf637d46b8fa1ed7dccbc1e242c0951a03e52c6cd}",
+          "min connections": "1",
+          "dbtype": "postgis-partitioned",
+          "max connections": "10",
+          "Evictor tests per run": "3",
+          "Test while idle": "true",
+          "user": "postgres",
+          "Max connection idle time": "300"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.0.0-SNAPSHOT"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      }
+    ],
+    "variables": {},
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "componentType": "PROCESS_GROUP",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+  }
+}

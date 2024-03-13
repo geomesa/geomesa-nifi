@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.geomesa.nifi</groupId>
+        <artifactId>geomesa-accumulo-bundle_2.12</artifactId>
+        <version>5.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>geomesa-accumulo-its_2.12</artifactId>
+
+    <description>GeoMesa Accumulo integration tests</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-accumulo21-nar_${scala.binary.version}</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-services-nar_${scala.binary.version}</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-services-api-nar_${scala.binary.version}</artifactId>
+            <type>nar</type>
+        </dependency>
+
+        <dependency>
+            <groupId>org.specs2</groupId>
+            <artifactId>specs2-core_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.specs2</groupId>
+            <artifactId>specs2-junit_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-accumulo-datastore_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-accumulo-distributed-runtime_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.testcontainers</groupId>
+            <artifactId>testcontainers-accumulo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-processors_${scala.binary.version}</artifactId>
+            <classifier>tests</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-services-api_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-datastore-processors_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geomesa.nifi</groupId>
+            <artifactId>geomesa-accumulo-processors_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

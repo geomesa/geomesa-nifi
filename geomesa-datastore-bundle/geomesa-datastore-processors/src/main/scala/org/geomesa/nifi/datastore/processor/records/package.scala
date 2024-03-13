@@ -19,7 +19,10 @@ import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpec.GeomAttribu
 import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpecParser
 import org.locationtech.jts.geom.Geometry
 
-import java.util.Collections
+import java.io.StringReader
+import java.util.{Collections, Properties}
+import scala.util.Try
+import scala.util.control.NonFatal
 
 package object records {
 
@@ -409,13 +412,30 @@ package object records {
     }
 
     private object UserDataExtractor extends DynamicEvaluation[Map[String, AnyRef]](SchemaUserData) {
+
+      import scala.collection.JavaConverters._
+
       override protected def wrap(value: String): Map[String, AnyRef] = {
         value match {
-          case null => Map.empty[String, AnyRef]
-          case spec => SimpleFeatureSpecParser.parse(";" + spec).options
+          case null | "" => Map.empty[String, AnyRef]
+          case spec =>
+            // note: we have a bit of a disconnect with how user data is parsed in records (as a spec string) vs
+            // in the other processors (as a java properties format). this makes some sense since records are
+            // row-oriented, but here we add the props parsing as a fall-back to make things consistent
+            try { parseSpec(spec) } catch {
+              case NonFatal(e) => Try(parseProps(spec)).getOrElse(throw e) // rethrow the original exception
+            }
         }
       }
-    }
 
+      private def parseSpec(userData: String): Map[String, AnyRef] =
+        SimpleFeatureSpecParser.parse(";" + userData).options
+
+      private def parseProps(userData: String): Map[String, AnyRef] = {
+        val props = new Properties()
+        props.load(new StringReader(userData))
+        props.asInstanceOf[java.util.Map[String, String]].asScala.toMap
+      }
+    }
   }
 }

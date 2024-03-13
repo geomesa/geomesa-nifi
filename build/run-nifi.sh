@@ -75,7 +75,7 @@ docker run --rm \
   -v "$nar:/opt/nifi/nifi-current/extensions/$(basename "$nar"):ro" \
   -v "$datastoreNar:/opt/nifi/nifi-current/extensions/$(basename "$datastoreNar"):ro" \
   -v "$servicesApiNar:/opt/nifi/nifi-current/extensions/$(basename "$servicesApiNar"):ro" \
-  -v "$dir/build/docker/flow.json.gz:/flow.json.gz:ro" \
+  -v "$dir/build/docker/flow.json:/flow.json:ro" \
   -v "$dir/build/docker/logback.xml:/logback.xml:ro" \
   -v "$dir/build/docker/entrypoint.sh:/entrypoint.sh:ro" \
   -v "$dir/build/docker/ingest:/ingest:ro" \
