@@ -115,9 +115,10 @@
         <reload4j.version>1.2.25</reload4j.version>
 
         <!-- testing -->
-        <specs2.version>4.20.3</specs2.version>
+        <specs2.version>4.20.5</specs2.version>
         <junit.version>4.13.2</junit.version>
-        <testcontainers.version>1.19.3</testcontainers.version>
+        <junit.jupiter.version>5.9.3</junit.jupiter.version>
+        <testcontainers.version>1.19.7</testcontainers.version>
         <testcontainers.accumulo.version>1.1.0</testcontainers.accumulo.version>
 
         <test.accumulo.docker.tag>2.1.2</test.accumulo.docker.tag>
@@ -126,7 +127,9 @@
         <test.postgis.docker.tag>15-3.4</test.postgis.docker.tag>
         <test.confluent.docker.tag>7.6.0</test.confluent.docker.tag> <!-- confluent 7.6.x corresponds to kafka 3.6.x -->
 
-        <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit --add-opens=java.base/java.nio=ALL-UNNAMED --illegal-access=warn</maven.test.jvmargs>
+        <maven.test.opens>--add-opens=java.base/java.nio=ALL-UNNAMED --illegal-access=warn</maven.test.opens>
+        <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit ${maven.test.opens}</maven.test.jvmargs>
+        <maven.test.enable.assertions>false</maven.test.enable.assertions>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -137,6 +140,7 @@
         <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
         <scala-maven-plugin.version>3.4.6</scala-maven-plugin.version>
         <maven-surefire-plugin.version>3.2.3</maven-surefire-plugin.version>
+        <maven.failsafe.plugin.version>3.2.3</maven.failsafe.plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
@@ -1098,6 +1102,12 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-reload4j</artifactId>
                 <version>${slf4j.version}</version>
@@ -1138,6 +1148,13 @@
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-accumulo-datastore_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
+                <classifier>tests</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.geomesa.nifi</groupId>
+                <artifactId>geomesa-datastore-processors_${scala.binary.version}</artifactId>
+                <version>${project.version}</version>
                 <classifier>tests</classifier>
                 <scope>test</scope>
             </dependency>
@@ -1254,6 +1271,7 @@
                             <include>**/*Test.java</include>
                         </includes>
                         <argLine>${maven.test.jvmargs}</argLine>
+                        <enableAssertions>${maven.test.enable.assertions}</enableAssertions>
                         <systemPropertyVariables>
                             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
                             <java.awt.headless>true</java.awt.headless>
@@ -1262,6 +1280,7 @@
                             <user.region>US</user.region>
                             <geomesa.scan.ranges.target>500</geomesa.scan.ranges.target>
                             <geomesa.hbase.test.region.servers>1</geomesa.hbase.test.region.servers>
+                            <!-- <nifi.it.version></nifi.it.version> --><!-- override bundled nifi version during tests -->
                             <accumulo.docker.tag>${test.accumulo.docker.tag}</accumulo.docker.tag>
                             <postgis.docker.tag>${test.postgis.docker.tag}</postgis.docker.tag>
                             <postgres.docker.tag>${test.postgres.docker.tag}</postgres.docker.tag>
@@ -1270,6 +1289,29 @@
                         </systemPropertyVariables>
                         <!-- these can interfere with the mini clusters we spin up for unit tests -->
                         <excludedEnvironmentVariables>HADOOP_HOME,ZOOKEEPER_HOME,ACCUMULO_HOME,HBASE_HOME</excludedEnvironmentVariables>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven.failsafe.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <argLine>${maven.test.opens}</argLine>
+                        <enableAssertions>${maven.test.enable.assertions}</enableAssertions>
+                        <testSourceDirectory>src/test/scala</testSourceDirectory>
+                        <systemPropertyVariables>
+                            <!-- ZooKeeper uses a JMX feature of log4j that reload4j doesn't support.
+                                 We need to disable it for the mini clusters to work in unit tests -->
+                            <zookeeper.jmx.log4j.disable>true</zookeeper.jmx.log4j.disable>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>

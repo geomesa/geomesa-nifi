@@ -9,3 +9,5 @@ if [[ -z "$image" ]]; then
 fi
 
 docker cp "$image:/opt/nifi/nifi-current/conf/flow.json.gz" "$dir/flow.json.gz"
+gunzip -f "$dir/flow.json.gz"
+jq . "$dir/flow.json" > "$dir/flow.json.tmp" && mv "$dir/flow.json.tmp" "$dir/flow.json"

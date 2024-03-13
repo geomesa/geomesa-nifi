@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>geomesa-kafka-its</module>
         <module>geomesa-kafka-nar</module>
         <module>geomesa-kafka-processors</module>
     </modules>
