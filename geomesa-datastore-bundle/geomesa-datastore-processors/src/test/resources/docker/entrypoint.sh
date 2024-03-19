@@ -17,5 +17,8 @@ if [[ -f /logback.xml ]]; then
   cp /logback.xml /opt/nifi/nifi-current/conf/
 fi
 
+# lower the administrative yield deadline, to decrease test time when failing due to e.g. feature types not yet being available
+sed -i s'/nifi.administrative.yield.duration=.*/nifi.administrative.yield.duration=1 sec/' /opt/nifi/nifi-current/conf/nifi.properties
+
 # delegate to the normal nifi entrypoint
 exec /opt/nifi/scripts/start.sh
