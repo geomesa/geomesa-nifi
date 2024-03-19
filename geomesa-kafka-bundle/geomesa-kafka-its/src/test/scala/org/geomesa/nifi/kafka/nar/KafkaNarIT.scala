@@ -9,7 +9,6 @@
 package org.geomesa.nifi.kafka.nar
 
 import org.geomesa.nifi.datastore.processor.NiFiContainer
-import org.geomesa.nifi.processors.kafka.KafkaDataStoreService
 import org.geotools.api.data.{DataStoreFinder, Query, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka.KafkaContainerTest
@@ -35,11 +34,11 @@ class KafkaNarIT extends KafkaContainerTest {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    // note: nifi is inside the docker network so needs to use the alias
-    val containerParams = Map(KafkaDataStoreParams.Brokers.key -> "kafka:9092")
     nifiContainer =
       new NiFiContainer()
-          .withDefaultIngestFlow("kafka", classOf[KafkaDataStoreService], containerParams)
+          .withNarByName("kafka")
+          // this flow includes the default ingest flow, plus a GetGeoMesaKafkaRecord processor to read and re-ingest
+          .withFlowFromClasspath("kafka-flow.json")
           .withNetwork(network)
     nifiContainer.start()
   }
@@ -64,6 +63,16 @@ class KafkaNarIT extends KafkaContainerTest {
             val features = SelfClosingIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
             features.length mustEqual 2362
           }
+        }
+      }
+    }
+    "read kafka records" in {
+      val typeName = "gdelt-kafka-records"
+      WithClose(DataStoreFinder.getDataStore(params.asJava)) { ds =>
+        eventually(45, Duration(1, TimeUnit.SECONDS)) {
+          ds.getTypeNames.toSeq must contain(typeName)
+          val features = SelfClosingIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
+          features.length mustEqual 2362
         }
       }
     }

@@ -24,6 +24,7 @@ import org.testcontainers.utility.{DockerImageName, PathUtils}
 import java.io.{ByteArrayInputStream, File, FileOutputStream, InputStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
+import scala.reflect.ClassTag
 
 class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContainer](image) {
 
@@ -58,15 +59,14 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
    * @param params parameters used to configure the data store service
    * @return
    */
-  def withDefaultIngestFlow(
+  def withDefaultIngestFlow[T <: DataStoreService: ClassTag](
       narName: String,
-      datastoreService: Class[_ <: DataStoreService],
       params: Map[String, String]): NiFiContainer = {
     val nar = findNar(narName)
     withNarByPath(nar)
     val flow = WithClose(getClass.getClassLoader.getResourceAsStream("docker/ingest-flow.json")) { is =>
       IOUtils.toString(is, StandardCharsets.UTF_8)
-          .replace("STORE_CLASS", datastoreService.getName)
+          .replace("STORE_CLASS", implicitly[ClassTag[T]].runtimeClass.getName)
           .replace("STORE_NAR", new File(nar).getName.replaceAll("-[0-9.]+(-SNAPSHOT)?\\.nar", ""))
           .replace("STORE_PROPERTIES", new Gson().toJson(params.asJava))
     }

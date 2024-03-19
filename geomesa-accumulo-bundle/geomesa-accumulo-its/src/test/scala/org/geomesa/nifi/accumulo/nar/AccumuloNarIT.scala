@@ -65,7 +65,7 @@ class AccumuloNarIT extends Specification {
 
     nifiContainer =
       new NiFiContainer()
-          .withDefaultIngestFlow("accumulo21", classOf[AccumuloDataStoreService], Map("accumulo.catalog" -> catalog))
+          .withDefaultIngestFlow[AccumuloDataStoreService]("accumulo21", Map("accumulo.catalog" -> catalog))
           .withFileSystemBind(accumuloClientProps, clientPropsMountPath, BindMode.READ_ONLY)
           .withNetwork(network)
     nifiContainer.start()
