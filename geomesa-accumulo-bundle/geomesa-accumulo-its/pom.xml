@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>geomesa-accumulo-its_2.12</artifactId>
-
+    <packaging>pom</packaging>
     <description>GeoMesa Accumulo integration tests</description>
 
     <dependencies>
