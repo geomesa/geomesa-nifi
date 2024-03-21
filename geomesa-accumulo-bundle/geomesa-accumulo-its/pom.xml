@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>geomesa-accumulo-its_2.12</artifactId>
-
+    <packaging>pom</packaging>
     <description>GeoMesa Accumulo integration tests</description>
 
     <dependencies>
@@ -86,5 +86,35 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <!-- bind the necessary plugins to execute tests even though we have packaging of type pom -->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>testResources</goal>
+                        </goals>
+                        <phase>process-resources</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <phase>test-compile</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
