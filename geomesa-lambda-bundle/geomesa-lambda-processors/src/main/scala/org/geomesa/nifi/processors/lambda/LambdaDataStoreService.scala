@@ -11,6 +11,7 @@ package org.geomesa.nifi.processors.lambda
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.context.PropertyContext
+import org.apache.nifi.controller.ControllerServiceProxyWrapper
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreService
@@ -51,9 +52,17 @@ class LambdaDataStoreService
         throw new IllegalArgumentException(
           s"Could not load datastore from controller service ${controller.getClass.getName}")
       }
-      val catalog = persistence match {
-        case gm: GeoMesaDataStore[_] => gm.config.catalog
-        case _ => "nifi"
+      val catalog = {
+        // unwrap the proxied datastore service returned by nifi
+        // GeoMesaDataStore is not an interface, so the proxy won't expose its methods directly
+        val unproxied = persistence match {
+          case proxy: ControllerServiceProxyWrapper[DataStore] => proxy.getWrapped
+          case _ => persistence
+        }
+        unproxied match {
+          case gm: GeoMesaDataStore[_] => gm.config.catalog
+          case _ => "nifi"
+        }
       }
       config = LambdaDataStoreParams.parse(params, catalog)
       Success(new LambdaDataStore(persistence, config))
