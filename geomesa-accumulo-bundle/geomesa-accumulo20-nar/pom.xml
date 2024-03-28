@@ -14,6 +14,16 @@
 
     <description>GeoMesa Accumulo 2.0 nar</description>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.accumulo</groupId>
+                <artifactId>accumulo-core</artifactId>
+                <version>${accumulo-20.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its
              classpath at runtime. see https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars -->
@@ -100,11 +110,6 @@
                     <artifactId>netty-common</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.accumulo</groupId>
-            <artifactId>accumulo-core</artifactId>
-            <version>${accumulo-20.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
