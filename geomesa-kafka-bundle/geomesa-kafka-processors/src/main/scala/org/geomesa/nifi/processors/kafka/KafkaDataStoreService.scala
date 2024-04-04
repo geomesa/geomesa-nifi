@@ -29,7 +29,19 @@ object KafkaDataStoreService extends PropertyDescriptorUtils {
   import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams._
 
   // note: KafkaDataStoreFactory.ParameterInfo is consumer-oriented, but we want producer properties here
-  val Properties: Seq[PropertyDescriptor] =
-    Seq(Brokers, Catalog, Zookeepers, ZkPath, ProducerConfig, SerializationType, TopicPartitions, TopicReplication)
-        .map(createPropertyDescriptor)
+  private val params =
+    Seq(
+      Brokers,
+      Catalog,
+      Zookeepers,
+      ZkPath,
+      ProducerConfig,
+      ConsumerConfig, // used for reading the catalog topic, if not using zk
+      SerializationType,
+      TopicPartitions,
+      TopicReplication,
+      ClearOnStart,
+    )
+
+  val Properties: Seq[PropertyDescriptor] = params.map(createPropertyDescriptor)
 }
