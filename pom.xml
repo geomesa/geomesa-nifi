@@ -65,7 +65,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>5.0.0-SNAPSHOT</geomesa.version>
+        <geomesa.version>5.0.0-m.1</geomesa.version>
         <nifi.version>1.25.0</nifi.version>
 
         <jdk.version>11</jdk.version>
