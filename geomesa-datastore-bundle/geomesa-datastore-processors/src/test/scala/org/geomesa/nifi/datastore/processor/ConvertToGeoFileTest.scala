@@ -12,7 +12,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, FeatureTypeProcessor}
 import org.junit.{Assert, Test}
-import org.locationtech.geomesa.tools.`export`.formats.ExportFormat
 
 import java.nio.file.Paths
 
@@ -27,7 +26,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
       runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
       ConvertToGeoFile.Formats.zipWithIndex.foreach { case (format, i) =>
-        runner.setProperty(ConvertToGeoFile.Properties.OutputFormat, format.toString)
+        runner.setProperty(ConvertToGeoFile.Properties.OutputFormat, format)
         runner.enqueue(input)
         runner.run()
         runner.assertTransferCount(Relationships.SuccessRelationship, i + 1)
@@ -42,22 +41,23 @@ class ConvertToGeoFileTest extends LazyLogging {
         val output = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship).get(i)
         output.assertAttributeEquals("geomesa.convert.successes", "3")
         output.assertAttributeEquals("geomesa.convert.failures", "0")
-        output.assertAttributeEquals("filename", s"example.${format.extensions.head}")
 
-        format match {
-          case ExportFormat.Arrow   => Assert.assertTrue(output.getData.length > 0)
-          case ExportFormat.Avro    => Assert.assertTrue(output.getData.length > 0)
-          case ExportFormat.Bin     => Assert.assertEquals(48, output.getData.length)
-          case ExportFormat.Csv     => output.assertContentEquals(csv)
-          case ExportFormat.Gml2    => output.assertContentEquals(gml2)
-          case ExportFormat.Gml3    => output.assertContentEquals(gml3)
-          case ExportFormat.Json    => output.assertContentEquals(json)
-          case ExportFormat.Leaflet => Assert.assertTrue(output.getData.length > 0)
-          case ExportFormat.Orc     => Assert.assertTrue(output.getData.length > 0)
-          case ExportFormat.Parquet => Assert.assertTrue(output.getData.length > 0)
-          case ExportFormat.Tsv     => output.assertContentEquals(tsv)
-          case _ => Assert.fail(s"No case for output format $format")
+        val ext = format match {
+          case "arrow"        => Assert.assertTrue(output.getData.length > 0); format
+          case "arrow-native" => Assert.assertTrue(output.getData.length > 0); "arrow"
+          case "avro"         => Assert.assertTrue(output.getData.length > 0); format
+          case "bin"          => Assert.assertEquals(48, output.getData.length); format
+          case "csv"          => output.assertContentEquals(csv); format
+          case "gml2"         => output.assertContentEquals(gml2); "xml"
+          case "gml"          => output.assertContentEquals(gml3); "xml"
+          case "json"         => output.assertContentEquals(json); format
+          case "leaflet"      => Assert.assertTrue(output.getData.length > 0); "html"
+          case "orc"          => Assert.assertTrue(output.getData.length > 0); format
+          case "parquet"      => Assert.assertTrue(output.getData.length > 0); format
+          case "tsv"          => output.assertContentEquals(tsv); format
+          case _              => Assert.fail(s"No case for output format $format")
         }
+        output.assertAttributeEquals("filename", s"example.$ext")
       }
     } finally {
       runner.shutdown()

@@ -23,10 +23,10 @@ import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.Convert
 import org.geomesa.nifi.datastore.processor.validators.GzipLevelValidator
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.util.factory.Hints
+import org.locationtech.geomesa.features.SerializationOption
+import org.locationtech.geomesa.features.exporters.FileSystemExporter.{OrcFileSystemExporter, ParquetFileSystemExporter}
+import org.locationtech.geomesa.features.exporters._
 import org.locationtech.geomesa.index.conf.QueryHints
-import org.locationtech.geomesa.tools.`export`.formats.FeatureExporter.ExportStream
-import org.locationtech.geomesa.tools.`export`.formats.FileSystemExporter.{OrcFileSystemExporter, ParquetFileSystemExporter}
-import org.locationtech.geomesa.tools.`export`.formats._
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, PathUtils}
 
 import java.io.{File, OutputStream}
@@ -55,7 +55,6 @@ import scala.util.control.NonFatal
 @SupportsBatching
 class ConvertToGeoFile extends ConvertInputProcessor {
 
-  import ConvertToGeoFile.FlowFileExportStream
   import ConvertToGeoFile.Properties.{GzipLevel, IncludeHeaders, OutputFormat}
 
   override protected def getShips: Seq[Relationship] =
@@ -75,7 +74,7 @@ class ConvertToGeoFile extends ConvertInputProcessor {
     var output: FlowFile = null
     try {
       val sft = loadFeatureType(context, input)
-      val format = ExportFormat(context.getProperty(OutputFormat).getValue).get
+      val format = context.getProperty(OutputFormat).getValue
       val gzip = Option(context.getProperty(GzipLevel).evaluateAttributeExpressions().getValue).map(_.toInt)
       val headers = Option(context.getProperty(IncludeHeaders).getValue).forall(_.toBoolean)
 
@@ -98,40 +97,13 @@ class ConvertToGeoFile extends ConvertInputProcessor {
         }
       }
 
-      if (format.streaming) {
-        output = session.write(output, new OutputStreamCallback() {
-          override def process(out: OutputStream): Unit = {
-            // note: avro handles compression internally
-            lazy val stream = {
-              val compressed = gzip match {
-                case None    => out
-                case Some(c) => new GZIPOutputStream(out) { `def`.setLevel(c) } // hack to access the protected deflate level
-              }
-              new FlowFileExportStream(compressed)
-            }
-            val exporter = format match {
-              case ExportFormat.Arrow   => new ArrowExporter(stream, ConvertToGeoFile.getArrowHints(sft))
-              case ExportFormat.Avro    => new AvroExporter(new FlowFileExportStream(out), gzip)
-              case ExportFormat.Bin     => new BinExporter(stream, new Hints())
-              case ExportFormat.Csv     => DelimitedExporter.csv(stream, headers)
-              case ExportFormat.Gml2    => GmlExporter.gml2(stream)
-              case ExportFormat.Gml3    => GmlExporter(stream)
-              case ExportFormat.Json    => new GeoJsonExporter(stream)
-              case ExportFormat.Leaflet => new LeafletMapExporter(stream)
-              case ExportFormat.Tsv     => DelimitedExporter.tsv(stream, headers)
-              // shouldn't happen unless someone adds a new format and doesn't implement it here
-              case _ => throw new NotImplementedError(s"Export for '$format' is not implemented")
-            }
-            export(exporter)
-          }
-        })
-      } else {
+      if (format == "orc" || format == "parquet") {
         val dir = Files.createTempDirectory("gm-nifi")
         try {
-          val file = new File(dir.toFile, s"export.${format.extensions.head}")
+          val file = new File(dir.toFile, s"export.$format")
           val exporter = format match {
-            case ExportFormat.Orc     => new OrcFileSystemExporter(file.getAbsolutePath)
-            case ExportFormat.Parquet => new ParquetFileSystemExporter(file.getAbsolutePath)
+            case "orc"     => new OrcFileSystemExporter(file.getAbsolutePath)
+            case "parquet" => new ParquetFileSystemExporter(file.getAbsolutePath)
             // case ExportFormat.Shp     => new ShapefileExporter(file) // TODO zip up dir??
             // shouldn't happen unless someone adds a new format and doesn't implement it here
             case _ => throw new NotImplementedError(s"Export for '$format' is not implemented")
@@ -141,11 +113,42 @@ class ConvertToGeoFile extends ConvertInputProcessor {
         } finally {
           PathUtils.deleteRecursively(dir)
         }
+      } else {
+        output = session.write(output, new OutputStreamCallback() {
+          override def process(out: OutputStream): Unit = {
+            // note: avro handles compression internally
+            lazy val stream = gzip match {
+              case None    => out
+              case Some(c) => new GZIPOutputStream(out) { `def`.setLevel(c) } // hack to access the protected deflate level
+            }
+            val exporter = format match {
+              case "arrow"       => new ArrowExporter(stream, ConvertToGeoFile.getArrowHints(sft))
+              case "avro"        => new AvroExporter(out, gzip)
+              case "avro-native" => new AvroExporter(out, gzip, Set(SerializationOption.NativeCollections))
+              case "bin"         => new BinExporter(stream, new Hints())
+              case "csv"         => DelimitedExporter.csv(stream, headers)
+              case "gml2"        => GmlExporter.gml2(stream)
+              case "gml"         => GmlExporter(stream)
+              case "json"        => new GeoJsonExporter(stream)
+              case "leaflet"     => new LeafletMapExporter(stream)
+              case "tsv"         => DelimitedExporter.tsv(stream, headers)
+              // shouldn't happen unless someone adds a new format and doesn't implement it here
+              case _ => throw new NotImplementedError(s"Export for '$format' is not implemented")
+            }
+            export(exporter)
+          }
+        })
       }
 
       val basename =
         Option(input.getAttribute("filename")).map(FilenameUtils.getBaseName).getOrElse(UUID.randomUUID().toString)
-      output = session.putAttribute(output, "filename", s"$basename.${format.extensions.head}")
+      val ext = format match {
+        case "avro-native"  => "avro"
+        case "gml" | "gml2" => "xml"
+        case "leaflet"      => "html"
+        case _              => format
+      }
+      output = session.putAttribute(output, "filename", s"$basename.$ext")
       output = session.removeAttribute(output, "mime.type")
 
       val attributes = new java.util.HashMap[String, String](2)
@@ -177,20 +180,22 @@ object ConvertToGeoFile {
 
   import scala.collection.JavaConverters._
 
-  val Formats = Seq(
-    ExportFormat.Arrow,
-    ExportFormat.Avro,
-    ExportFormat.Bin,
-    ExportFormat.Csv,
-    ExportFormat.Gml2,
-    ExportFormat.Gml3,
-    ExportFormat.Json,
-    ExportFormat.Leaflet,
-    ExportFormat.Orc,
-    ExportFormat.Parquet,
-    // TODO ExportFormat.Shp,
-    ExportFormat.Tsv
-  )
+  val Formats: Seq[String] =
+    Seq(
+      "arrow",
+      "avro",
+      "avro-native",
+      "bin",
+      "csv",
+      "gml2",
+      "gml",
+      "json",
+      "leaflet",
+      "orc",
+      "parquet",
+      // TODO ExportFormat.Shp,
+      "tsv",
+    )
 
   /**
    * Gets the hints to inform an arrow export.
@@ -226,8 +231,8 @@ object ConvertToGeoFile {
           .displayName("Output format")
           .description("File format for the outgoing simple feature file")
           .required(true)
-          .allowableValues(Formats.map(_.name): _*)
-          .defaultValue(ExportFormat.Avro.name)
+          .allowableValues(Formats: _*)
+          .defaultValue("avro")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .build()
 
@@ -251,11 +256,5 @@ object ConvertToGeoFile {
           .defaultValue("true")
           .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
           .build()
-  }
-
-  class FlowFileExportStream(var out: OutputStream) extends ExportStream {
-    override def os: OutputStream = out
-    override def bytes: Long = 0L
-    override def close(): Unit = os.close()
   }
 }

@@ -61,7 +61,7 @@
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
+            <artifactId>geomesa-feature-exporters_${scala.binary.version}</artifactId>
             <exclusions>
                 <exclusion>
                     <!-- exclude due to CVEs against protobuf-java -->
@@ -75,6 +75,12 @@
             <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
             <classifier>data</classifier>
             <version>${geomesa.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
