@@ -44,8 +44,8 @@ class ConvertToGeoFileTest extends LazyLogging {
 
         val ext = format match {
           case "arrow"        => Assert.assertTrue(output.getData.length > 0); format
-          case "arrow-native" => Assert.assertTrue(output.getData.length > 0); "arrow"
           case "avro"         => Assert.assertTrue(output.getData.length > 0); format
+          case "avro-native"  => Assert.assertTrue(output.getData.length > 0); "avro"
           case "bin"          => Assert.assertEquals(48, output.getData.length); format
           case "csv"          => output.assertContentEquals(csv); format
           case "gml2"         => output.assertContentEquals(gml2); "xml"
