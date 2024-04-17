@@ -396,7 +396,7 @@
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
+                <artifactId>geomesa-feature-exporters_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
             </dependency>
             <dependency>
