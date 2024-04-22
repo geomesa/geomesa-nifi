@@ -22,7 +22,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.output.Slf4jLogConsumer
-import org.testcontainers.images.builder.ImageFromDockerfile
+import org.testcontainers.utility.DockerImageName
 
 import java.sql.Timestamp
 
@@ -50,9 +50,8 @@ class PutGeoMesaPostgisTest extends Specification with BeforeAfterAll with LazyL
 
   override def beforeAll(): Unit = {
     val image =
-      new ImageFromDockerfile("testcontainers/postgis_cron_nifi", false)
-          .withFileFromClasspath(".", "testcontainers")
-          .withBuildArg("FROM_TAG", sys.props.getOrElse("postgis.docker.tag", "15-3.3"))
+      DockerImageName.parse("ghcr.io/geomesa/postgis-cron")
+        .withTag(sys.props.getOrElse("postgis.docker.tag", "15-3.4"))
     container = new GenericContainer(image)
     container.addEnv("POSTGRES_HOST_AUTH_METHOD", "trust")
     container.addExposedPort(5432)
