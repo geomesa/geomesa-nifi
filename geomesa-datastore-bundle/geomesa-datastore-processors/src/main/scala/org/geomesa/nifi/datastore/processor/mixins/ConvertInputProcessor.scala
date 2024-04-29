@@ -196,7 +196,7 @@ object ConvertInputProcessor {
           .name("ConverterErrorMode")
           .required(false)
           .description("Override the converter error mode behavior")
-          .allowableValues(ErrorMode.SkipBadRecords.toString, ErrorMode.RaiseErrors.toString)
+          .allowableValues(ErrorMode.LogErrors.toString, ErrorMode.RaiseErrors.toString, /*deprecated*/ "skip-bad-records")
           .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
           .build()
 
