@@ -12,7 +12,6 @@
   "reportingTasks": [],
   "templates": [],
   "rootGroup": {
-  "rootGroup": {
     "identifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
     "instanceIdentifier": "97534f9d-0185-1000-3cca-c949215f99ff",
     "name": "NiFi Flow",
