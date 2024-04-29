@@ -17,5 +17,8 @@ if [[ -f /logback.xml ]]; then
   cp /logback.xml /opt/nifi/nifi-current/conf/
 fi
 
+# allow debugging outside localhost
+sed -i 's/java.arg.debug=.*/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000/' /opt/nifi/nifi-current/conf/bootstrap.conf
+
 # delegate to the normal nifi entrypoint
 exec /opt/nifi/scripts/start.sh

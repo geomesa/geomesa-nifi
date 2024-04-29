@@ -60,14 +60,20 @@ checkNar "$servicesApiNar" "datastore-services-api"
 
 mkdir -p "$dir/build/docker/ingest"
 
+if ! docker network ls | grep -q geomesa; then
+  echo "Creating docker network"
+  docker network create geomesa
+fi
+
 echo "Running NiFi $nifiVersion with $(basename "$nar")..."
 echo ""
 
 docker run --rm \
-  --network host \
+  --name nifi \
+  --network geomesa \
+  -p 8080:8080 -p 8000:8000 \
   -e NIFI_WEB_HTTP_HOST=0.0.0.0 \
   -e NIFI_WEB_HTTP_PORT=8080 \
-  -e "NIFI_WEB_PROXY_HOST=$(nslookup "$(hostname)" | grep Name | head -n1 | awk '{ print $2 }'):8080" \
   -e SINGLE_USER_CREDENTIALS_USERNAME=nifi \
   -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \

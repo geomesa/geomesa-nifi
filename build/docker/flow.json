@@ -12,13 +12,14 @@
   "reportingTasks": [],
   "templates": [],
   "rootGroup": {
+  "rootGroup": {
     "identifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
     "instanceIdentifier": "97534f9d-0185-1000-3cca-c949215f99ff",
     "name": "NiFi Flow",
     "comments": "",
     "position": {
-      "x": 0.0,
-      "y": 0.0
+      "x": 0,
+      "y": 0
     },
     "processGroups": [
       {
@@ -27,8 +28,8 @@
         "name": "fetch data",
         "comments": "",
         "position": {
-          "x": 640.0,
-          "y": 192.0
+          "x": 640,
+          "y": 192
         },
         "processGroups": [],
         "remoteProcessGroups": [],
@@ -39,8 +40,8 @@
             "name": "FetchFile",
             "comments": "",
             "position": {
-              "x": 584.0,
-              "y": 329.0
+              "x": 584,
+              "y": 329
             },
             "type": "org.apache.nifi.processors.standard.FetchFile",
             "bundle": {
@@ -84,8 +85,8 @@
             "name": "ListFile",
             "comments": "",
             "position": {
-              "x": 584.0,
-              "y": 144.0
+              "x": 584,
+              "y": 144
             },
             "type": "org.apache.nifi.processors.standard.ListFile",
             "bundle": {
@@ -137,8 +138,8 @@
             "name": "UpdateAttribute",
             "comments": "",
             "position": {
-              "x": 584.0,
-              "y": 520.0
+              "x": 584,
+              "y": 520
             },
             "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
             "bundle": {
@@ -151,11 +152,9 @@
               "canonical-value-lookup-cache-size": "100",
               "geomesa.id.col": "GLOBALEVENTID",
               "geomesa.sft.spec": "gdelt2",
-              "geomesa.sft.name": "gdelt",
-              "geomesa.default.dtg.col": "SQLDATE",
               "geomesa.converter": "gdelt2",
               "geomesa.sft.user-data": "geomesa.fs.scheme={\"name\":\"daily\",\"options\":{\"dtg-attribute\":\"dtg\"}}",
-              "geomesa.geometry.cols": "WKT"
+              "geomesa.geometry.cols": "WKT:Point:srid=4326"
             },
             "propertyDescriptors": {},
             "style": {},
@@ -184,8 +183,8 @@
             "instanceIdentifier": "155aa65b-018e-1000-fb41-ae9ff5e385a6",
             "name": "data",
             "position": {
-              "x": 640.0,
-              "y": 720.0
+              "x": 640,
+              "y": 720
             },
             "type": "OUTPUT_PORT",
             "concurrentlySchedulableTaskCount": 1,
@@ -325,8 +324,8 @@
         "name": "PutGeoMesaRecord",
         "comments": "",
         "position": {
-          "x": 1016.0,
-          "y": 648.0
+          "x": 1016,
+          "y": 648
         },
         "type": "org.geomesa.nifi.datastore.processor.PutGeoMesaRecord",
         "bundle": {
@@ -342,12 +341,12 @@
           "feature-id-is-attribute": "false",
           "schema-user-data": "${geomesa.sft.user-data}",
           "json-cols": "${geomesa.json.cols}",
-          "feature-type-name": "gdelt-records",
+          "feature-type-name": "gdelt-nifi-records",
           "FeatureWriterCaching": "false",
           "feature-id-col": "${geomesa.id.col}",
           "geometry-serialization": "WKT",
           "record-reader": "155fbf70-018e-1000-7970-f4a7ce550532",
-          "DataStoreService": "2cf6c59c-0189-1000-3fc5-af0917a93f5f",
+          "DataStoreService": "2a664403-018f-1000-72e0-5600744bc19d",
           "FeatureWriterCacheTimeout": "5 minutes",
           "default-date-col": "${geomesa.default.dtg.col}"
         },
@@ -379,8 +378,8 @@
         "name": "PutGeoMesa",
         "comments": "",
         "position": {
-          "x": 656.0,
-          "y": 648.0
+          "x": 656,
+          "y": 648
         },
         "type": "org.geomesa.nifi.datastore.processor.PutGeoMesa",
         "bundle": {
@@ -394,7 +393,8 @@
           "SftUserData": "${geomesa.sft.user-data}",
           "schema-compatibility": "Existing",
           "FeatureWriterCaching": "false",
-          "DataStoreService": "2cf6c59c-0189-1000-3fc5-af0917a93f5f",
+          "DataStoreService": "2a664403-018f-1000-72e0-5600744bc19d",
+          "FeatureNameOverride": "gdelt-nifi",
           "FeatureWriterCacheTimeout": "5 minutes"
         },
         "propertyDescriptors": {},
@@ -425,8 +425,8 @@
         "name": "ConvertToGeoFile",
         "comments": "",
         "position": {
-          "x": 296.0,
-          "y": 448.0
+          "x": 296,
+          "y": 448
         },
         "type": "org.geomesa.nifi.datastore.processor.ConvertToGeoFile",
         "bundle": {
@@ -468,8 +468,8 @@
         "name": "AvroToPutGeoMesa",
         "comments": "",
         "position": {
-          "x": 296.0,
-          "y": 648.0
+          "x": 296,
+          "y": 648
         },
         "type": "org.geomesa.nifi.datastore.processor.AvroToPutGeoMesa",
         "bundle": {
@@ -481,6 +481,8 @@
           "write-mode": "append",
           "FeatureWriterCaching": "false",
           "SftUserData": "${geomesa.sft.user-data}",
+          "DataStoreService": "2a664403-018f-1000-72e0-5600744bc19d",
+          "FeatureNameOverride": "gdelt-nifi-avro",
           "FeatureWriterCacheTimeout": "5 minutes",
           "schema-compatibility": "Existing",
           "Use provided feature ID": "true"
@@ -577,8 +579,8 @@
         "prioritizers": [],
         "bends": [
           {
-            "x": 1192.0,
-            "y": 408.0
+            "x": 1192,
+            "y": 408
           }
         ],
         "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
@@ -617,8 +619,8 @@
         "prioritizers": [],
         "bends": [
           {
-            "x": 472.0,
-            "y": 408.0
+            "x": 472,
+            "y": 408
           }
         ],
         "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
@@ -683,7 +685,7 @@
           "CSV Format": "custom",
           "Quote Character": "\"",
           "csvutils-allow-duplicate-header-names": "true",
-          "Value Separator": ",",
+          "Value Separator": "\\t",
           "Record Separator": "\\n",
           "Escape Character": "\\",
           "Skip Header Line": "true",
