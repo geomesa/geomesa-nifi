@@ -152,7 +152,7 @@
               "geomesa.id.col": "GLOBALEVENTID",
               "geomesa.sft.spec": "gdelt2",
               "geomesa.converter": "gdelt2",
-              "geomesa.sft.user-data": "geomesa.fs.scheme={\"name\":\"daily\",\"options\":{\"dtg-attribute\":\"dtg\"}}",
+              "geomesa.sft.user-data": "geomesa.fs.scheme={\"name\":\"z2-2bits\"}",
               "geomesa.geometry.cols": "WKT:Point:srid=4326"
             },
             "propertyDescriptors": {},
@@ -330,7 +330,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0-SNAPSHOT"
+          "version": "5.0.0"
         },
         "properties": {
           "geometry-cols": "${geomesa.geometry.cols}",
@@ -363,7 +363,7 @@
           "success",
           "failure"
         ],
-        "scheduledState": "ENABLED",
+        "scheduledState": "RUNNING",
         "retryCount": 10,
         "retriedRelationships": [],
         "backoffMechanism": "PENALIZE_FLOWFILE",
@@ -384,7 +384,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0-SNAPSHOT"
+          "version": "5.0.0"
         },
         "properties": {
           "write-mode": "append",
@@ -410,7 +410,7 @@
           "success",
           "failure"
         ],
-        "scheduledState": "ENABLED",
+        "scheduledState": "RUNNING",
         "retryCount": 10,
         "retriedRelationships": [],
         "backoffMechanism": "PENALIZE_FLOWFILE",
@@ -431,7 +431,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0-SNAPSHOT"
+          "version": "5.0.0"
         },
         "properties": {
           "output-format": "avro",
@@ -474,7 +474,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0-SNAPSHOT"
+          "version": "5.0.0"
         },
         "properties": {
           "write-mode": "append",
@@ -500,7 +500,7 @@
           "success",
           "failure"
         ],
-        "scheduledState": "ENABLED",
+        "scheduledState": "RUNNING",
         "retryCount": 10,
         "retriedRelationships": [],
         "backoffMechanism": "PENALIZE_FLOWFILE",
@@ -668,6 +668,123 @@
     "funnels": [],
     "controllerServices": [
       {
+        "identifier": "823a37c5-fda6-3e87-b250-c13d073baeeb",
+        "instanceIdentifier": "58bd4def-018f-1000-8fa5-a701dcc419ea",
+        "name": "AccumuloDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.accumulo.AccumuloDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-accumulo21-nar_2.12",
+          "version": "5.0.0"
+        },
+        "properties": {
+          "geomesa.query.threads": "8",
+          "accumulo.instance.name": "uno",
+          "geomesa.query.loose-bounding-box": "true",
+          "accumulo.catalog": "geomesa",
+          "accumulo.query.record-threads": "10",
+          "accumulo.password": "enc{0f6372c0084ffeb1a603bd74c22a6a7f596d54eae74f65a38f860735b3408abc8fbc22895e66}",
+          "accumulo.user": "root",
+          "geomesa.stats.enable": "true",
+          "geomesa.security.auths.force-empty": "false",
+          "accumulo.write.threads": "10",
+          "geomesa.query.audit": "true",
+          "accumulo.zookeepers": "accumulo.local:2181"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.0.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "980d4c03-f78b-3b68-a0a2-24c47b87e064",
+        "instanceIdentifier": "2c5d6203-018f-1000-003a-006a3c9f3f7c",
+        "name": "KafkaDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.kafka.KafkaDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-kafka-nar_2.12",
+          "version": "5.0.0"
+        },
+        "properties": {
+          "kafka.brokers": "kafka.local:9092",
+          "kafka.topic.replication": "1",
+          "kafka.producer.clear": "false",
+          "kafka.catalog.topic": "geomesa-catalog",
+          "kafka.serialization.type": "kryo",
+          "kafka.zk.path": "geomesa/ds/kafka",
+          "kafka.topic.partitions": "1"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.0.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "c18303ac-76ab-3499-a4d0-dbbdf59a52d3",
+        "instanceIdentifier": "7dc7a81f-018f-1000-1e18-018b99ed57d9",
+        "name": "HBaseDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.hbase.HBaseDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-hbase2-nar_2.12",
+          "version": "5.0.0"
+        },
+        "properties": {
+          "hbase.connections.reuse": "true",
+          "geomesa.query.threads": "8",
+          "geomesa.query.loose-bounding-box": "true",
+          "hbase.remote.filtering": "true",
+          "hbase.ranges.max-per-extended-scan": "100",
+          "hbase.catalog": "geomesa",
+          "geomesa.stats.enable": "true",
+          "hbase.config.xml": "<configuration>\n  <property>\n    <name>hbase.cluster.distributed</name>\n    <value>true</value>\n  </property>\n  <property>\n    <name>hbase.rootdir</name>\n    <value>hdfs://hadoop.local:8020/hbase</value>\n  </property>\n  <property>\n    <name>hbase.zookeeper.quorum</name>\n    <value>zookeeper.local:2181</value>\n  </property>\n  <property>\n    <name>dfs.client.use.datanode.hostname</name>\n    <value>true</value>\n  </property>\n</configuration>",
+          "geomesa.security.auths.force-empty": "false",
+          "hbase.security.enabled": "false",
+          "geomesa.query.audit": "true"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.0.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
         "identifier": "08c0bb81-4cbb-3c33-90ce-e5f68357cca5",
         "instanceIdentifier": "155fbf70-018e-1000-7970-f4a7ce550532",
         "name": "CSVReader",
@@ -714,13 +831,13 @@
       {
         "identifier": "fbd8d02b-283c-3362-9d96-8b350af2d630",
         "instanceIdentifier": "2cf6c59c-0189-1000-3fc5-af0917a93f5f",
-        "name": "GeoMesaDataStoreService",
+        "name": "PartitionedPostgisDataStoreService",
         "comments": "",
         "type": "org.geomesa.nifi.processors.gt.PartitionedPostgisDataStoreService",
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-gt-nar_2.12",
-          "version": "5.0.0-SNAPSHOT"
+          "version": "5.0.0"
         },
         "properties": {
           "schema": "public",
@@ -742,7 +859,7 @@
           "create database": "false",
           "Method used to simplify geometries": "FAST",
           "port": "5432",
-          "passwd": "enc{92f8569874c74acff4bfff0c280f2230d6acdf3bf637d46b8fa1ed7dccbc1e242c0951a03e52c6cd}",
+          "passwd": "enc{745b4e63e417999f8f848b7cd2d2f80eda0c6236e47d0f8ca000f2230f8188316306939a52ec7440}",
           "min connections": "1",
           "dbtype": "postgis-partitioned",
           "max connections": "10",
@@ -758,7 +875,40 @@
             "bundle": {
               "group": "org.geomesa.nifi",
               "artifact": "geomesa-datastore-services-api-nar_2.12",
-              "version": "5.0.0-SNAPSHOT"
+              "version": "5.0.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "272b191a-e2fe-334a-8d52-c513e05c124f",
+        "instanceIdentifier": "2fc23a6a-018f-1000-6922-c5a2cb3da45c",
+        "name": "FileSystemDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.fs.FileSystemDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-fs-nar_2.12",
+          "version": "5.0.0"
+        },
+        "properties": {
+          "fs.path": "hdfs://hadoop.local:8020/tmp/nifi",
+          "fs.config.xml": "<configuration><property><name>dfs.client.use.datanode.hostname</name><value>true</value></property></configuration>",
+          "fs.encoding": "parquet",
+          "fs.writer.partition.timeout": "1 minute"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.0.0"
             }
           }
         ],

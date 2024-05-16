@@ -135,7 +135,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>${protobuf-java.hbase.version}</version>
+            <version>${protobuf-java.version}</version>
         </dependency>
 
         <!-- provided dependencies inherited from the geomesa-datastore-services-api-nar -->
