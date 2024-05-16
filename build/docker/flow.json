@@ -745,6 +745,46 @@
         "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
       },
       {
+        "identifier": "c18303ac-76ab-3499-a4d0-dbbdf59a52d3",
+        "instanceIdentifier": "7dc7a81f-018f-1000-1e18-018b99ed57d9",
+        "name": "HBaseDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.hbase.HBaseDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-hbase2-nar_2.12",
+          "version": "5.0.0"
+        },
+        "properties": {
+          "hbase.connections.reuse": "true",
+          "geomesa.query.threads": "8",
+          "geomesa.query.loose-bounding-box": "true",
+          "hbase.remote.filtering": "true",
+          "hbase.ranges.max-per-extended-scan": "100",
+          "hbase.catalog": "geomesa",
+          "geomesa.stats.enable": "true",
+          "hbase.config.xml": "<configuration>\n  <property>\n    <name>hbase.cluster.distributed</name>\n    <value>true</value>\n  </property>\n  <property>\n    <name>hbase.rootdir</name>\n    <value>hdfs://hadoop.local:8020/hbase</value>\n  </property>\n  <property>\n    <name>hbase.zookeeper.quorum</name>\n    <value>zookeeper.local:2181</value>\n  </property>\n  <property>\n    <name>dfs.client.use.datanode.hostname</name>\n    <value>true</value>\n  </property>\n</configuration>",
+          "geomesa.security.auths.force-empty": "false",
+          "hbase.security.enabled": "false",
+          "geomesa.query.audit": "true"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.0.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
         "identifier": "08c0bb81-4cbb-3c33-90ce-e5f68357cca5",
         "instanceIdentifier": "155fbf70-018e-1000-7970-f4a7ce550532",
         "name": "CSVReader",
