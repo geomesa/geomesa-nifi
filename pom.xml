@@ -85,6 +85,7 @@
         <kafka.version>3.7.0</kafka.version>
         <postgres.version>42.7.2</postgres.version>
 
+        <aircompressor.version>0.27</aircompressor.version>
         <curator.version>5.6.0</curator.version>
         <netty.version>4.1.106.Final</netty.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
@@ -895,6 +896,11 @@
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.airlift</groupId>
+                <artifactId>aircompressor</artifactId>
+                <version>${aircompressor.version}</version>
             </dependency>
 
             <!-- Netty 4.x used by arrow, hadoop, hbase, and c* -->
