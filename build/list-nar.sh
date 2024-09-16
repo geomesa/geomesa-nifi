@@ -4,13 +4,12 @@
 dir="$(cd "$(dirname "$0")/.." || exit 1; pwd)"
 
 # find available nars
-mapfile -t nars < <( find "$dir"/geomesa-* -name "geomesa-*-nar" -type d | sort | sed 's|.*/geomesa-\([a-z0-9-]\+\)-nar|\1|' )
+mapfile -t nars < <( mvn -f "$dir" -q -am exec:exec -Dexec.executable="pwd" -T8 | grep -e '-nar$' | sort )
 
 function checkNar() {
   local nar="$1"
-  local desc="$2"
   if [[ -z "$nar" ]]; then
-    echo "No $desc nar found... try building with maven"
+    echo "No ${nar##*/} nar found... try building with maven"
     exit 1
   elif [[ $(echo "$nar" | wc -l) -gt 1 ]]; then
     echo -e "Found multiple nars: \n$nar"
@@ -35,9 +34,9 @@ if [[ -n "$1" ]]; then
 fi
 
 for nar in "${nars[@]}"; do
-  file="$(find "$dir"/geomesa-* -name "geomesa-${nar}-nar_*.nar")"
-  checkNar "$file" "$nar"
-  echo "$nar::"
+  file="$(find "$nar"/target -name '*.nar')"
+  checkNar "$file"
+  echo "${nar##*/}::"
   unzip -l "$file" | grep bundled-dependencies | sed 's|.*bundled-dependencies/||' | grep -v '^$' | sort
   echo ""
 done
