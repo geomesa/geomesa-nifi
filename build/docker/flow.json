@@ -345,7 +345,7 @@
           "feature-id-col": "${geomesa.id.col}",
           "geometry-serialization": "WKT",
           "record-reader": "155fbf70-018e-1000-7970-f4a7ce550532",
-          "DataStoreService": "2a664403-018f-1000-72e0-5600744bc19d",
+          "DataStoreService": "823a37c5-fda6-3e87-b250-c13d073baeeb",
           "FeatureWriterCacheTimeout": "5 minutes",
           "default-date-col": "${geomesa.default.dtg.col}"
         },
@@ -392,7 +392,7 @@
           "SftUserData": "${geomesa.sft.user-data}",
           "schema-compatibility": "Existing",
           "FeatureWriterCaching": "false",
-          "DataStoreService": "2a664403-018f-1000-72e0-5600744bc19d",
+          "DataStoreService": "823a37c5-fda6-3e87-b250-c13d073baeeb",
           "FeatureNameOverride": "gdelt-nifi",
           "FeatureWriterCacheTimeout": "5 minutes"
         },
@@ -480,7 +480,7 @@
           "write-mode": "append",
           "FeatureWriterCaching": "false",
           "SftUserData": "${geomesa.sft.user-data}",
-          "DataStoreService": "2a664403-018f-1000-72e0-5600744bc19d",
+          "DataStoreService": "823a37c5-fda6-3e87-b250-c13d073baeeb",
           "FeatureNameOverride": "gdelt-nifi-avro",
           "FeatureWriterCacheTimeout": "5 minutes",
           "schema-compatibility": "Existing",
@@ -736,6 +736,40 @@
               "group": "org.geomesa.nifi",
               "artifact": "geomesa-datastore-services-api-nar_2.12",
               "version": "5.0.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "638d3ed8-e9bb-3610-b0be-c5f43e84e008",
+        "instanceIdentifier": "fc22d5f1-0191-1000-be30-83c32fec8803",
+        "name": "ConfluentKafkaDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.kafka.ConfluentKafkaDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-kafka-nar_2.12",
+          "version": "5.1.0-SNAPSHOT"
+        },
+        "properties": {
+          "kafka.brokers": "kafka.local:9092",
+          "kafka.schema.registry.url": "http://schema-registry.local:8081",
+          "kafka.topic.replication": "1",
+          "kafka.producer.clear": "false",
+          "kafka.topic.partitions": "1"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.1.0-SNAPSHOT"
             }
           }
         ],
