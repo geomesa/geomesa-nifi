@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -e
+set -u
+set -o pipefail
 
 cd "$(dirname "$0")/../.." || exit
 
@@ -12,7 +14,7 @@ where :
   exit 1
 }
 
-if [[ ($# -ne 0) || ( $1 == "--help") ||  $1 == "-h" ]]; then
+if [[ ($# -ne 0) ]]; then
   usage
 fi
 
@@ -40,7 +42,7 @@ if ! [[ $(java -version 2>&1 | head -n 1 | cut -d'"' -f2) =~ ^$JAVA_VERSION.* ]]
 fi
 
 if ! [[ $(which gpg) ]]; then
-  echo "Error: gpg executable not found"
+  echo "Error: gpg executable not found (required for signed release)"
   exit 1
 fi
 
