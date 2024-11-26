@@ -20,39 +20,6 @@
         </license>
     </licenses>
 
-    <developers>
-        <developer>
-            <name>Anthony Fox</name>
-            <email>anthony@ccri.com</email>
-            <organization>CCRi</organization>
-            <organizationUrl>http://www.ccri.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>James Hughes</name>
-            <email>jhughes@ccri.com</email>
-            <organization>CCRi</organization>
-            <organizationUrl>http://www.ccri.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Emilio Lahr-Vivaz</name>
-            <email>elahrvivaz@ccri.com</email>
-            <organization>CCRi</organization>
-            <organizationUrl>http://www.ccri.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Andrew Hulbert</name>
-            <email>ahulbert@ccri.com</email>
-            <organization>CCRi</organization>
-            <organizationUrl>http://www.ccri.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Austin Heyne</name>
-            <email>aheyne@ccri.com</email>
-            <organization>CCRi</organization>
-            <organizationUrl>http://www.ccri.com</organizationUrl>
-        </developer>
-    </developers>
-
     <modules>
         <module>geomesa-accumulo-bundle</module>
         <module>geomesa-datastore-bundle</module>
@@ -65,29 +32,30 @@
     </modules>
 
     <properties>
-        <geomesa.version>5.1.0</geomesa.version>
-        <nifi.version>1.27.0</nifi.version>
+        <geomesa.version>5.2.0-SNAPSHOT</geomesa.version>
+        <nifi.version>1.28.1</nifi.version>
 
         <jdk.version>11</jdk.version>
-        <scala.version>2.12.18</scala.version>
+        <scala.version>2.12.19</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
 
         <avro.version>1.11.4</avro.version>
         <guava.version>33.0.0-jre</guava.version>
 
         <!-- versions from geomesa -->
-        <gt.version>32.0</gt.version>
+        <gt.version>32.1</gt.version>
         <accumulo.version>2.1.3</accumulo.version>
         <accumulo-20.version>2.0.1</accumulo-20.version>
-        <zookeeper.version>3.9.2</zookeeper.version>
-        <hadoop.version>3.3.6</hadoop.version>
-        <hbase.version>2.5.8-hadoop3</hbase.version>
-        <kafka.version>3.7.1</kafka.version>
+        <zookeeper.version>3.9.3</zookeeper.version>
+        <hadoop.version>3.4.1</hadoop.version>
+        <hbase.version>2.6.1-hadoop3</hbase.version>
+        <kafka.version>3.9.0</kafka.version>
         <confluent.version>7.7.1</confluent.version> <!-- corresponds to kafka 3.7 -->
         <postgres.version>42.7.2</postgres.version>
 
         <aircompressor.version>0.27</aircompressor.version>
-        <aws.java.sdk.version>1.12.735</aws.java.sdk.version>
+        <aws.crt.version>0.33.2</aws.crt.version>
+        <aws.sdk.v2.version>2.29.21</aws.sdk.v2.version>
         <commons.beanutils.version>1.9.4</commons.beanutils.version>
         <commons.configuration.version>1.10</commons.configuration.version>
         <commons.configuration2.version>2.9.0</commons.configuration2.version>
@@ -102,7 +70,7 @@
         <httpclient.version>4.5.14</httpclient.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <json.path.version>2.8.0</json.path.version>
-        <netty.version>4.1.114.Final</netty.version>
+        <netty.version>4.1.115.Final</netty.version>
         <nimbus.jose.jwt.version>9.37.2</nimbus.jose.jwt.version>
         <parquet.version>1.13.1</parquet.version>
         <protobuf.java.version>3.25.1</protobuf.java.version>
@@ -770,24 +738,19 @@
                 <version>${hadoop.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk</artifactId>
-                <version>${aws.java.sdk.version}</version>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${aws.sdk.v2.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-core</artifactId>
-                <version>${aws.java.sdk.version}</version>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3-transfer-manager</artifactId>
+                <version>${aws.sdk.v2.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-s3</artifactId>
-                <version>${aws.java.sdk.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-dynamodb</artifactId>
-                <version>${aws.java.sdk.version}</version>
+                <groupId>software.amazon.awssdk.crt</groupId>
+                <artifactId>aws-crt</artifactId>
+                <version>${aws.crt.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
@@ -1645,5 +1608,38 @@
             <url>https://packages.confluent.io/maven/</url>
         </repository>
     </repositories>
+
+    <developers>
+        <developer>
+            <name>Anthony Fox</name>
+            <email>anthony@ccri.com</email>
+            <organization>CCRi</organization>
+            <organizationUrl>http://www.ccri.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>James Hughes</name>
+            <email>jhughes@ccri.com</email>
+            <organization>CCRi</organization>
+            <organizationUrl>http://www.ccri.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Emilio Lahr-Vivaz</name>
+            <email>elahrvivaz@ccri.com</email>
+            <organization>CCRi</organization>
+            <organizationUrl>http://www.ccri.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Andrew Hulbert</name>
+            <email>ahulbert@ccri.com</email>
+            <organization>CCRi</organization>
+            <organizationUrl>http://www.ccri.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Austin Heyne</name>
+            <email>aheyne@ccri.com</email>
+            <organization>CCRi</organization>
+            <organizationUrl>http://www.ccri.com</organizationUrl>
+        </developer>
+    </developers>
 
 </project>
