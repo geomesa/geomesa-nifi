@@ -87,8 +87,8 @@
         <specs2.version>4.20.5</specs2.version>
         <junit.version>4.13.2</junit.version>
         <junit.jupiter.version>5.9.3</junit.jupiter.version>
-        <testcontainers.version>1.19.7</testcontainers.version>
-        <testcontainers.accumulo.version>1.4.0</testcontainers.accumulo.version>
+        <testcontainers.version>1.20.3</testcontainers.version>
+        <testcontainers.accumulo.version>1.4.1</testcontainers.accumulo.version>
 
         <test.accumulo.docker.tag>2.1.3</test.accumulo.docker.tag>
         <test.redis.docker.tag>7-alpine</test.redis.docker.tag>
@@ -1208,7 +1208,7 @@
                             <user.region>US</user.region>
                             <geomesa.scan.ranges.target>500</geomesa.scan.ranges.target>
                             <geomesa.hbase.test.region.servers>1</geomesa.hbase.test.region.servers>
-                            <!-- <nifi.it.version></nifi.it.version> --><!-- override bundled nifi version during tests -->
+                            <nifi.it.version>${nifi.version}</nifi.it.version>
                             <accumulo.docker.tag>${test.accumulo.docker.tag}</accumulo.docker.tag>
                             <postgis.docker.tag>${test.postgis.docker.tag}</postgis.docker.tag>
                             <postgres.docker.tag>${test.postgres.docker.tag}</postgres.docker.tag>
