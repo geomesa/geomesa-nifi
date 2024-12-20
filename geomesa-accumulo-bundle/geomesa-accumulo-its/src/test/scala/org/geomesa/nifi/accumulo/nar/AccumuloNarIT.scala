@@ -9,7 +9,6 @@
 package org.geomesa.nifi.accumulo.nar
 
 import org.geomesa.nifi.datastore.processor.NiFiContainer
-import org.geomesa.nifi.processors.accumulo.AccumuloDataStoreService
 import org.geomesa.testcontainers.AccumuloContainer
 import org.geotools.api.data.{DataStoreFinder, Query, Transaction}
 import org.junit.runner.RunWith
@@ -31,14 +30,14 @@ class AccumuloNarIT extends Specification {
   import scala.collection.JavaConverters._
 
   private val network = Network.newNetwork()
-  private val catalog = getClass.getSimpleName
+  private val catalog = "geomesa" // note: matches value in default flow.json
 
   private var accumuloContainer: AccumuloContainer = _
   private var nifiContainer: NiFiContainer = _
 
   lazy private val accumuloName =
     DockerImageName.parse("ghcr.io/geomesa/accumulo-uno")
-        .withTag(sys.props.getOrElse("accumulo.it.version", "2.1.2"))
+        .withTag(sys.props.getOrElse("accumulo.docker.tag", "2.1.3"))
 
   lazy private val params = Map(
     AccumuloDataStoreParams.UserParam.key         -> accumuloContainer.getUsername,
@@ -65,7 +64,8 @@ class AccumuloNarIT extends Specification {
 
     nifiContainer =
       new NiFiContainer()
-          .withDefaultIngestFlow[AccumuloDataStoreService]("accumulo21", Map("accumulo.catalog" -> catalog))
+          .dependsOn(accumuloContainer)
+          .withDefaultIngestFlow("accumulo21")
           .withFileSystemBind(accumuloClientProps, clientPropsMountPath, BindMode.READ_ONLY)
           .withNetwork(network)
     nifiContainer.start()

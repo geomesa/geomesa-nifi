@@ -46,7 +46,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-nar",
-              "version": "1.25.0"
+              "version": "1.28.1"
             },
             "properties": {
               "Move Conflict Strategy": "Rename",
@@ -91,7 +91,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-nar",
-              "version": "1.25.0"
+              "version": "1.28.1"
             },
             "properties": {
               "Minimum File Age": "0 sec",
@@ -144,7 +144,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-update-attribute-nar",
-              "version": "1.25.0"
+              "version": "1.28.1"
             },
             "properties": {
               "Store State": "Do not store state",
@@ -309,9 +309,9 @@
         "defaultFlowFileExpiration": "0 sec",
         "defaultBackPressureObjectThreshold": 10000,
         "defaultBackPressureDataSizeThreshold": "1 GB",
-        "componentType": "PROCESS_GROUP",
         "flowFileConcurrency": "UNBOUNDED",
         "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "componentType": "PROCESS_GROUP",
         "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
       }
     ],
@@ -330,7 +330,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0"
+          "version": "5.1.0"
         },
         "properties": {
           "geometry-cols": "${geomesa.geometry.cols}",
@@ -384,7 +384,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0"
+          "version": "5.1.0"
         },
         "properties": {
           "write-mode": "append",
@@ -431,7 +431,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0"
+          "version": "5.1.0"
         },
         "properties": {
           "output-format": "avro",
@@ -474,7 +474,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.0.0"
+          "version": "5.1.0"
         },
         "properties": {
           "write-mode": "append",
@@ -717,7 +717,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-kafka-nar_2.12",
-          "version": "5.0.0"
+          "version": "5.1.0"
         },
         "properties": {
           "kafka.brokers": "kafka.local:9092",
@@ -753,7 +753,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-kafka-nar_2.12",
-          "version": "5.1.0-SNAPSHOT"
+          "version": "5.1.0"
         },
         "properties": {
           "kafka.brokers": "kafka.local:9092",
@@ -827,7 +827,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "1.25.0"
+          "version": "1.28.1"
         },
         "properties": {
           "ignore-csv-header": "false",
@@ -853,7 +853,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "1.25.0"
+              "version": "1.28.1"
             }
           }
         ],
@@ -996,8 +996,8 @@
     "defaultFlowFileExpiration": "0 sec",
     "defaultBackPressureObjectThreshold": 10000,
     "defaultBackPressureDataSizeThreshold": "1 GB",
-    "componentType": "PROCESS_GROUP",
     "flowFileConcurrency": "UNBOUNDED",
-    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
   }
 }

@@ -9,11 +9,9 @@
 package org.geomesa.nifi.datastore.processor
 
 import com.github.dockerjava.api.command.InspectContainerResponse
-import com.google.gson.Gson
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.geomesa.nifi.datastore.processor.NiFiContainer.findNar
-import org.geomesa.nifi.datastore.services.DataStoreService
 import org.locationtech.geomesa.utils.io.WithClose
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.output.Slf4jLogConsumer
@@ -22,13 +20,9 @@ import org.testcontainers.containers.{BindMode, GenericContainer}
 import org.testcontainers.utility.{DockerImageName, PathUtils}
 
 import java.io.{ByteArrayInputStream, File, FileOutputStream, InputStream}
-import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
-import scala.reflect.ClassTag
 
 class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContainer](image) {
-
-  import scala.collection.JavaConverters._
 
   def this() = this(NiFiContainer.ImageName)
 
@@ -55,23 +49,11 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
    * PutGeoMesa, PutGeoMesaRecord, and AvroToPutGeoMesa
    *
    * @param narName name of the geomesa nar used to ingest data, i.e. `kafka` or `accumulo21`
-   * @param datastoreService class for the data store service used to ingest data
-   * @param params parameters used to configure the data store service
    * @return
    */
-  def withDefaultIngestFlow[T <: DataStoreService: ClassTag](
-      narName: String,
-      params: Map[String, String]): NiFiContainer = {
-    val nar = findNar(narName)
-    withNarByPath(nar)
-    val flow = WithClose(getClass.getClassLoader.getResourceAsStream("docker/ingest-flow.json")) { is =>
-      IOUtils.toString(is, StandardCharsets.UTF_8)
-          .replace("STORE_CLASS", implicitly[ClassTag[T]].runtimeClass.getName)
-          .replace("STORE_NAR", new File(nar).getName.replaceAll("-[0-9.]+(-SNAPSHOT)?\\.nar", ""))
-          .replace("STORE_PROPERTIES", new Gson().toJson(params.asJava))
-    }
-
-    mountFile(new ByteArrayInputStream(flow.getBytes(StandardCharsets.UTF_8)), "/flow.json")
+  def withDefaultIngestFlow(narName: String): NiFiContainer = {
+    withNarByPath(findNar(narName))
+    mountFile(getClass.getClassLoader.getResourceAsStream("docker/ingest-flow.json"), "/flow.json")
   }
 
   /**
@@ -153,7 +135,7 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
 
   override protected def containerIsStarted(containerInfo: InspectContainerResponse): Unit = {
     super.containerIsStarted(containerInfo)
-    logger.info(s"The NiFi UI is available locally at: $getHost:$getFirstMappedPort")
+    logger.info(s"The NiFi UI is available locally at: http://$getHost:$getFirstMappedPort/nifi")
   }
 }
 
@@ -161,10 +143,10 @@ object NiFiContainer extends LazyLogging {
 
   val ImageName =
     DockerImageName.parse("apache/nifi")
-        .withTag(sys.props.getOrElse("nifi.it.version", "1.25.0"))
+        .withTag(sys.props.getOrElse("nifi.it.version", "1.28.1"))
 
   // type names created by the default ingest flow
-  val DefaultIngestTypes: Seq[String] = Seq("gdelt-default", "gdelt-avro", "gdelt-records")
+  val DefaultIngestTypes: Seq[String] = Seq("gdelt-nifi", "gdelt-nifi-avro", "gdelt-nifi-records")
 
   /**
    * Write a temp file to disk, with automatic cleanup after jvm shutdown
