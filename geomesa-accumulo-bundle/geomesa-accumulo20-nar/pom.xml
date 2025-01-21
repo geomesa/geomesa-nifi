@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.geomesa.nifi</groupId>
         <artifactId>geomesa-accumulo-bundle_2.12</artifactId>
-        <version>5.2.0-SNAPSHOT</version>
+        <version>5.2.0</version>
     </parent>
 
     <artifactId>geomesa-accumulo20-nar_2.12</artifactId>
