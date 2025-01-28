@@ -1,10 +1,10 @@
-name: build-and-test_2.13
+name: build
 
 on:
   push:
   pull_request:
-  # run nightly to pick up any errors caused by changes in main geomesa
   schedule:
+    # run nightly to pick up any errors caused by changes in main geomesa
     - cron: '30 2 * * *' # 0230 UTC, 2130 EST
 
 permissions:
@@ -16,6 +16,11 @@ env:
 
 jobs:
   build-scala:
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [ "2.12", "2.13" ]
+
     runs-on: ubuntu-latest
     # avoid duplicate jobs on PRs from the main repo
     if: github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
@@ -28,7 +33,7 @@ jobs:
           java-version: '11'
           cache: 'maven'
       - name: Set Scala version
-        run: ./build/scripts/change-scala-version.sh 2.13
+        run: ./build/scripts/change-scala-version.sh ${{ matrix.version }}
       - name: Build with Maven
         run: mvn clean install $MAVEN_CLI_OPTS -DskipTests
       - name: Unit tests

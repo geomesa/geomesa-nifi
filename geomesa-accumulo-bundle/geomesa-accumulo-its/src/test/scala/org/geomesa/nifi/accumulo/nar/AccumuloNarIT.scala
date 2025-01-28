@@ -54,6 +54,9 @@ class AccumuloNarIT extends Specification {
           .withNetwork(network)
     accumuloContainer.start()
 
+    // create the catalog table up front to avoid race conditions
+    WithClose(accumuloContainer.client())(_.tableOperations().create(catalog))
+
     // instead of setting the connection props in the processor (which requires encrypting them),
     // mount the accumulo-client.properties where the processor can pick it up
     val accumuloClientProps =
