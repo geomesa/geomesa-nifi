@@ -114,6 +114,9 @@
         <appender-ref ref="DEPRECATION_FILE"/>
     </logger>
 
+    <logger name="org.locationtech.geomesa.lambda" level="DEBUG"/>
+    <logger name="org.locationtech.geomesa.lambda.stream.kafka.KafkaCacheLoader" level="DEBUG"/>
+    <logger name="org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager" level="TRACE"/>
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>

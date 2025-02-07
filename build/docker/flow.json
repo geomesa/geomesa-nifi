@@ -345,7 +345,7 @@
           "feature-id-col": "${geomesa.id.col}",
           "geometry-serialization": "WKT",
           "record-reader": "155fbf70-018e-1000-7970-f4a7ce550532",
-          "DataStoreService": "207c8fa2-06b4-372f-9cee-f7baa154a6ea",
+          "DataStoreService": "",
           "FeatureWriterCacheTimeout": "5 minutes",
           "default-date-col": "${geomesa.default.dtg.col}"
         },
@@ -392,7 +392,7 @@
           "SftUserData": "${geomesa.sft.user-data}",
           "schema-compatibility": "Existing",
           "FeatureWriterCaching": "false",
-          "DataStoreService": "207c8fa2-06b4-372f-9cee-f7baa154a6ea",
+          "DataStoreService": "",
           "FeatureNameOverride": "gdelt-nifi",
           "FeatureWriterCacheTimeout": "5 minutes"
         },
@@ -480,7 +480,7 @@
           "write-mode": "append",
           "FeatureWriterCaching": "false",
           "SftUserData": "${geomesa.sft.user-data}",
-          "DataStoreService": "207c8fa2-06b4-372f-9cee-f7baa154a6ea",
+          "DataStoreService": "",
           "FeatureNameOverride": "gdelt-nifi-avro",
           "FeatureWriterCacheTimeout": "5 minutes",
           "schema-compatibility": "Existing",
@@ -770,6 +770,47 @@
               "group": "org.geomesa.nifi",
               "artifact": "geomesa-datastore-services-api-nar_2.12",
               "version": "5.1.0-SNAPSHOT"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "efa0ba47-5ff6-3d38-98d3-17762b93101d",
+        "instanceIdentifier": "e0aad060-0194-1000-fb49-da12c090ed45",
+        "name": "LambdaDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.lambda.LambdaDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-lambda-nar_2.12",
+          "version": "5.1.0"
+        },
+        "properties": {
+          "geomesa.query.threads": "8",
+          "lambda.kafka.zookeepers": "accumulo.local:2181",
+          "geomesa.query.loose-bounding-box": "true",
+          "lambda.persist": "true",
+          "lambda.kafka.consumers": "1",
+          "lambda.kafka.partitions": "1",
+          "lambda.expiry": "1 minute",
+          "geomesa.stats.enable": "true",
+          "geomesa.security.auths.force-empty": "false",
+          "geomesa.query.audit": "true",
+          "DataStoreService": "823a37c5-fda6-3e87-b250-c13d073baeeb",
+          "lambda.kafka.brokers": "kafka.local:9092"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.1.0"
             }
           }
         ],
