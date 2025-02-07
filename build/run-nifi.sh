@@ -17,10 +17,10 @@ function checkNar() {
   local nar="$1"
   local desc="$2"
   if [[ -z "$nar" ]]; then
-    echo "No $desc nar found... try building with maven"
+    echo "ERROR: No $desc nar found... try building with maven"
     exit 1
   elif [[ $(echo "$nar" | wc -l) -gt 1 ]]; then
-    echo -e "Found multiple nars: \n$nar"
+    echo -e "ERROR: found multiple nars: \n$nar"
     exit 2
   fi
 }
@@ -54,6 +54,7 @@ fi
 nar="$(find "$dir"/geomesa-* -name "geomesa-$backend*.nar")"
 datastoreNar="$(find "$dir"/geomesa-datastore-bundle/geomesa-datastore-services-nar/target -name "geomesa*.nar")"
 servicesApiNar="$(find "$dir"/geomesa-datastore-bundle/geomesa-datastore-services-api-nar/target -name "geomesa*.nar")"
+extraNar=()
 
 checkNar "$nar" "$backend"
 checkNar "$datastoreNar" "datastore-services"
@@ -81,10 +82,22 @@ elif [[ $backend = 'hbase' ]]; then
   controllerId="c18303ac-76ab-3499-a4d0-dbbdf59a52d3"
 elif [[ $backend = 'redis' ]]; then
   controllerId="207c8fa2-06b4-372f-9cee-f7baa154a6ea"
+elif [[ $backend = 'lambda' ]]; then
+  controllerId="efa0ba47-5ff6-3d38-98d3-17762b93101d"
+  accumuloNar="$(find "$dir"/geomesa-* -name "geomesa-accumulo21*.nar")"
+  checkNar "$accumuloNar" "accumulo21"
+  extraNar=("-v" "$accumuloNar:/opt/nifi/nifi-current/extensions/$(basename "$accumuloNar"):ro")
 fi
 
 if [[ -n "$controllerId" ]]; then
-  sed -i "s/\"DataStoreService\": \".*\"/\"DataStoreService\": \"${controllerId}\"/" "$dir/build/docker/flow.json"
+  if [[ -z $(which jq) ]]; then
+    echo "ERROR: jq is required to update the flow.json"
+    exit 3
+  fi
+  tmp=$(mktemp)
+  # update only processors, and only if have a DataStoreService
+  jq --arg cid "$controllerId" '.rootGroup.processors[].properties |= if .DataStoreService? then .DataStoreService = $cid else . end' \
+    "$dir/build/docker/flow.json" > "$tmp" && mv "$tmp" "$dir/build/docker/flow.json"
 else
   echo "WARN: No controller specified for $backend"
 fi
@@ -102,7 +115,7 @@ docker run --rm \
   -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \
   -e NIFI_JVM_DEBUGGER=true \
-  -v "$nar:/opt/nifi/nifi-current/extensions/$(basename "$nar"):ro" \
+  -v "$nar:/opt/nifi/nifi-current/extensions/$(basename "$nar"):ro" "${extraNar[@]}" \
   -v "$datastoreNar:/opt/nifi/nifi-current/extensions/$(basename "$datastoreNar"):ro" \
   -v "$servicesApiNar:/opt/nifi/nifi-current/extensions/$(basename "$servicesApiNar"):ro" \
   -v "$dir/build/docker/flow.json:/flow.json:ro" \

@@ -17,8 +17,8 @@ import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.api.data.DataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
-import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
 import org.locationtech.geomesa.lambda.data.{LambdaDataStore, LambdaDataStoreFactory, LambdaDataStoreParams}
+import org.locationtech.geomesa.lambda.stream.{OffsetManager, ZookeeperOffsetManager}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import scala.util.control.NonFatal
@@ -41,7 +41,7 @@ class LambdaDataStoreService
   override protected def tryGetDataStore(params: java.util.Map[String, _]): Try[DataStore] = {
     var controller: DataStoreService = null
     var persistence: DataStore = null
-    var config: LambdaConfig = null
+    var offsetManager: OffsetManager = null
     try {
       controller = params.get(DataStoreService.getName).asInstanceOf[DataStoreService]
       if (controller == null) {
@@ -64,12 +64,13 @@ class LambdaDataStoreService
           case _ => "nifi"
         }
       }
-      config = LambdaDataStoreParams.parse(params, catalog)
-      Success(new LambdaDataStore(persistence, config))
+      val config = LambdaDataStoreParams.parse(params, catalog)
+      offsetManager = new ZookeeperOffsetManager(config.zookeepers, config.zkNamespace)
+      Success(new LambdaDataStore(persistence, offsetManager, config))
     } catch {
       case NonFatal(e) =>
-        if (config != null) {
-          CloseWithLogging(config.offsetManager)
+        if (offsetManager != null) {
+          CloseWithLogging(offsetManager)
         }
         if (controller != null) {
           controller.dispose(persistence)
@@ -99,6 +100,7 @@ object LambdaDataStoreService extends PropertyDescriptorUtils {
       ZookeepersParam,
       ExpiryParam,
       PersistParam,
+      BatchSizeParam,
       ProducerOptsParam,
       ConsumerOptsParam,
       ConsumersParam,
