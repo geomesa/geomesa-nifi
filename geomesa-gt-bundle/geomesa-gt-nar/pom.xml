@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.geomesa.nifi</groupId>
         <artifactId>geomesa-gt-bundle_2.12</artifactId>
-        <version>5.2.0</version>
+        <version>5.2.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>geomesa-gt-nar_2.12</artifactId>
