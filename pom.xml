@@ -32,7 +32,7 @@
     </modules>
 
     <properties>
-        <geomesa.version>5.2.1</geomesa.version>
+        <geomesa.version>5.2.2</geomesa.version>
         <nifi.version>1.28.1</nifi.version>
 
         <jdk.version>11</jdk.version>
