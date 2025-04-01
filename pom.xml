@@ -100,8 +100,7 @@
         <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit ${maven.test.opens}</maven.test.jvmargs>
         <maven.test.enable.assertions>false</maven.test.enable.assertions>
 
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <copyright.year>2024</copyright.year>
+        <copyright.year>2025</copyright.year>
 
         <!-- Maven plugin versions, latest as of 2023-12-27 -->
         <build-helper-maven-plugin.version>3.5.0</build-helper-maven-plugin.version>
@@ -120,6 +119,8 @@
         <nifi-nar-maven-plugin.version>1.5.1</nifi-nar-maven-plugin.version>
         <license-maven-plugin.version>4.3</license-maven-plugin.version>
         <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <scm>
