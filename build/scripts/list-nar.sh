@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
-# runs a nifi docker at https://localhost:8443/
-# requires nars to be built, first
-dir="$(cd "$(dirname "$0")/.." || exit 1; pwd)"
+# lists out the jars in each of our nars
+# requires nars to be built with maven, first
+dir="$(cd "$(dirname "$0")/../.." || exit 1; pwd)"
 
 # find available nars
 mapfile -t nars < <( mvn -f "$dir" -q -am exec:exec -Dexec.executable="pwd" -T8 | grep -e '-nar$' | sort )

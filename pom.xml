@@ -33,9 +33,9 @@
 
     <properties>
         <geomesa.version>5.3.0-SNAPSHOT</geomesa.version>
-        <nifi.version>1.28.1</nifi.version>
+        <nifi.version>2.3.0</nifi.version>
 
-        <jdk.version>11</jdk.version>
+        <jdk.version>21</jdk.version>
         <scala.version>2.12.19</scala.version>
         <scala.binary.version>2.12</scala.binary.version>
 
@@ -56,18 +56,21 @@
         <aircompressor.version>0.27</aircompressor.version>
         <aws.crt.version>0.33.2</aws.crt.version>
         <aws.sdk.v2.version>2.29.21</aws.sdk.v2.version>
+        <caffeine.version>3.2.0</caffeine.version>
         <commons.beanutils.version>1.9.4</commons.beanutils.version>
+        <commons.codec.version>1.18.0</commons.codec.version>
+        <commons.compress.version>1.27.1</commons.compress.version>
         <commons.configuration.version>1.10</commons.configuration.version>
         <commons.configuration2.version>2.10.1</commons.configuration2.version>
-        <commons.io.version>2.16.1</commons.io.version>
+        <commons.csv.version>1.13.0</commons.csv.version>
+        <commons.io.version>2.18.0</commons.io.version>
         <commons.lang3.version>3.14.0</commons.lang3.version>
         <commons.net.version>3.10.0</commons.net.version>
         <commons.text.version>1.11.0</commons.text.version>
         <curator.version>5.6.0</curator.version>
-        <fasterxml.jackson.version>2.17.2</fasterxml.jackson.version>
+        <fasterxml.jackson.version>2.18.3</fasterxml.jackson.version>
         <fasterxml.woodstox.version>5.4.0</fasterxml.woodstox.version>
         <gson.version>2.10.1</gson.version>
-        <httpclient.version>4.5.14</httpclient.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <json.path.version>2.9.0</json.path.version>
         <netty.version>4.1.119.Final</netty.version>
@@ -96,7 +99,7 @@
         <test.postgis.docker.tag>15-3.4</test.postgis.docker.tag>
         <test.confluent.docker.tag>7.7.0</test.confluent.docker.tag> <!-- confluent 7.7.x corresponds to kafka 3.7.x -->
 
-        <maven.test.opens>--add-opens=java.base/java.nio=ALL-UNNAMED --illegal-access=warn</maven.test.opens>
+        <maven.test.opens>--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED</maven.test.opens>
         <maven.test.jvmargs>-Xms512m -Xmx4g -XX:-UseGCOverheadLimit ${maven.test.opens}</maven.test.jvmargs>
         <maven.test.enable.assertions>false</maven.test.enable.assertions>
 
@@ -104,21 +107,22 @@
 
         <!-- Maven plugin versions, latest as of 2023-12-27 -->
         <build-helper-maven-plugin.version>3.5.0</build-helper-maven-plugin.version>
-        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
-        <maven-assembly-plugin.version>3.6.0</maven-assembly-plugin.version>
-        <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
-        <scala-maven-plugin.version>3.4.6</scala-maven-plugin.version>
-        <maven-surefire-plugin.version>3.2.3</maven-surefire-plugin.version>
-        <maven.failsafe.plugin.version>3.2.3</maven.failsafe.plugin.version>
-        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
-        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
-        <maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
-        <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
-        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-        <nifi-nar-maven-plugin.version>1.5.1</nifi-nar-maven-plugin.version>
         <license-maven-plugin.version>4.3</license-maven-plugin.version>
+        <maven-assembly-plugin.version>3.6.0</maven-assembly-plugin.version>
         <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
+        <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
+        <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
+        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
+        <maven.failsafe.plugin.version>3.2.3</maven.failsafe.plugin.version>
+        <maven.install.plugin.version>3.1.4</maven.install.plugin.version>
+        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
+        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <maven-surefire-plugin.version>3.2.3</maven-surefire-plugin.version>
+        <nifi-nar-maven-plugin.version>2.1.0</nifi-nar-maven-plugin.version>
+        <scala-maven-plugin.version>4.9.2</scala-maven-plugin.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -135,9 +139,10 @@
             <!-- Nifi Dependencies -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-standard-services-api-nar</artifactId>
+                <artifactId>nifi-bom</artifactId>
                 <version>${nifi.version}</version>
-                <type>nar</type>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -157,12 +162,6 @@
                 <artifactId>nifi-standard-record-utils</artifactId>
                 <version>${nifi.version}</version>
                 <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-api</artifactId>
-                <version>${nifi.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -209,6 +208,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-schema-registry-service-api</artifactId>
+                <version>${nifi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-security-utils-api</artifactId>
                 <version>${nifi.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -349,6 +354,13 @@
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- provided by nifi standard nars -->
+                        <groupId>com.github.luben</groupId>
+                        <artifactId>zstd-jni</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
@@ -374,6 +386,18 @@
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-feature-exporters_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- we use the non-shaded hadoop client -->
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <!-- provided by nifi standard nars -->
+                        <groupId>io.netty</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
@@ -439,6 +463,13 @@
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-fs-storage-orc_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- provided by nifi standard nars -->
+                        <groupId>org.jetbrains</groupId>
+                        <artifactId>annotations</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
@@ -501,6 +532,20 @@
                         <groupId>org.apache.logging.log4j</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <!-- we use the non-shaded hadoop client -->
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-api</artifactId>
+                    </exclusion>
+                    <!-- included in nifi standard nars -->
+                    <exclusion>
+                        <groupId>com.github.ben-manes.caffeine</groupId>
+                        <artifactId>caffeine</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.checkerframework</groupId>
+                        <artifactId>checker-qual</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
 
@@ -520,6 +565,15 @@
                     <exclusion>
                         <groupId>ch.qos.logback</groupId>
                         <artifactId>*</artifactId>
+                    </exclusion>
+                    <!-- provided by nifi standard nars -->
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-handler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-transport-native-epoll</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -555,6 +609,11 @@
                     <exclusion>
                         <groupId>com.google.protobuf</groupId>
                         <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <!-- provided by nifi standard nars -->
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -594,6 +653,13 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- provided by nifi standard nars -->
+                        <groupId>com.github.luben</groupId>
+                        <artifactId>zstd-jni</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
@@ -625,6 +691,19 @@
                     <exclusion>
                         <groupId>com.google.protobuf</groupId>
                         <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <!-- provided by nifi standard nars -->
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-jdk18on</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-handler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-transport-native-epoll</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -769,11 +848,6 @@
                 <artifactId>json-path</artifactId>
                 <version>${json.path.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>${httpclient.version}</version>
-            </dependency>
 
             <!-- manage various hadoop dependencies to more recent versions -->
             <dependency>
@@ -782,21 +856,9 @@
                 <version>${snappy.java.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${fasterxml.jackson.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>com.fasterxml.woodstox</groupId>
                 <artifactId>woodstox-core</artifactId>
                 <version>${fasterxml.woodstox.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-net</groupId>
-                <artifactId>commons-net</artifactId>
-                <version>${commons.net.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wildfly.openssl</groupId>
@@ -824,16 +886,6 @@
                 <version>${curator.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-text</artifactId>
-                <version>${commons.text.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${commons.lang3.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
@@ -847,6 +899,17 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+                <exclusions>
+                    <!-- provided by nifi standard nars -->
+                    <exclusion>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_annotations</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.checkerframework</groupId>
+                        <artifactId>checker-qual</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -864,9 +927,9 @@
                 <version>${aircompressor.version}</version>
             </dependency>
             <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>${commons.io.version}</version>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>${commons.csv.version}</version>
             </dependency>
 
             <!-- Netty 4.x used by arrow, hadoop, hbase, and c* -->
@@ -971,6 +1034,12 @@
                 </exclusions>
             </dependency>
 
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
+
             <!-- GeoMesa converter dependencies -->
             <dependency>
                 <groupId>org.apache.parquet</groupId>
@@ -1013,6 +1082,62 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- dependencies that are provided by nifi -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons.compress.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons.io.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons.text.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons.codec.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-net</groupId>
+                <artifactId>commons-net</artifactId>
+                <version>${commons.net.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${fasterxml.jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${fasterxml.jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${fasterxml.jackson.version}</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -1289,6 +1414,11 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven.install.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
                     <version>${maven-source-plugin.version}</version>
                 </plugin>
@@ -1507,22 +1637,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>zinc</id>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>net.alchim31.maven</groupId>
-                            <artifactId>scala-maven-plugin</artifactId>
-                            <configuration>
-                                <useZincServer>true</useZincServer>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
         <profile>
             <id>central</id>
             <build>

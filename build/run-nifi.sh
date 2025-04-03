@@ -86,7 +86,7 @@ elif [[ $backend = 'lambda' ]]; then
   controllerId="efa0ba47-5ff6-3d38-98d3-17762b93101d"
   accumuloNar="$(find "$dir"/geomesa-* -name "geomesa-accumulo21*.nar")"
   checkNar "$accumuloNar" "accumulo21"
-  extraNar=("-v" "$accumuloNar:/opt/nifi/nifi-current/extensions/$(basename "$accumuloNar"):ro")
+  extraNar=("-v" "$accumuloNar:/opt/nifi/nifi-current/nar_extensions/$(basename "$accumuloNar"):ro")
 fi
 
 if [[ -n "$controllerId" ]]; then
@@ -94,8 +94,9 @@ if [[ -n "$controllerId" ]]; then
     echo "ERROR: jq is required to update the flow.json"
     exit 3
   fi
+  cp "$dir/build/docker/flow.json" "$dir/build/docker/flow.json.bak"
   tmp=$(mktemp)
-  # update only processors, and only if have a DataStoreService
+  # update only processors, and only if they have a DataStoreService
   jq --arg cid "$controllerId" '.rootGroup.processors[].properties |= if .DataStoreService? then .DataStoreService = $cid else . end' \
     "$dir/build/docker/flow.json" > "$tmp" && mv "$tmp" "$dir/build/docker/flow.json" && chmod 644 "$dir/build/docker/flow.json"
 else
@@ -115,12 +116,16 @@ docker run --rm \
   -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \
   -e NIFI_JVM_DEBUGGER=true \
-  -v "$nar:/opt/nifi/nifi-current/extensions/$(basename "$nar"):ro" "${extraNar[@]}" \
-  -v "$datastoreNar:/opt/nifi/nifi-current/extensions/$(basename "$datastoreNar"):ro" \
-  -v "$servicesApiNar:/opt/nifi/nifi-current/extensions/$(basename "$servicesApiNar"):ro" \
+  -v "$nar:/opt/nifi/nifi-current/nar_extensions/$(basename "$nar"):ro" "${extraNar[@]}" \
+  -v "$datastoreNar:/opt/nifi/nifi-current/nar_extensions/$(basename "$datastoreNar"):ro" \
+  -v "$servicesApiNar:/opt/nifi/nifi-current/nar_extensions/$(basename "$servicesApiNar"):ro" \
   -v "$dir/build/docker/flow.json:/flow.json:ro" \
   -v "$dir/build/docker/logback.xml:/logback.xml:ro" \
   -v "$dir/build/docker/entrypoint.sh:/entrypoint.sh:ro" \
   -v "$dir/build/docker/ingest:/ingest:ro" \
   --entrypoint "/entrypoint.sh" \
   "apache/nifi:$nifiVersion"
+
+if [[ -f "$dir/build/docker/flow.json.bak" ]]; then
+  mv "$dir/build/docker/flow.json.bak" "$dir/build/docker/flow.json"
+fi

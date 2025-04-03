@@ -133,6 +133,18 @@
             <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- exclude dependency with CVEs (protobuf-java 2.5.0) -->
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-common</artifactId>
             <scope>provided</scope>
@@ -140,6 +152,11 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-buffer</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
             <scope>provided</scope>
         </dependency>
 
