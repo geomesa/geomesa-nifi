@@ -298,7 +298,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .displayName("Type Name")
         .description("The schema type name to read")
         .addValidator(Validator.VALID)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
         .build
 
@@ -308,7 +308,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .displayName("Kafka Group ID")
         .description("The unique group ID used to track position in the Kafka data stream")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .required(true)
         .build
 
@@ -366,7 +366,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
       .name("record-max-batch-size")
       .displayName("Record Maximum Batch Size")
       .description("The maximum number of records to write to a single FlowFile")
-      .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+      .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
       .defaultValue("10000")
       .build()
@@ -376,7 +376,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .name("record-min-batch-size")
         .displayName("Record Minimum Batch Size")
         .description("The minimum number of records to write to a single FlowFile")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .defaultValue("1")
         .build()
@@ -386,7 +386,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .name("record-max-latency")
         .displayName("Record Max Latency")
         .description("The maximum latency before outputting a record to a FlowFile. This may override the minimum batch size, if both are set")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .required(false)
         .build()
@@ -396,7 +396,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .name("consumer-poll-timeout")
         .displayName("Consumer Poll Timeout")
         .description("How long to wait for the next Kafka record before closing a FlowFile")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("1 second")
         .build()

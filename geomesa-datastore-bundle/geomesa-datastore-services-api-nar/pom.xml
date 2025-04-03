@@ -33,6 +33,20 @@
             <artifactId>nifi-aws-service-api-nar</artifactId>
             <type>nar</type>
         </dependency>
+
+        <!-- explicitly adding these prevents the nar plugin from searching all dependencies for the nifi version -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

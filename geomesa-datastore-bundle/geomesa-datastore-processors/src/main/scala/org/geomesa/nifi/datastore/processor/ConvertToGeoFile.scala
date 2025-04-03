@@ -242,7 +242,7 @@ object ConvertToGeoFile {
           .displayName("GZIP level")
           .description("Level of gzip compression to apply to output, from 1-9")
           .required(false)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
           .addValidator(GzipLevelValidator)
           .build()
 

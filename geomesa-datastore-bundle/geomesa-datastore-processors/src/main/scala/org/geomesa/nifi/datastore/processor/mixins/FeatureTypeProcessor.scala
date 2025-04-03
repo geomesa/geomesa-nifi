@@ -142,7 +142,7 @@ object FeatureTypeProcessor {
           .required(false)
           .description("Override the Simple Feature Type name from the SFT Spec")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
           .build()
   }
 

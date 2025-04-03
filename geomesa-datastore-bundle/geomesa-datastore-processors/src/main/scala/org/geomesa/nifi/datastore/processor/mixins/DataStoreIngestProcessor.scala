@@ -401,7 +401,7 @@ object DataStoreIngestProcessor {
           .required(false)
           .description("How often cached feature writers will flushed to the data store")
           .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
           .defaultValue("5 minutes")
           .build()
 
