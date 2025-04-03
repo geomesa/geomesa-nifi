@@ -60,7 +60,7 @@ trait PropertyDescriptorUtils extends LazyLogging {
     val sensitive =
       Option(param.metadata.get(Parameter.IS_PASSWORD).asInstanceOf[java.lang.Boolean]).exists(_.booleanValue)
     val expression = if (param.metadata.get(GeoMesaParam.SupportsNiFiExpressions) == java.lang.Boolean.TRUE) {
-      ExpressionLanguageScope.VARIABLE_REGISTRY
+      ExpressionLanguageScope.ENVIRONMENT
     } else {
       ExpressionLanguageScope.NONE
     }

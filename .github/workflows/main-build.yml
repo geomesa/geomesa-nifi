@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '21'
           cache: 'maven'
       - name: Set Scala version
         run: ./build/scripts/change-scala-version.sh ${{ matrix.version }}

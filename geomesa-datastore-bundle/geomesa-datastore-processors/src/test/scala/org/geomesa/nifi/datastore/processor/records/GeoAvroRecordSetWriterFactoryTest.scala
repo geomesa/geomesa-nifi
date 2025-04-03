@@ -115,8 +115,8 @@ class GeoAvroRecordSetWriterFactoryTest extends Specification with LazyLogging {
     runner.setProperty(geoAvroWriter, TypeName, typeName)
     runner.enableControllerService(geoAvroWriter)
 
-    runner.setProperty("record-reader", "csv-reader")
-    runner.setProperty("record-writer", "geo-avro-record-set-writer")
+    runner.setProperty("Record Reader", "csv-reader")
+    runner.setProperty("Record Writer", "geo-avro-record-set-writer")
     runner
   }
 }

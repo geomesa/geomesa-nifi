@@ -86,7 +86,7 @@ elif [[ $backend = 'lambda' ]]; then
   controllerId="efa0ba47-5ff6-3d38-98d3-17762b93101d"
   accumuloNar="$(find "$dir"/geomesa-* -name "geomesa-accumulo21*.nar")"
   checkNar "$accumuloNar" "accumulo21"
-  extraNar=("-v" "$accumuloNar:/opt/nifi/nifi-current/extensions/$(basename "$accumuloNar"):ro")
+  extraNar=("-v" "$accumuloNar:/opt/nifi/nifi-current/nar_extensions/$(basename "$accumuloNar"):ro")
 fi
 
 if [[ -n "$controllerId" ]]; then
@@ -115,9 +115,9 @@ docker run --rm \
   -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \
   -e NIFI_JVM_DEBUGGER=true \
-  -v "$nar:/opt/nifi/nifi-current/extensions/$(basename "$nar"):ro" "${extraNar[@]}" \
-  -v "$datastoreNar:/opt/nifi/nifi-current/extensions/$(basename "$datastoreNar"):ro" \
-  -v "$servicesApiNar:/opt/nifi/nifi-current/extensions/$(basename "$servicesApiNar"):ro" \
+  -v "$nar:/opt/nifi/nifi-current/nar_extensions/$(basename "$nar"):ro" "${extraNar[@]}" \
+  -v "$datastoreNar:/opt/nifi/nifi-current/nar_extensions/$(basename "$datastoreNar"):ro" \
+  -v "$servicesApiNar:/opt/nifi/nifi-current/nar_extensions/$(basename "$servicesApiNar"):ro" \
   -v "$dir/build/docker/flow.json:/flow.json:ro" \
   -v "$dir/build/docker/logback.xml:/logback.xml:ro" \
   -v "$dir/build/docker/entrypoint.sh:/entrypoint.sh:ro" \

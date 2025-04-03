@@ -197,7 +197,7 @@ object ConvertInputProcessor {
           .required(false)
           .description("Override the converter error mode behavior")
           .allowableValues(ErrorMode.LogErrors.toString, ErrorMode.RaiseErrors.toString, /*deprecated*/ "skip-bad-records")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
           .build()
 
     val ConverterMetricReporters: PropertyDescriptor =

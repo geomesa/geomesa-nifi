@@ -112,7 +112,7 @@ object PutGeoMesa {
             "Initialize schemas in the underlying data store when the processor is started. Schemas should be " +
                 "defined in standard Java properties format, with the type name as the key, and the feature type " +
                 "specification or lookup as the value")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
           .addValidator(new InitSchemaValidator())
           .build()
   }
