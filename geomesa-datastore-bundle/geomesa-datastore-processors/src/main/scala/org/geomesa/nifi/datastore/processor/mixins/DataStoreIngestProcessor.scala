@@ -28,7 +28,8 @@ import org.geotools.data._
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.SchemaCompatibility
 import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypeComparator.TypeComparison.{AttributeRemoved, AttributeTypeChanged, Compatible}
+import org.locationtech.geomesa.utils.geotools.{SimpleFeatureTypeComparator, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import java.io.Closeable
@@ -232,22 +233,22 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
                 case CompatibilityMode.Exact =>
                   logger.error(
                     s"Detected schema change ${sft.getTypeName}:" +
-                        s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
-                        s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                      s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                      s"\n  to   ${SimpleFeatureTypes.encodeType(sft)}")
                   throw new RuntimeException(
                     s"Detected schema change for ${sft.getTypeName} but compatibility mode is set to 'exact'")
 
                 case CompatibilityMode.Existing =>
                   logger.warn(
                     s"Detected schema change ${sft.getTypeName}:" +
-                        s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
-                        s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                      s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                      s"\n  to   ${SimpleFeatureTypes.encodeType(sft)}")
 
                 case CompatibilityMode.Update =>
                   logger.info(
                     s"Updating schema ${sft.getTypeName}:" +
-                        s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
-                        s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                      s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
+                      s"\n  to   ${SimpleFeatureTypes.encodeType(sft)}")
                   c.apply() // update the schema
                   writers.invalidate(sft.getTypeName) // invalidate the writer cache
               }
@@ -264,30 +265,42 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
               store.createSchema(sft)
 
             case Success(existing) =>
-              if (SimpleFeatureTypes.compare(existing, sft) != 0) {
-                mode match {
-                  case CompatibilityMode.Exact =>
+              SimpleFeatureTypeComparator.compare(existing, sft) match {
+                case Compatible(false, false, false) => // no-op
+
+                case Compatible(extension, renamed, _) =>
+                  if (mode == CompatibilityMode.Exact) {
                     logger.error(
                       s"Detected schema change ${sft.getTypeName}:" +
-                          s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
-                          s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
+                        s"\n  from ${SimpleFeatureTypes.encodeType(existing)} " +
+                        s"\n  to   ${SimpleFeatureTypes.encodeType(sft)}")
                     throw new RuntimeException(
                       s"Detected schema change for ${sft.getTypeName} but compatibility mode is set to 'exact'")
-
-                  case CompatibilityMode.Existing =>
-                    logger.warn(
-                      s"Detected schema change ${sft.getTypeName}:" +
-                          s"\n  from ${SimpleFeatureTypes.encodeType(store.getSchema(sft.getTypeName))} " +
-                          s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
-
-                  case CompatibilityMode.Update =>
-                    logger.info(
-                      s"Updating schema ${sft.getTypeName}:" +
+                  } else if (extension || renamed) { // note: ignore superclass check for non-exact compatibility
+                    if (mode == CompatibilityMode.Existing) {
+                      logger.warn(
+                        s"Detected schema change ${sft.getTypeName}:" +
                           s"\n  from ${SimpleFeatureTypes.encodeType(existing)} " +
-                          s"\n  to ${SimpleFeatureTypes.encodeType(sft)}")
-                    store.updateSchema(sft.getTypeName, sft)
-                    writers.invalidate(sft.getTypeName)
-                }
+                          s"\n  to   ${SimpleFeatureTypes.encodeType(sft)}")
+                    } else {
+                      // CompatibilityMode.Update
+                      logger.info(
+                        s"Updating schema ${sft.getTypeName}:" +
+                          s"\n  from ${SimpleFeatureTypes.encodeType(existing)} " +
+                          s"\n  to   ${SimpleFeatureTypes.encodeType(sft)}")
+                      store.updateSchema(sft.getTypeName, sft)
+                      writers.invalidate(sft.getTypeName)
+                    }
+                  }
+
+                case AttributeRemoved =>
+                  logger.error(s"Incompatible schema change detected for schema ${sft.getTypeName}")
+                  throw new UnsupportedOperationException("Removing attributes from the schema is not supported")
+
+                case AttributeTypeChanged(changes) =>
+                  logger.error(s"Incompatible schema change detected for schema ${sft.getTypeName}")
+                  val msg = changes.map { case (name, (from, to)) => s"$name from ${from.getName} to ${to.getName}" }
+                  throw new UnsupportedOperationException(s"Incompatible schema column type changes: ${msg.mkString(", ")}")
               }
           }
       }
