@@ -38,22 +38,20 @@ package object processor extends LazyLogging {
   // there's no way to skip validation when using an env var for the default model dir, so we need to ensure
   // that the directory exists
   if (!sys.env.contains(ExtraClasspathsEnv) && !sys.props.contains(ExtraClasspathsEnv)) {
-    val defaultModelDir =
-      Seq(s"${sys.props("HOME")}/.nifi-models/", s"${sys.props("java.io.tmpdir")}/nifi-models/").find { path =>
-        val dir = new File(path)
-        try {
-          dir.exists() || dir.mkdirs()
-        } catch {
-          case NonFatal(e) =>
-            logger.warn(s"Error creating default model directory '${dir.getPath}':", e)
-            false
-        }
+    val tmpDir = sys.props("java.io.tmpdir")
+    val defaultModelDir = s"$tmpDir/nifi-models/"
+    val dir = new File(defaultModelDir)
+    try {
+      if (dir.exists() || dir.mkdirs()) {
+        System.setProperty(ExtraClasspathsEnv, defaultModelDir)
+      } else {
+        throw new RuntimeException(s"Could not create directory '$defaultModelDir'")
       }
-    System.setProperty(ExtraClasspathsEnv, defaultModelDir.getOrElse {
-      val tmp = sys.props("java.io.tmpdir")
-      logger.warn(s"Unable to create default model directory, defaulting to '$tmp'")
-      tmp
-    })
+    } catch {
+      case NonFatal(e) =>
+        logger.warn(s"Error creating default model directory '${dir.getPath}', defaulting to '$tmpDir':", e)
+        System.setProperty(ExtraClasspathsEnv, tmpDir)
+    }
   }
 
   /**
