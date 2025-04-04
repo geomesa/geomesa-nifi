@@ -8,6 +8,7 @@
 
 package org.geomesa.nifi.datastore
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.components.resource.{ResourceCardinality, ResourceType}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationResult}
 import org.apache.nifi.expression.ExpressionLanguageScope
@@ -15,7 +16,12 @@ import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.Relationship
 import org.apache.nifi.processor.util.StandardValidators
 
-package object processor {
+import java.io.File
+import scala.util.control.NonFatal
+
+package object processor extends LazyLogging {
+
+  private val ExtraClasspathsEnv = "GEOMESA_EXTRA_CLASSPATHS"
 
   val ExtraClasspaths: PropertyDescriptor =
     new PropertyDescriptor.Builder()
@@ -26,8 +32,29 @@ package object processor {
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .dynamicallyModifiesClasspath(true)
         .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-        .defaultValue("${GEOMESA_EXTRA_CLASSPATHS}")
+        .defaultValue(s"$${$ExtraClasspathsEnv}")
         .build()
+
+  // there's no way to skip validation when using an env var for the default model dir, so we need to ensure
+  // that the directory exists
+  if (!sys.env.contains(ExtraClasspathsEnv) && !sys.props.contains(ExtraClasspathsEnv)) {
+    val defaultModelDir =
+      Seq(s"${sys.props("HOME")}/.nifi-models/", s"${sys.props("java.io.tmpdir")}/nifi-models/").find { path =>
+        val dir = new File(path)
+        try {
+          dir.exists() || dir.mkdirs()
+        } catch {
+          case NonFatal(e) =>
+            logger.warn(s"Error creating default model directory '${dir.getPath}':", e)
+            false
+        }
+      }
+    System.setProperty(ExtraClasspathsEnv, defaultModelDir.getOrElse {
+      val tmp = sys.props("java.io.tmpdir")
+      logger.warn(s"Unable to create default model directory, defaulting to '$tmp'")
+      tmp
+    })
+  }
 
   /**
    * Full name of a flow file
