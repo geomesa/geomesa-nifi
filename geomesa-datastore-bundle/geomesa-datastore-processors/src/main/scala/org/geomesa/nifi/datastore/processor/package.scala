@@ -9,50 +9,27 @@
 package org.geomesa.nifi.datastore
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.nifi.components.resource.{ResourceCardinality, ResourceType}
-import org.apache.nifi.components.{PropertyDescriptor, ValidationResult}
+import org.apache.nifi.components.resource.FileResourceReference
+import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult, Validator}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.Relationship
-import org.apache.nifi.processor.util.StandardValidators
 
 import java.io.File
-import scala.util.control.NonFatal
 
 package object processor extends LazyLogging {
-
-  private val ExtraClasspathsEnv = "GEOMESA_EXTRA_CLASSPATHS"
 
   val ExtraClasspaths: PropertyDescriptor =
     new PropertyDescriptor.Builder()
         .name("ExtraClasspaths")
         .required(false)
         .description("Add additional resources to the classpath")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        // use a custom validator instead of `identifiesExternalResource` so we can allow unset env vars
+        .addValidator(ExtraClasspathsValidator)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .dynamicallyModifiesClasspath(true)
-        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-        .defaultValue(s"$${$ExtraClasspathsEnv}")
+        .defaultValue("${GEOMESA_EXTRA_CLASSPATHS}")
         .build()
-
-  // there's no way to skip validation when using an env var for the default model dir, so we need to ensure
-  // that the directory exists
-  if (!sys.env.contains(ExtraClasspathsEnv) && !sys.props.contains(ExtraClasspathsEnv)) {
-    val tmpDir = sys.props("java.io.tmpdir")
-    val defaultModelDir = s"$tmpDir/nifi-models/"
-    val dir = new File(defaultModelDir)
-    try {
-      if (dir.exists() || dir.mkdirs()) {
-        System.setProperty(ExtraClasspathsEnv, defaultModelDir)
-      } else {
-        throw new RuntimeException(s"Could not create directory '$defaultModelDir'")
-      }
-    } catch {
-      case NonFatal(e) =>
-        logger.warn(s"Error creating default model directory '${dir.getPath}', defaulting to '$tmpDir':", e)
-        System.setProperty(ExtraClasspathsEnv, tmpDir)
-    }
-  }
 
   /**
    * Full name of a flow file
@@ -109,4 +86,34 @@ package object processor extends LazyLogging {
   }
 
   case class IngestResult(success: Long, failure: Long)
+
+  /**
+   * Validator for extra classpaths that ignores empty default values
+   */
+  private object ExtraClasspathsValidator extends Validator {
+    override def validate(subject: String, input: String, context: ValidationContext): ValidationResult = {
+      val expandedInput =
+        if (context.isExpressionLanguagePresent(input)) {
+          context.newPropertyValue(input).evaluateAttributeExpressions.getValue
+        } else {
+          Option(input).getOrElse("")
+        }
+      val errors = expandedInput.split(",").map(_.trim).filter(_.nonEmpty).flatMap { file =>
+        val reference = new FileResourceReference(new File(file))
+        if (reference.isAccessible) {
+          None
+        } else {
+          Some(reference.getLocation)
+        }
+      }
+
+      val result = new ValidationResult.Builder().input(input).subject(subject)
+      if (errors.isEmpty) {
+        result.valid(true).build()
+      } else {
+        val explanation = s"The specified resources do not exist or could not be accessed: ${errors.mkString(", ")}"
+        result.valid(false).explanation(explanation).build()
+      }
+    }
+  }
 }
