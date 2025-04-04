@@ -26,6 +26,7 @@ package object processor {
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .dynamicallyModifiesClasspath(true)
         .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
+        .defaultValue("${GEOMESA_EXTRA_CLASSPATHS}")
         .build()
 
   /**
