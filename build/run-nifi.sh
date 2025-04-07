@@ -97,7 +97,7 @@ if [[ -n "$controllerId" ]]; then
   tmp=$(mktemp)
   # update only processors, and only if have a DataStoreService
   jq --arg cid "$controllerId" '.rootGroup.processors[].properties |= if .DataStoreService? then .DataStoreService = $cid else . end' \
-    "$dir/build/docker/flow.json" > "$tmp" && mv "$tmp" "$dir/build/docker/flow.json"
+    "$dir/build/docker/flow.json" > "$tmp" && mv "$tmp" "$dir/build/docker/flow.json" && chmod 644 "$dir/build/docker/flow.json"
 else
   echo "WARN: No controller specified for $backend"
 fi
