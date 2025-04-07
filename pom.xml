@@ -456,6 +456,16 @@
                 <artifactId>gt-render</artifactId>
                 <version>${gt.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-metadata</artifactId>
+                <version>${gt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-epsg-wkt</artifactId>
+                <version>${gt.version}</version>
+            </dependency>
             <!--
                 `org.eclipse.emf` is a transitive dependency of gt-xsd-wfs, however the version number is
                 specified as `[2.15.0,3.0.0)`, which seems to intermittently trigger a maven bug.
