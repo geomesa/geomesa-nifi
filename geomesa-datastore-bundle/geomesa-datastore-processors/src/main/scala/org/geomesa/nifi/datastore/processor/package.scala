@@ -9,7 +9,7 @@
 package org.geomesa.nifi.datastore
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.nifi.components.resource.FileResourceReference
+import org.apache.nifi.components.resource.{FileResourceReference, ResourceCardinality, ResourceType}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult, Validator}
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
@@ -24,10 +24,10 @@ package object processor extends LazyLogging {
         .name("ExtraClasspaths")
         .required(false)
         .description("Add additional resources to the classpath")
-        // use a custom validator instead of `identifiesExternalResource` so we can allow unset env vars
         .addValidator(ExtraClasspathsValidator)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .dynamicallyModifiesClasspath(true)
+        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
         .defaultValue("${GEOMESA_EXTRA_CLASSPATHS}")
         .build()
 
