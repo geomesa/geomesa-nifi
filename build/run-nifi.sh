@@ -112,7 +112,7 @@ docker run --rm \
   -p 8443:8443 -p 8000:8000 \
   -e NIFI_WEB_HTTPS_HOST=0.0.0.0 \
   -e SINGLE_USER_CREDENTIALS_USERNAME=nifi \
-  -e SINGLE_USER_CREDENTIALS_PASSWORD=nifipassword \
+  -e SINGLE_USER_CREDENTIALS_PASSWORD=nifinifinifi \
   -e NIFI_SENSITIVE_PROPS_KEY=supersecretkey \
   -e NIFI_JVM_DEBUGGER=true \
   -v "$nar:/opt/nifi/nifi-current/nar_extensions/$(basename "$nar"):ro" "${extraNar[@]}" \
@@ -122,5 +122,7 @@ docker run --rm \
   -v "$dir/build/docker/logback.xml:/logback.xml:ro" \
   -v "$dir/build/docker/entrypoint.sh:/entrypoint.sh:ro" \
   -v "$dir/build/docker/ingest:/ingest:ro" \
+  -v "$dir/build/docker/models.jar:/opt/nifi/models/models.jar:ro" \
+  -e GEOMESA_EXTRA_CLASSPATHS=/opt/nifi/models \
   --entrypoint "/entrypoint.sh" \
   "apache/nifi:$nifiVersion"
