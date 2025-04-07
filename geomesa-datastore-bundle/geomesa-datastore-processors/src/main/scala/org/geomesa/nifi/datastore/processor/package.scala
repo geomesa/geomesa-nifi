@@ -17,13 +17,19 @@ import org.apache.nifi.processor.util.StandardValidators
 
 package object processor {
 
+  val EnvExpressionScope: ExpressionLanguageScope = {
+    try { ExpressionLanguageScope.valueOf("ENVIRONMENT") } catch {
+      case _: IllegalArgumentException => ExpressionLanguageScope.valueOf("VARIABLE_REGISTRY") // nifi 1.x back compatibility
+    }
+  }
+
   val ExtraClasspaths: PropertyDescriptor =
     new PropertyDescriptor.Builder()
         .name("ExtraClasspaths")
         .required(false)
         .description("Add additional resources to the classpath")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .expressionLanguageSupported(EnvExpressionScope)
         .dynamicallyModifiesClasspath(true)
         .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
         .build()

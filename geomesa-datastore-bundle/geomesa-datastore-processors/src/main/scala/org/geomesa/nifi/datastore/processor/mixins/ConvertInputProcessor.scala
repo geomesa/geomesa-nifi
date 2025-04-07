@@ -16,7 +16,6 @@ import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, Ge
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnShutdown, OnStopped}
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
@@ -197,7 +196,7 @@ object ConvertInputProcessor {
           .required(false)
           .description("Override the converter error mode behavior")
           .allowableValues(ErrorMode.LogErrors.toString, ErrorMode.RaiseErrors.toString, /*deprecated*/ "skip-bad-records")
-          .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+          .expressionLanguageSupported(EnvExpressionScope)
           .build()
 
     val ConverterMetricReporters: PropertyDescriptor =
