@@ -21,22 +21,20 @@ import org.testcontainers.utility.{DockerImageName, PathUtils}
 
 import java.io.{ByteArrayInputStream, File, FileOutputStream, InputStream}
 import java.nio.file.{Files, Path, Paths}
+import java.util.regex.Pattern
 
 class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContainer](image) {
 
   def this() = this(NiFiContainer.ImageName)
 
-  withExposedPorts(8080)
-  withEnv("NIFI_WEB_HTTP_HOST", "0.0.0.0")
-  withEnv("NIFI_WEB_HTTP_PORT", "8080")
+  withExposedPorts(8443)
   withEnv("SINGLE_USER_CREDENTIALS_USERNAME", "nifi")
   withEnv("SINGLE_USER_CREDENTIALS_PASSWORD", "nifipassword")
   withEnv("NIFI_SENSITIVE_PROPS_KEY", "supersecretkey")
-  waitingFor(Wait.forLogMessage(".*NiFi has started\\..*", 1))
+  waitingFor(Wait.forLogMessage(s".*${Pattern.quote(NiFiContainer.startupMessage(image))}.*", 1))
   withCreateContainerCmdModifier(cmd => cmd.withEntrypoint("/entrypoint.sh"))
 
   mountClasspathResource("docker/entrypoint.sh", "/entrypoint.sh", executable = true)
-  mountClasspathResource("docker/logback.xml", "/logback.xml")
   mountClasspathResource("docker/20180101000000.export.CSV", "/ingest/20180101000000.export.CSV")
 
   withNarByName("datastore-services-api")
@@ -79,8 +77,10 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
    * @param narHostPath path to the nar
    * @return
    */
-  def withNarByPath(narHostPath: String): NiFiContainer =
-    mountFile(narHostPath, s"/opt/nifi/nifi-current/extensions/${new File(narHostPath).getName}")
+  def withNarByPath(narHostPath: String): NiFiContainer = {
+    val extensions = if (image.getVersionPart.startsWith("1.")) { "extensions"} else { "nar_extensions"}
+    mountFile(narHostPath, s"/opt/nifi/nifi-current/$extensions/${new File(narHostPath).getName}")
+  }
 
   /**
    * Enables JVM remote debugging
@@ -143,7 +143,7 @@ object NiFiContainer extends LazyLogging {
 
   val ImageName =
     DockerImageName.parse("apache/nifi")
-        .withTag(sys.props.getOrElse("nifi.it.version", "1.28.1"))
+        .withTag(sys.props.getOrElse("nifi.it.version", "2.3.0"))
 
   // type names created by the default ingest flow
   val DefaultIngestTypes: Seq[String] = Seq("gdelt-nifi", "gdelt-nifi-avro", "gdelt-nifi-records")
@@ -172,6 +172,15 @@ object NiFiContainer extends LazyLogging {
     WithClose(new FileOutputStream(out.toFile))(IOUtils.copy(is, _))
     out
   }
+
+  /**
+   * Get the container startup message
+   *
+   * @param image image
+   * @return
+   */
+  def startupMessage(image: DockerImageName): String =
+    if (image.getVersionPart.startsWith("1.")) { "NiFi has started." } else { "Started Application in " }
 
   /**
    * Tries to find the path to a nar in this repository

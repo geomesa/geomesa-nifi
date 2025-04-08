@@ -43,6 +43,8 @@ jobs:
         run: mvn surefire:test $MAVEN_CLI_OPTS $MAVEN_TEST_OPTS
       - name: Integration Tests
         run: mvn failsafe:integration-test failsafe:verify $MAVEN_CLI_OPTS $MAVEN_TEST_OPTS
+      - name: Integration Tests (NiFi 1.x)
+        run: mvn failsafe:integration-test failsafe:verify -Dtest.nifi.docker.tag=1.28.1 $MAVEN_CLI_OPTS $MAVEN_TEST_OPTS
       - name: Remove GeoMesa artifacts
         run: |
           rm -rf ~/.m2/repository/org/geomesa/nifi

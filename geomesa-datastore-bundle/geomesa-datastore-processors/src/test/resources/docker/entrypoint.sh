@@ -14,7 +14,7 @@ fi
 # lower the administrative yield deadline, to decrease test time when failing due to e.g. feature types not yet being available
 sed -i s'/nifi.administrative.yield.duration=.*/nifi.administrative.yield.duration=1 sec/' /opt/nifi/nifi-current/conf/nifi.properties
 
-backend="$(ls /opt/nifi/nifi-current/extensions/geomesa-*.nar | grep -v "datastore-services" | head -n1 | sed 's/geomesa-//')"
+backend="$(find /opt/nifi/nifi-current/ -name "geomesa-*.nar" | grep -v "datastore-services" | head -n1 | sed 's/geomesa-//')"
 # these values are from the controller service UUIDs in the flow.json
 controllerId=""
 if [[ $backend =~ accumulo.* ]]; then
@@ -39,6 +39,15 @@ if [[ -n "$controllerId" ]]; then
 else
   echo "Could not find GeoMesa nar: $backend"
   exit 1
+fi
+
+if java --version | grep -qv ' 21.'; then
+  echo "Downloading Java 21"
+  curl -L 'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_x64_linux_hotspot_21.0.6_7.tar.gz' \
+    --output jdk21.tar.gz
+  tar -xf jdk21.tar.gz
+  export JAVA_HOME="$(pwd)/jdk-21.0.6+7"
+  export PATH="$JAVA_HOME/bin:$PATH"
 fi
 
 # delegate to the normal nifi entrypoint
