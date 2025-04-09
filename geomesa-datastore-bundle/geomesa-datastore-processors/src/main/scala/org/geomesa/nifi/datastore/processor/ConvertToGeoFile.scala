@@ -13,7 +13,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior._
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.OutputStreamCallback
@@ -242,7 +241,7 @@ object ConvertToGeoFile {
           .displayName("GZIP level")
           .description("Level of gzip compression to apply to output, from 1-9")
           .required(false)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(EnvironmentOrRegistry)
           .addValidator(GzipLevelValidator)
           .build()
 

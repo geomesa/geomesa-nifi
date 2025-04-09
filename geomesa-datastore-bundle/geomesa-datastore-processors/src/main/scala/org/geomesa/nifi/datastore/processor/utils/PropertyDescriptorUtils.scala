@@ -6,7 +6,8 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.utils
+package org.geomesa.nifi.datastore.processor
+package utils
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.components.PropertyDescriptor
@@ -60,7 +61,7 @@ trait PropertyDescriptorUtils extends LazyLogging {
     val sensitive =
       Option(param.metadata.get(Parameter.IS_PASSWORD).asInstanceOf[java.lang.Boolean]).exists(_.booleanValue)
     val expression = if (param.metadata.get(GeoMesaParam.SupportsNiFiExpressions) == java.lang.Boolean.TRUE) {
-      ExpressionLanguageScope.VARIABLE_REGISTRY
+      EnvironmentOrRegistry
     } else {
       ExpressionLanguageScope.NONE
     }

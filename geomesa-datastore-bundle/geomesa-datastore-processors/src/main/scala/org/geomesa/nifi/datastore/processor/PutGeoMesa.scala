@@ -13,7 +13,6 @@ import org.apache.nifi.annotation.behavior._
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult, Validator}
 import org.apache.nifi.context.PropertyContext
-import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
@@ -112,7 +111,7 @@ object PutGeoMesa {
             "Initialize schemas in the underlying data store when the processor is started. Schemas should be " +
                 "defined in standard Java properties format, with the type name as the key, and the feature type " +
                 "specification or lookup as the value")
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(EnvironmentOrRegistry)
           .addValidator(new InitSchemaValidator())
           .build()
   }

@@ -6,11 +6,11 @@
  * http://www.opensource.org/licenses/apache2.0.php.
  ***********************************************************************/
 
-package org.geomesa.nifi.datastore.processor.mixins
+package org.geomesa.nifi.datastore.processor
+package mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
-import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
@@ -142,7 +142,7 @@ object FeatureTypeProcessor {
           .required(false)
           .description("Override the Simple Feature Type name from the SFT Spec")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+          .expressionLanguageSupported(EnvironmentOrRegistry)
           .build()
   }
 

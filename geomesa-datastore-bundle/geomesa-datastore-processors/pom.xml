@@ -102,10 +102,6 @@
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -123,6 +119,12 @@
                     <artifactId>protobuf-java</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- provided by nifi standard nars -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- test -->
