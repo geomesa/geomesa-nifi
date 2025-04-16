@@ -67,6 +67,7 @@
         <commons.lang3.version>3.14.0</commons.lang3.version>
         <commons.net.version>3.10.0</commons.net.version>
         <commons.text.version>1.11.0</commons.text.version>
+        <commons.vfs2.version>2.10.0</commons.vfs2.version> <!-- managed to fix CVE-2025-27553 in accumulo 2.1-->
         <curator.version>5.6.0</curator.version>
         <fasterxml.jackson.version>2.18.3</fasterxml.jackson.version>
         <fasterxml.woodstox.version>5.4.0</fasterxml.woodstox.version>
@@ -548,6 +549,13 @@
                         <artifactId>checker-qual</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <!-- Manage accumulo 2.1 dependencies to more recent version -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-vfs2</artifactId>
+                <version>${commons.vfs2.version}</version>
             </dependency>
 
             <dependency>
