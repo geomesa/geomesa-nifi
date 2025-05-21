@@ -11,6 +11,10 @@ if [[ -f /logback.xml ]]; then
   cp /logback.xml /opt/nifi/nifi-current/conf/
 fi
 
+# handle difference in extensions directory between nifi 1.x and 2.x
+rm -r /opt/nifi/nifi-current/extensions
+ln -s /opt/nifi/nifi-current/nar_extensions /opt/nifi/nifi-current/extensions
+
 # allow debugging outside localhost
 sed -i 's/java.arg.debug=.*/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000/' /opt/nifi/nifi-current/conf/bootstrap.conf
 
