@@ -18,6 +18,11 @@ ln -s /opt/nifi/nifi-current/nar_extensions /opt/nifi/nifi-current/extensions
 # allow debugging outside localhost
 sed -i 's/java.arg.debug=.*/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000/' /opt/nifi/nifi-current/conf/bootstrap.conf
 
+if ! ls /opt/nifi/nifi-1* >/dev/null 2>&1 ; then
+  # required in nifi 2+ for hbase
+  echo "java.arg.30=--add-opens java.base/java.nio=ALL-UNNAMED" >> /opt/nifi/nifi-current/conf/bootstrap.conf
+fi
+
 if [[ -n "$NIFI_WEB_HTTP_PORT" ]]; then
   sed -i "s/nifi.web.http.host=.*/nifi.web.http.host=${NIFI_WEB_HTTP_HOST:-}/" /opt/nifi/nifi-current/conf/nifi.properties
   sed -i "s/nifi.web.http.port=.*/nifi.web.http.port=$NIFI_WEB_HTTP_PORT/" /opt/nifi/nifi-current/conf/nifi.properties
