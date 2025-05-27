@@ -65,11 +65,11 @@ git checkout "$TAG"
 RELEASE="$(readVersionFromPom "")"
 mkdir -p "$RELEASE"
 
-mvn clean deploy -Pcentral,python -DskipTests | tee build_2.12.log
+mvn clean deploy -Pcentral,python -DskipTests | tee "$RELEASE"/build_2.12.log
 copyReleaseArtifacts
 
 ./build/scripts/change-scala-version.sh 2.13
-mvn clean deploy -Pcentral,python -DskipTests | tee build_2.13.log
+mvn clean deploy -Pcentral,python -DskipTests | tee "$RELEASE"/build_2.13.log
 copyReleaseArtifacts
 
 # reset pom changes
