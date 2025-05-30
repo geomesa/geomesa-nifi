@@ -838,7 +838,7 @@
           "hbase.ranges.max-per-extended-scan": "100",
           "hbase.catalog": "geomesa",
           "geomesa.stats.enable": "true",
-          "hbase.config.xml": "<configuration>\n  <property>\n    <name>hbase.cluster.distributed</name>\n    <value>true</value>\n  </property>\n  <property>\n    <name>hbase.zookeeper.quorum</name>\n    <value>zookeeper.local:2181</value>\n  </property>\n  <property>\n    <name>dfs.client.use.datanode.hostname</name>\n    <value>true</value>\n  </property>\n</configuration>",
+          "hbase.config.xml": "<configuration>\n  <property>\n    <name>hbase.cluster.distributed</name>\n    <value>true</value>\n  </property>\n  <property>\n    <name>hbase.zookeeper.quorum</name>\n    <value>hbase.local:2181</value>\n  </property>\n  <property>\n    <name>dfs.client.use.datanode.hostname</name>\n    <value>true</value>\n  </property>\n</configuration>",
           "geomesa.security.auths.force-empty": "false",
           "hbase.security.enabled": "false",
           "geomesa.query.audit": "true"
