@@ -11,7 +11,6 @@ package org.geomesa.nifi.processors.accumulo
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.json.JsonTreeReader
-import org.apache.nifi.processor.Processor
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.schema.inference.SchemaInferenceUtil
 import org.apache.nifi.util.{TestRunner, TestRunners}
@@ -677,6 +676,54 @@ class PutGeoMesaAccumuloTest extends Specification with LazyLogging {
       } finally {
         runner.shutdown()
       }
+    }
+
+    "AppendThenUpdateIngestWithCaching" in {
+      val catalog = nextCatalog()
+      val runner = TestRunners.newTestRunner(new PutGeoMesa())
+
+      def checkResults(ages: Seq[Int], dates: Seq[Date], geoms: Seq[String]): MatchResult[Any] = {
+        val ds = DataStoreFinder.getDataStore((dsParams + (AccumuloDataStoreParams.CatalogParam.key -> catalog)).asJava)
+        ds must not(beNull)
+        try {
+          val sft = ds.getSchema("example")
+          sft must not(beNull)
+          val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+          logger.debug(features.mkString(";"))
+          features must haveLength(3)
+          features.map(_.getID) mustEqual Seq("23623", "26236", "3233")
+          features.map(_.getAttribute("name")) mustEqual Seq("Harry", "Hermione", "Severus")
+          features.map(_.getAttribute("age")) mustEqual ages
+          features.map(_.getAttribute("dtg")) mustEqual dates
+          features.map(_.getAttribute("geom").toString) mustEqual geoms
+        } finally {
+          ds.dispose()
+        }
+      }
+
+      val df = new SimpleDateFormat("yyyy-MM-dd")
+      try {
+        configureAccumuloService(runner, catalog)
+        runner.setProperty(FeatureTypeProcessor.Properties.SftNameKey, "example")
+        runner.setProperty(ConvertInputProcessor.Properties.ConverterNameKey, "example-csv")
+        runner.setProperty(DataStoreIngestProcessor.Properties.WriteMode, "${geomesa.write.mode}")
+        runner.setProperty(DataStoreIngestProcessor.Properties.ModifyAttribute, "${geomesa.update.attribute}")
+        runner.setProperty(DataStoreIngestProcessor.Properties.FeatureWriterCaching, "true")
+        runner.enqueue(getClass.getClassLoader.getResourceAsStream("example.csv"))
+        runner.enqueue(
+          getClass.getClassLoader.getResourceAsStream("example-update-3.csv"),
+          Map("geomesa.write.mode" -> "modify", "geomesa.update.attribute" -> "name").asJava)
+        runner.run(2)
+        runner.assertTransferCount(Relationships.SuccessRelationship, 2)
+        runner.assertTransferCount(Relationships.FailureRelationship, 0)
+      } finally {
+        runner.shutdown()
+      }
+      checkResults(
+        Seq(21, 26, 31),
+        Seq("2016-05-06", "2016-06-07", "2016-10-23").map(df.parse),
+        Seq("POINT (-100.2365 24)", "POINT (40.232 -52.2356)", "POINT (3 -61.23)")
+      )
     }
 
     "UpdateRecord" in {

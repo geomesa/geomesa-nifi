@@ -11,15 +11,13 @@ package mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import org.apache.nifi.annotation.lifecycle._
-import org.apache.nifi.components.{PropertyDescriptor, PropertyValue}
+import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.util.FormatUtils
 import org.geomesa.nifi.datastore.processor.CompatibilityMode.CompatibilityMode
-import org.geomesa.nifi.datastore.processor.mixins.DataStoreIngestProcessor.DynamicWriters
-import org.geomesa.nifi.datastore.processor.mixins.FeatureWriters.SimpleWriter
 import org.geomesa.nifi.datastore.processor.validators.WriteModeValidator
 import org.geomesa.nifi.datastore.services.DataStoreService
 import org.geotools.api.data._
@@ -72,7 +70,7 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
         DataStoreIngestProcessor.ModifyMode.equalsIgnoreCase(value)
       }
       if (mode.isExpressionLanguagePresent || (modify && attr.isExpressionLanguagePresent)) {
-        new DynamicWriters(service, mode, attr, cacheTimeout)
+        FeatureWriters.dynamic(service, mode, attr, cacheTimeout)
       } else if (modify) {
         val attribute = Option(attr.evaluateAttributeExpressions(Collections.emptyMap[String, String]).getValue)
         FeatureWriters.modifier(service, attribute)
@@ -310,54 +308,8 @@ trait DataStoreIngestProcessor extends DataStoreProcessor {
 
 object DataStoreIngestProcessor {
 
-  import scala.collection.JavaConverters._
-
   val AppendMode = "append"
   val ModifyMode = "modify"
-
-  /**
-   * Dynamically creates append or modify writers based on flow file attributes
-   *
-   * @param service data store service
-   * @param mode write mode property value
-   * @param attribute identifying attribute property value
-   * @param caching timeout for caching in millis
-   */
-  class DynamicWriters(service: DataStoreService, mode: PropertyValue, attribute: PropertyValue, caching: Option[Long])
-      extends FeatureWriters {
-
-    private val appender = FeatureWriters.appender(service, caching)
-
-    private val modifiers = Caffeine.newBuilder().build[Option[String], FeatureWriters](
-      new CacheLoader[Option[String], FeatureWriters] {
-        override def load(k: Option[String]): FeatureWriters = FeatureWriters.modifier(service, k)
-      }
-    )
-
-    override def borrow[T](typeName: String, file: FlowFile)(fn: SimpleWriter => T): T = {
-      mode.evaluateAttributeExpressions(file).getValue match {
-        case m if m == null || m.isEmpty || m.equalsIgnoreCase(AppendMode) =>
-          appender.borrow(typeName, file)(fn)
-
-        case m if m.equalsIgnoreCase(ModifyMode) =>
-          val attr = Option(attribute.evaluateAttributeExpressions(file).getValue)
-          modifiers.get(attr).borrow(typeName, file)(fn)
-
-        case m =>
-          throw new IllegalArgumentException(s"Invalid value for ${Properties.WriteMode.getName}: $m")
-      }
-    }
-
-    override def invalidate(typeName: String): Unit = {
-      appender.invalidate(typeName)
-      modifiers.asMap().asScala.values.foreach(_.invalidate(typeName))
-    }
-
-    override def close(): Unit = {
-      CloseWithLogging(appender)
-      CloseWithLogging(modifiers.asMap().asScala.values)
-    }
-  }
 
   /**
    * Processor configuration properties

@@ -88,9 +88,10 @@
         <reload4j.version>1.2.25</reload4j.version>
 
         <!-- testing -->
-        <specs2.version>4.20.5</specs2.version>
+        <specs2.version>4.21.0</specs2.version>
         <junit.version>4.13.2</junit.version>
-        <junit.jupiter.version>5.9.3</junit.jupiter.version>
+        <junit.jupiter.version>5.13.3</junit.jupiter.version>
+        <junit.platform.version>1.13.3</junit.platform.version>
         <testcontainers.version>1.20.3</testcontainers.version>
         <testcontainers.accumulo.version>1.4.1</testcontainers.accumulo.version>
 
@@ -122,7 +123,7 @@
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
-        <maven-surefire-plugin.version>3.2.3</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
         <nifi-nar-maven-plugin.version>2.1.0</nifi-nar-maven-plugin.version>
         <scala-maven-plugin.version>4.9.2</scala-maven-plugin.version>
 
@@ -1179,6 +1180,12 @@
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
                 <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-commons</artifactId>
+                <version>${junit.platform.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
