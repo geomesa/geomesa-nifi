@@ -9,12 +9,11 @@
 package org.geomesa.nifi.datastore.processor
 package mixins
 
-import com.codahale.metrics.Counter
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
 import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
-import org.apache.nifi.annotation.lifecycle.{OnRemoved, OnShutdown, OnStopped}
+import org.apache.nifi.annotation.lifecycle._
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -22,13 +21,14 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCacheKey
 import org.geomesa.nifi.datastore.processor.validators.{ConverterMetricsValidator, ConverterValidator}
+import org.geomesa.nifi.datastore.services.MetricsRegistryService
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 
-import java.io.InputStream
+import java.io.{Closeable, InputStream}
 import scala.util.control.NonFatal
 
 /**
@@ -41,6 +41,8 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
   import ConvertInputProcessor.{ConverterCallback, ConverterPool}
 
   import scala.collection.JavaConverters._
+
+  private var metricsRegistry: Closeable = _
 
   private var converterName: PropertyDescriptor = _
 
@@ -78,7 +80,25 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
   override protected def getSecondaryProperties: Seq[PropertyDescriptor] = {
     converterName = ConvertInputProcessor.Properties.converterName(ConverterConfigLoader.listConverterNames)
     super.getSecondaryProperties ++
-        Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes, ConverterMetricReporters)
+        Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes, ConverterMetricsRegistry, ConverterMetricReporters)
+  }
+
+  // noinspection ScalaUnusedSymbol
+  @OnScheduled
+  def registerMetrics(context: ProcessContext): Unit = {
+    val service = context.getProperty(ConverterMetricsRegistry).asControllerService(classOf[MetricsRegistryService])
+    if (service != null) {
+      metricsRegistry = service.register()
+    }
+  }
+
+  // noinspection ScalaUnusedSymbol
+  @OnStopped
+  def deregisterMetrics(context: ProcessContext): Unit = {
+    if (metricsRegistry != null) {
+      metricsRegistry.close()
+      metricsRegistry = null
+    }
   }
 
   protected def convert(
@@ -117,22 +137,22 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
         }
       }
       // create new counters so we don't use any shared state
-      val ec = converter.createEvaluationContext(globalParams, new Counter(), new Counter())
+      val ec = converter.createEvaluationContext(globalParams)
+      var failed = 0L
       session.read(file, new InputStreamCallback {
         override def process(in: InputStream): Unit = {
           WithClose(converter.process(in, ec)) { iter =>
-            val failed = callback.apply(iter)
-            ec.success.inc(failed * -1)
-            ec.failure.inc(failed)
+            failed += callback.apply(iter)
           }
         }
       })
-      IngestResult(ec.success.getCount, ec.failure.getCount)
+      IngestResult(ec.stats.success(0) - failed, ec.stats.failure(0) + failed)
     } finally {
       converters.returnObject(converter)
     }
   }
 
+  // noinspection ScalaUnusedSymbol
   @OnRemoved
   @OnStopped
   @OnShutdown
@@ -199,11 +219,21 @@ object ConvertInputProcessor {
           .expressionLanguageSupported(EnvironmentOrRegistry)
           .build()
 
+    val ConverterMetricsRegistry: PropertyDescriptor =
+      new PropertyDescriptor.Builder()
+        .name("ConverterMetricsRegistry")
+        .required(false)
+        .description("Select a registry for publishing converter metrics")
+        .identifiesControllerService(classOf[MetricsRegistryService])
+        .build()
+
+    @deprecated("Use ConveterMetricsRegistry")
     val ConverterMetricReporters: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("ConverterMetricReporters")
+          .displayName("ConverterMetricReporters (deprecated)")
           .required(false)
-          .description("Override the converter metrics reporters")
+          .description("Override the converter metrics reporters. This property is deprecated - use ConverterMetricsRegistry instead")
           .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
           .addValidator(ConverterMetricsValidator)
           .build()

@@ -109,7 +109,7 @@ echo ""
 docker run --rm \
   --name nifi \
   --network geomesa \
-  -p 8081:8081 -p 8000:8000 \
+  -p 8081:8081 -p 8000:8000 -p 9090:9090 \
   -e NIFI_WEB_HTTP_HOST=0.0.0.0 \
   -e NIFI_WEB_HTTP_PORT=8081 \
   -e SINGLE_USER_CREDENTIALS_USERNAME=nifi \

@@ -1,1 +1,2 @@
 org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory
+org.geomesa.nifi.datastore.processor.service.PrometheusRegistryService

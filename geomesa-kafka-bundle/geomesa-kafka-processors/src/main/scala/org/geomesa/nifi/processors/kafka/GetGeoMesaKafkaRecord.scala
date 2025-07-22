@@ -8,6 +8,7 @@
 
 package org.geomesa.nifi.processors.kafka
 
+import io.micrometer.core.instrument.{Counter, Metrics}
 import org.apache.commons.codec.digest.MurmurHash3
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
@@ -26,6 +27,7 @@ import org.geomesa.nifi.datastore.processor.records.Properties.GeometrySerializa
 import org.geomesa.nifi.datastore.processor.records.{Expressions, GeometryEncoding, SimpleFeatureConverterOptions, SimpleFeatureRecordConverter}
 import org.geomesa.nifi.datastore.processor.service.GeoMesaDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
+import org.geomesa.nifi.datastore.services.MetricsRegistryService
 import org.geotools.api.feature.`type`.GeometryDescriptor
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.features.exporters.DelimitedExporter
@@ -33,6 +35,7 @@ import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
 import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreFactory, KafkaDataStoreParams}
 import org.locationtech.geomesa.kafka.utils.{GeoMessage, GeoMessageProcessor}
+import org.locationtech.geomesa.metrics.micrometer.MetricsTags
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeDescriptor
 import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
@@ -74,6 +77,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   private var maxLatencyMillis: Option[Long] = None
   private var factory: RecordSetWriterFactory = _
   private var consumer: Closeable = _
+  private var metricsRegistry: Closeable = _
+  private var consumed: Counter = _
 
   private val processor = new RecordProcessor()
 
@@ -91,6 +96,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = descriptors.asJava
 
   @OnScheduled
+  // noinspection ScalaUnusedSymbol
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
 
@@ -168,10 +174,16 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       converter = SimpleFeatureRecordConverter(sft, opts)
       schema = factory.getSchema(Collections.emptyMap(), converter.schema)
       consumer = ds.createConsumer(typeName, groupId, processor)
+      val tags = MetricsTags.typeNameTag(sft.getTypeName)
+      consumed = Metrics.counter("geomesa.kafka.nifi.records.consumed", tags)
     } finally {
       CloseWithLogging(ds)
     }
 
+    val service = context.getProperty(MetricsRegistry).asControllerService(classOf[MetricsRegistryService])
+    if (service != null) {
+      metricsRegistry = service.register()
+    }
     logger.info("Initialized datastore for Kafka ingress")
   }
 
@@ -233,6 +245,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   @OnRemoved
   @OnStopped
   @OnShutdown
+  // noinspection ScalaUnusedSymbol
   def cleanup(): Unit = {
     logger.info("Processor shutting down")
     val start = System.currentTimeMillis()
@@ -240,10 +253,14 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       CloseWithLogging(consumer)
       consumer = null
     }
+    if (metricsRegistry != null) {
+      CloseWithLogging(metricsRegistry)
+      metricsRegistry = null
+    }
     logger.info(s"Shut down in ${System.currentTimeMillis() - start}ms")
   }
 
-  class RecordProcessor extends GeoMessageProcessor {
+  private class RecordProcessor extends GeoMessageProcessor {
 
     // synchronous queues for passing data to onTrigger and back
     val ready = new SynchronousQueue[Seq[SimpleFeature]]()
@@ -280,6 +297,7 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
       } else {
         // commit offsets since we've successfully processed the messages
         lastSuccess = System.currentTimeMillis()
+        consumed.increment(features.size)
         BatchResult.Commit
       }
     }
@@ -401,6 +419,15 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
         .defaultValue("1 second")
         .build()
 
+  val MetricsRegistry: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+      .name("metrics-registry")
+      .displayName("Metrics Registry")
+      .required(false)
+      .description("Select a registry for publishing Kafka metrics")
+      .identifiesControllerService(classOf[MetricsRegistryService])
+      .build()
+
   val ProcessorDescriptors: Seq[PropertyDescriptor] = Seq(
     createPropertyDescriptor(KafkaDataStoreParams.Brokers),
     createPropertyDescriptor(KafkaDataStoreParams.Catalog),
@@ -419,7 +446,8 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     PollTimeout,
     InitialOffset,
     createPropertyDescriptor(KafkaDataStoreParams.ConsumerCount),
-    createPropertyDescriptor(KafkaDataStoreParams.ConsumerConfig)
+    createPropertyDescriptor(KafkaDataStoreParams.ConsumerConfig),
+    MetricsRegistry,
   )
 
   /**
@@ -427,7 +455,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
    *
    * @param sft simple feature type
    */
-  class IdGenerator(sft: SimpleFeatureType) {
+  private class IdGenerator(sft: SimpleFeatureType) {
 
     private val stream = new ByteArrayOutputStream()
 
@@ -447,7 +475,7 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
     }
   }
 
-  class ErrorHolder {
+  private class ErrorHolder {
     private var errors = 0
     private var err: Throwable = _
 
