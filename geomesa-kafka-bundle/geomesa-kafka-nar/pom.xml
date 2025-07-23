@@ -91,6 +91,10 @@
                     <groupId>org.apache.kafka</groupId>
                     <artifactId>kafka-clients</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.locationtech.geomesa</groupId>
+                    <artifactId>geomesa-metrics-micrometer_${scala.binary.version}</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>

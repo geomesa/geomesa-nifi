@@ -54,7 +54,7 @@ class PutGeoMesa extends DataStoreIngestProcessor with ConvertInputProcessor {
       mode: CompatibilityMode): IngestProcessor = {
     val ingest = new ConverterIngest(service, writers, mode)
     // due to validation, should be all Rights
-    ingest.init(PutGeoMesa.initSchemas(context).map { case Right(sft) => sft })
+    ingest.init(PutGeoMesa.initSchemas(context).collect { case Right(sft) => sft })
     ingest
   }
 

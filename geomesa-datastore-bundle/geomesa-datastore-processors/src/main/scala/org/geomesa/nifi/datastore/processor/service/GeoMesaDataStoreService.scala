@@ -140,7 +140,7 @@ object GeoMesaDataStoreService {
 
   def tryGetDataStore[T <: DataStoreFactorySpi: ClassTag](params: java.util.Map[String, _]): Try[DataStore] = {
     Try {
-      val factory = implicitly[ClassTag[T]].runtimeClass.newInstance().asInstanceOf[T]
+      val factory = implicitly[ClassTag[T]].runtimeClass.getDeclaredConstructor().newInstance().asInstanceOf[T]
       val store = factory.createDataStore(params.asInstanceOf[java.util.Map[String, java.io.Serializable]])
       if (store == null) {
         throw new IllegalArgumentException("Could not load datastore using provided parameters")

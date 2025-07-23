@@ -4,13 +4,12 @@
     "minorVersion": 0
   },
   "maxTimerDrivenThreadCount": 10,
-  "maxEventDrivenThreadCount": 1,
   "registries": [],
   "parameterContexts": [],
   "parameterProviders": [],
   "controllerServices": [],
   "reportingTasks": [],
-  "templates": [],
+  "flowAnalysisRules": [],
   "rootGroup": {
     "identifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
     "instanceIdentifier": "97534f9d-0185-1000-3cca-c949215f99ff",
@@ -46,7 +45,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-nar",
-              "version": "1.28.1"
+              "version": "2.4.0"
             },
             "properties": {
               "Move Conflict Strategy": "Rename",
@@ -91,7 +90,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-nar",
-              "version": "1.28.1"
+              "version": "2.4.0"
             },
             "properties": {
               "Minimum File Age": "0 sec",
@@ -144,7 +143,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-update-attribute-nar",
-              "version": "1.28.1"
+              "version": "2.4.0"
             },
             "properties": {
               "Store State": "Do not store state",
@@ -189,6 +188,7 @@
             "concurrentlySchedulableTaskCount": 1,
             "scheduledState": "RUNNING",
             "allowRemoteAccess": false,
+            "portFunction": "STANDARD",
             "componentType": "OUTPUT_PORT",
             "groupIdentifier": "9cfc0c93-732b-30fb-a97f-c3cee4240484"
           }
@@ -305,10 +305,13 @@
         "labels": [],
         "funnels": [],
         "controllerServices": [],
-        "variables": {},
         "defaultFlowFileExpiration": "0 sec",
         "defaultBackPressureObjectThreshold": 10000,
         "defaultBackPressureDataSizeThreshold": "1 GB",
+        "scheduledState": "ENABLED",
+        "executionEngine": "INHERITED",
+        "maxConcurrentTasks": 1,
+        "statelessFlowTimeout": "1 min",
         "flowFileConcurrency": "UNBOUNDED",
         "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
         "componentType": "PROCESS_GROUP",
@@ -330,7 +333,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.1.0"
+          "version": "5.4.0-SNAPSHOT"
         },
         "properties": {
           "geometry-cols": "${geomesa.geometry.cols}",
@@ -384,13 +387,14 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.1.0"
+          "version": "5.4.0-SNAPSHOT"
         },
         "properties": {
           "write-mode": "append",
           "ConvertFlowFileAttributes": "false",
           "SftUserData": "${geomesa.sft.user-data}",
           "schema-compatibility": "Existing",
+          "ConverterMetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762",
           "FeatureWriterCaching": "false",
           "DataStoreService": "",
           "FeatureNameOverride": "gdelt-nifi",
@@ -431,12 +435,13 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.1.0"
+          "version": "5.4.0-SNAPSHOT"
         },
         "properties": {
           "output-format": "avro",
           "ConvertFlowFileAttributes": "false",
           "SftUserData": "${geomesa.sft.user-data}",
+          "ConverterMetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762",
           "include-headers": "true"
         },
         "propertyDescriptors": {},
@@ -474,7 +479,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-datastore-services-nar_2.12",
-          "version": "5.1.0"
+          "version": "5.4.0-SNAPSHOT"
         },
         "properties": {
           "write-mode": "append",
@@ -717,7 +722,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-kafka-nar_2.12",
-          "version": "5.1.0"
+          "version": "5.4.0-SNAPSHOT"
         },
         "properties": {
           "kafka.brokers": "kafka.local:9092",
@@ -745,6 +750,38 @@
         "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
       },
       {
+        "identifier": "5723c5b0-a1df-3c97-a5da-3bfb325122de",
+        "instanceIdentifier": "2d5d6fb9-0198-1000-b090-2381746ef762",
+        "name": "PrometheusRegistryService",
+        "comments": "",
+        "type": "org.geomesa.nifi.datastore.processor.service.PrometheusRegistryService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-datastore-services-nar_2.12",
+          "version": "5.4.0-SNAPSHOT"
+        },
+        "properties": {
+          "port": "9090",
+          "rename": "true",
+          "application.name": "nifi"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.MetricsRegistryService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.4.0-SNAPSHOT"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
         "identifier": "638d3ed8-e9bb-3610-b0be-c5f43e84e008",
         "instanceIdentifier": "fc22d5f1-0191-1000-be30-83c32fec8803",
         "name": "ConfluentKafkaDataStoreService",
@@ -753,7 +790,7 @@
         "bundle": {
           "group": "org.geomesa.nifi",
           "artifact": "geomesa-kafka-nar_2.12",
-          "version": "5.1.0"
+          "version": "5.4.0-SNAPSHOT"
         },
         "properties": {
           "kafka.brokers": "kafka.local:9092",
@@ -769,7 +806,7 @@
             "bundle": {
               "group": "org.geomesa.nifi",
               "artifact": "geomesa-datastore-services-api-nar_2.12",
-              "version": "5.1.0-SNAPSHOT"
+              "version": "5.4.0-SNAPSHOT"
             }
           }
         ],
@@ -868,7 +905,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "1.28.1"
+          "version": "2.4.0"
         },
         "properties": {
           "ignore-csv-header": "false",
@@ -894,7 +931,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "1.28.1"
+              "version": "2.4.0"
             }
           }
         ],
@@ -1033,10 +1070,13 @@
         "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
       }
     ],
-    "variables": {},
     "defaultFlowFileExpiration": "0 sec",
     "defaultBackPressureObjectThreshold": 10000,
     "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
     "flowFileConcurrency": "UNBOUNDED",
     "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
     "componentType": "PROCESS_GROUP"
