@@ -95,8 +95,8 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
   override def getRelationships: java.util.Set[Relationship] = relationships.asJava
   override def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = descriptors.asJava
 
-  @OnScheduled
   // noinspection ScalaUnusedSymbol
+  @OnScheduled
   def initialize(context: ProcessContext): Unit = {
     logger.info("Initializing")
 
@@ -242,10 +242,10 @@ class GetGeoMesaKafkaRecord extends AbstractProcessor {
     }
   }
 
+  // noinspection ScalaUnusedSymbol
   @OnRemoved
   @OnStopped
   @OnShutdown
-  // noinspection ScalaUnusedSymbol
   def cleanup(): Unit = {
     logger.info("Processor shutting down")
     val start = System.currentTimeMillis()

@@ -31,6 +31,7 @@ class PrometheusRegistryService extends AbstractControllerService with MetricsRe
 
   override def register(): Closeable = {
     val ref = PrometheusSetup.register(port, application, rename)
+    // keep track of the refs we create, just in case the calling class doesn't dispose of it correctly
     val closeable = new Closeable {
       override def close(): Unit = {
         ref.close()
@@ -41,16 +42,16 @@ class PrometheusRegistryService extends AbstractControllerService with MetricsRe
     closeable
   }
 
-  @OnEnabled
   // noinspection ScalaUnusedSymbol
+  @OnEnabled
   def onEnabled(context: ConfigurationContext): Unit = {
     application = context.getProperty(ApplicationTagProperty).evaluateAttributeExpressions().getValue
     port = context.getProperty(PortProperty).evaluateAttributeExpressions().asInteger
     rename = context.getProperty(RenameProperty).evaluateAttributeExpressions().asBoolean
   }
 
-  @OnDisabled
   // noinspection ScalaUnusedSymbol
+  @OnDisabled
   def onDisabled(): Unit = {
     // copy so we don't get ConcurrentModificationExceptions when refs get removed in the close method
     CloseWithLogging(Seq(references.asScala.toList: _*))
