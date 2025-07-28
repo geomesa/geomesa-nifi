@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "[dependabot] "
+    groups:
+      actions:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "[dependabot] "
+    allow:
+      - dependency-name: "org.apache.maven.plugins:*"
+      - dependency-name: "com.mycila:license-maven-plugin"
+      - dependency-name: "org.apache.nifi:nifi-nar-maven-plugin"
+      - dependency-name: "org.codehaus.mojo:build-helper-maven-plugin"
+      - dependency-name: "org.sonatype.central:central-publishing-maven-plugin"
+    groups:
+      plugins:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
