@@ -27,7 +27,7 @@
         "comments": "",
         "position": {
           "x": 640,
-          "y": 192
+          "y": 240
         },
         "processGroups": [],
         "remoteProcessGroups": [],
@@ -45,7 +45,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-nar",
-              "version": "2.4.0"
+              "version": "2.5.0"
             },
             "properties": {
               "Move Conflict Strategy": "Rename",
@@ -90,7 +90,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-nar",
-              "version": "2.4.0"
+              "version": "2.5.0"
             },
             "properties": {
               "Minimum File Age": "0 sec",
@@ -143,7 +143,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-update-attribute-nar",
-              "version": "2.4.0"
+              "version": "2.5.0"
             },
             "properties": {
               "Store State": "Do not store state",
@@ -348,7 +348,7 @@
           "feature-id-col": "${geomesa.id.col}",
           "geometry-serialization": "WKT",
           "record-reader": "155fbf70-018e-1000-7970-f4a7ce550532",
-          "DataStoreService": "",
+          "DataStoreService": "2c5d6203-018f-1000-003a-006a3c9f3f7c",
           "FeatureWriterCacheTimeout": "5 minutes",
           "default-date-col": "${geomesa.default.dtg.col}"
         },
@@ -366,6 +366,57 @@
           "success",
           "failure"
         ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "cd4d125c-b53b-30bd-b029-3874c2f13b37",
+        "instanceIdentifier": "535c9623-0198-1000-1067-b0a837729a06",
+        "name": "GetGeoMesaKafkaRecord",
+        "comments": "",
+        "position": {
+          "x": 144,
+          "y": 256
+        },
+        "type": "org.geomesa.nifi.processors.kafka.GetGeoMesaKafkaRecord",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-kafka-nar_2.12",
+          "version": "5.4.0-SNAPSHOT"
+        },
+        "properties": {
+          "include-user-data": "false",
+          "consumer-poll-timeout": "1 second",
+          "record-writer": "535e5a59-0198-1000-712e-4edbe07c170d",
+          "record-max-batch-size": "10000",
+          "include-visibilities": "true",
+          "kafka-initial-offset": "earliest",
+          "record-min-batch-size": "1",
+          "kafka.zk.path": "geomesa/ds/kafka",
+          "type-name": "gdelt-nifi",
+          "kafka.brokers": "kafka.local:9092",
+          "kafka-group-id": "nifi-test",
+          "kafka.catalog.topic": "geomesa-catalog",
+          "geometry-serialization": "WKT",
+          "kafka.consumer.count": "1",
+          "replace-fids": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
         "scheduledState": "RUNNING",
         "retryCount": 10,
         "retriedRelationships": [],
@@ -429,7 +480,7 @@
         "comments": "",
         "position": {
           "x": 296,
-          "y": 448
+          "y": 456
         },
         "type": "org.geomesa.nifi.datastore.processor.ConvertToGeoFile",
         "bundle": {
@@ -518,6 +569,47 @@
     "outputPorts": [],
     "connections": [
       {
+        "identifier": "7f53fd65-ad6d-390c-85b4-ca93670a2866",
+        "instanceIdentifier": "535f6a48-0198-1000-449e-946af3efc7c9",
+        "name": "",
+        "source": {
+          "id": "cd4d125c-b53b-30bd-b029-3874c2f13b37",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "GetGeoMesaKafkaRecord",
+          "comments": "",
+          "instanceIdentifier": "535c9623-0198-1000-1067-b0a837729a06"
+        },
+        "destination": {
+          "id": "fcbe156e-fe4a-3ca7-a09c-623be9778739",
+          "type": "PROCESSOR",
+          "groupId": "7fcc5237-c8cb-35a7-9a71-46c878f10c40",
+          "name": "AvroToPutGeoMesa",
+          "comments": "",
+          "instanceIdentifier": "155debbf-018e-1000-ba1c-eff04813c1b0"
+        },
+        "labelIndex": 0,
+        "zIndex": 1,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [
+          {
+            "x": 240,
+            "y": 616
+          }
+        ],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
         "identifier": "0357d403-ffdb-35a9-b166-f66f057a6a5a",
         "instanceIdentifier": "155e14de-018e-1000-16b0-407fe7ce7eb4",
         "name": "",
@@ -584,7 +676,7 @@
         "bends": [
           {
             "x": 1192,
-            "y": 408
+            "y": 424
           }
         ],
         "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
@@ -624,7 +716,7 @@
         "bends": [
           {
             "x": 472,
-            "y": 408
+            "y": 424
           }
         ],
         "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
@@ -732,6 +824,46 @@
           "kafka.serialization.type": "kryo",
           "kafka.zk.path": "geomesa/ds/kafka",
           "kafka.topic.partitions": "1"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
+            "bundle": {
+              "group": "org.geomesa.nifi",
+              "artifact": "geomesa-datastore-services-api-nar_2.12",
+              "version": "5.4.0-SNAPSHOT"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "207c8fa2-06b4-372f-9cee-f7baa154a6ea",
+        "instanceIdentifier": "77eae734-0192-1000-bb87-a0c7a79a2b34",
+        "name": "RedisDataStoreService",
+        "comments": "",
+        "type": "org.geomesa.nifi.processors.redis.RedisDataStoreService",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-redis-nar_2.12",
+          "version": "5.0.0"
+        },
+        "properties": {
+          "redis.pipeline.enabled": "false",
+          "geomesa.query.threads": "8",
+          "geomesa.query.loose-bounding-box": "false",
+          "redis.connection.pool.validate": "true",
+          "redis.url": "redis:6379",
+          "redis.catalog": "geomesa",
+          "geomesa.stats.enable": "true",
+          "redis.connection.timeout": "2000 milliseconds",
+          "geomesa.security.auths.force-empty": "false",
+          "geomesa.query.audit": "true",
+          "redis.connection.pool.size": "16"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -848,6 +980,42 @@
               "group": "org.geomesa.nifi",
               "artifact": "geomesa-datastore-services-api-nar_2.12",
               "version": "5.1.0"
+            }
+          }
+        ],
+        "scheduledState": "ENABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
+      },
+      {
+        "identifier": "64ae39d4-0c90-31fd-807d-0366e3622b17",
+        "instanceIdentifier": "535e5a59-0198-1000-712e-4edbe07c170d",
+        "name": "GeoAvroRecordSetWriterFactory",
+        "comments": "",
+        "type": "org.geomesa.nifi.datastore.processor.records.GeoAvroRecordSetWriterFactory",
+        "bundle": {
+          "group": "org.geomesa.nifi",
+          "artifact": "geomesa-datastore-services-nar_2.12",
+          "version": "5.4.0-SNAPSHOT"
+        },
+        "properties": {
+          "geometry-cols": "${geomesa.geometry.cols}",
+          "visibilities-col": "${geomesa.visibilities.col}",
+          "schema-user-data": "${geomesa.sft.user-data}",
+          "json-cols": "${geomesa.json.cols}",
+          "feature-id-col": "${geomesa.id.col}",
+          "geometry-serialization": "WKB",
+          "default-date-col": "${geomesa.default.dtg.col}"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.apache.nifi.serialization.RecordSetWriterFactory",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-standard-services-api-nar",
+              "version": "2.5.0"
             }
           }
         ],
@@ -1012,46 +1180,6 @@
           "fs.config.xml": "<configuration><property><name>dfs.client.use.datanode.hostname</name><value>true</value></property></configuration>",
           "fs.encoding": "parquet",
           "fs.writer.partition.timeout": "1 minute"
-        },
-        "propertyDescriptors": {},
-        "controllerServiceApis": [
-          {
-            "type": "org.geomesa.nifi.datastore.services.DataStoreService",
-            "bundle": {
-              "group": "org.geomesa.nifi",
-              "artifact": "geomesa-datastore-services-api-nar_2.12",
-              "version": "5.0.0"
-            }
-          }
-        ],
-        "scheduledState": "ENABLED",
-        "bulletinLevel": "WARN",
-        "componentType": "CONTROLLER_SERVICE",
-        "groupIdentifier": "7fcc5237-c8cb-35a7-9a71-46c878f10c40"
-      },
-      {
-        "identifier": "207c8fa2-06b4-372f-9cee-f7baa154a6ea",
-        "instanceIdentifier": "77eae734-0192-1000-bb87-a0c7a79a2b34",
-        "name": "RedisDataStoreService",
-        "comments": "",
-        "type": "org.geomesa.nifi.processors.redis.RedisDataStoreService",
-        "bundle": {
-          "group": "org.geomesa.nifi",
-          "artifact": "geomesa-redis-nar_2.12",
-          "version": "5.0.0"
-        },
-        "properties": {
-          "redis.pipeline.enabled": "false",
-          "geomesa.query.threads": "8",
-          "geomesa.query.loose-bounding-box": "false",
-          "redis.connection.pool.validate": "true",
-          "redis.url": "redis:6379",
-          "redis.catalog": "geomesa",
-          "geomesa.stats.enable": "true",
-          "redis.connection.timeout": "2000 milliseconds",
-          "geomesa.security.auths.force-empty": "false",
-          "geomesa.query.audit": "true",
-          "redis.connection.pool.size": "16"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
