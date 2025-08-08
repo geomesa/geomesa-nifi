@@ -82,7 +82,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       "\n"
 
   lazy val gml2 =
-    """<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:geomesa="http://geomesa.org" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc">
+    """<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:geomesa="https://geomesa.org" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc">
       |  <gml:boundedBy>
       |    <gml:Box srsName="http://www.opengis.net/gml/srs/epsg.xml#4326">
       |      <gml:coord>
@@ -135,7 +135,7 @@ class ConvertToGeoFileTest extends LazyLogging {
       |""".stripMargin
 
   lazy val gml3 =
-    """<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:geomesa="http://geomesa.org" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" xmlns:ows="http://www.opengis.net/ows" xmlns:xlink="http://www.w3.org/1999/xlink">
+    """<?xml version="1.0" encoding="UTF-8"?><wfs:FeatureCollection xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:geomesa="https://geomesa.org" xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" xmlns:ows="http://www.opengis.net/ows" xmlns:xlink="http://www.w3.org/1999/xlink">
       |  <gml:boundedBy>
       |    <gml:Envelope srsDimension="2" srsName="http://www.opengis.net/gml/srs/epsg.xml#4326">
       |      <gml:lowerCorner>-180 -90</gml:lowerCorner>
