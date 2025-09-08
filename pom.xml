@@ -44,7 +44,7 @@
 
         <!-- versions from geomesa -->
         <gt.version>33.1</gt.version>
-        <accumulo.version>2.1.3</accumulo.version>
+        <accumulo.version>2.1.4</accumulo.version>
         <accumulo-20.version>2.0.1</accumulo-20.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <hadoop.version>3.4.2</hadoop.version>
