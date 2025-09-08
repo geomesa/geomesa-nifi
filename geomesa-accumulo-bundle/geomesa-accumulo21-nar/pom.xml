@@ -115,6 +115,10 @@
                     <groupId>org.apache.commons</groupId>
                     <artifactId>commons-configuration2</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>io.micrometer</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
