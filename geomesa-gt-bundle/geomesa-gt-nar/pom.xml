@@ -38,6 +38,10 @@
                     <groupId>commons-pool</groupId>
                     <artifactId>commons-pool</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-dbcp2</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
