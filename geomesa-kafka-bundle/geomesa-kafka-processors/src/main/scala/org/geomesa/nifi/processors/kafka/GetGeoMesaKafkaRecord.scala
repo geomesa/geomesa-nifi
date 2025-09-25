@@ -35,10 +35,10 @@ import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
 import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreFactory, KafkaDataStoreParams}
 import org.locationtech.geomesa.kafka.utils.{GeoMessage, GeoMessageProcessor}
-import org.locationtech.geomesa.metrics.micrometer.MetricsTags
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeDescriptor
 import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
+import org.locationtech.geomesa.utils.metrics.MetricsTags
 
 import java.io.{ByteArrayOutputStream, Closeable}
 import java.util.concurrent.{SynchronousQueue, TimeUnit}
