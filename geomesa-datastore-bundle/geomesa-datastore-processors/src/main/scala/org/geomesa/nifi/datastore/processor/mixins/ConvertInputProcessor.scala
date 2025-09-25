@@ -227,7 +227,7 @@ object ConvertInputProcessor {
         .identifiesControllerService(classOf[MetricsRegistryService])
         .build()
 
-    @deprecated("Use ConveterMetricsRegistry")
+    @deprecated("Use ConverterMetricsRegistry")
     val ConverterMetricReporters: PropertyDescriptor =
       new PropertyDescriptor.Builder()
           .name("ConverterMetricReporters")

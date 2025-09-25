@@ -8,7 +8,7 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.EnvironmentOrRegistry
 import org.geomesa.nifi.datastore.processor.service.PrometheusRegistryService.{ApplicationTagProperty, PortProperty, RenameProperty}
 import org.geomesa.nifi.datastore.services.MetricsRegistryService
-import org.locationtech.geomesa.metrics.micrometer.prometheus.PrometheusSetup
+import org.locationtech.geomesa.metrics.micrometer.prometheus.PrometheusFactory
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 import java.io.Closeable
@@ -30,7 +30,7 @@ class PrometheusRegistryService extends AbstractControllerService with MetricsRe
   private var rename: Boolean = false
 
   override def register(): Closeable = {
-    val ref = PrometheusSetup.register(port, application, rename)
+    val ref = PrometheusFactory.register(port, application, rename)
     // keep track of the refs we create, just in case the calling class doesn't dispose of it correctly
     val closeable = new Closeable {
       override def close(): Unit = {
