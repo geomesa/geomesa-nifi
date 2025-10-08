@@ -12,6 +12,7 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement
 import org.apache.nifi.annotation.behavior._
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
+import org.apache.nifi.annotation.lifecycle.{OnScheduled, OnStopped}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor._
@@ -20,6 +21,7 @@ import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCallback
 import org.geomesa.nifi.datastore.processor.validators.GzipLevelValidator
+import org.geomesa.nifi.datastore.services.MetricsRegistryService
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.features.SerializationOption
@@ -28,7 +30,7 @@ import org.locationtech.geomesa.features.exporters._
 import org.locationtech.geomesa.index.conf.QueryHints
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, PathUtils}
 
-import java.io.{File, OutputStream}
+import java.io.{Closeable, File, OutputStream}
 import java.nio.file.Files
 import java.util.UUID
 import java.util.zip.GZIPOutputStream
@@ -56,11 +58,34 @@ class ConvertToGeoFile extends ConvertInputProcessor {
 
   import ConvertToGeoFile.Properties.{GzipLevel, IncludeHeaders, OutputFormat}
 
+  private var metricsRegistry: Closeable = _
+
+  // noinspection ScalaUnusedSymbol
+  @OnScheduled
+  def registerMetrics(context: ProcessContext): Unit = {
+    val service = context.getProperty(MetricsRegistry).asControllerService(classOf[MetricsRegistryService])
+    if (service != null) {
+      metricsRegistry = service.register()
+    }
+  }
+
+  // noinspection ScalaUnusedSymbol
+  @OnStopped
+  def deregisterMetrics(context: ProcessContext): Unit = {
+    if (metricsRegistry != null) {
+      metricsRegistry.close()
+      metricsRegistry = null
+    }
+  }
+
   override protected def getShips: Seq[Relationship] =
     super.getShips ++ Seq(Relationships.OriginalRelationship)
 
   override protected def getPrimaryProperties: Seq[PropertyDescriptor] =
     super.getPrimaryProperties ++ Seq(OutputFormat, GzipLevel, IncludeHeaders)
+
+  override protected def getSecondaryProperties: Seq[PropertyDescriptor] =
+    super.getSecondaryProperties ++ Seq(MetricsRegistry)
 
   override protected def getTertiaryProperties: Seq[PropertyDescriptor] =
     super.getTertiaryProperties ++ Seq(ExtraClasspaths)

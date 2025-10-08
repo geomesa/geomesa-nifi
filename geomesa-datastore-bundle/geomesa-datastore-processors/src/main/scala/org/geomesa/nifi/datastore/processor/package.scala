@@ -14,6 +14,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.Relationship
 import org.apache.nifi.processor.util.StandardValidators
+import org.geomesa.nifi.datastore.services.MetricsRegistryService
 
 package object processor {
 
@@ -35,6 +36,14 @@ package object processor {
         .dynamicallyModifiesClasspath(true)
         .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
         .build()
+
+  val MetricsRegistry: PropertyDescriptor =
+    new PropertyDescriptor.Builder()
+      .name("MetricsRegistry")
+      .required(false)
+      .description("Select a registry for publishing metrics")
+      .identifiesControllerService(classOf[MetricsRegistryService])
+      .build()
 
   /**
    * Full name of a flow file

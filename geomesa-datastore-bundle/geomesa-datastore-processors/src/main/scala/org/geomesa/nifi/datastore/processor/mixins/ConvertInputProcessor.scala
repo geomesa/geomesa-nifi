@@ -21,14 +21,13 @@ import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCacheKey
 import org.geomesa.nifi.datastore.processor.validators.{ConverterMetricsValidator, ConverterValidator}
-import org.geomesa.nifi.datastore.services.MetricsRegistryService
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 
-import java.io.{Closeable, InputStream}
+import java.io.InputStream
 import scala.util.control.NonFatal
 
 /**
@@ -41,8 +40,6 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
   import ConvertInputProcessor.{ConverterCallback, ConverterPool}
 
   import scala.collection.JavaConverters._
-
-  private var metricsRegistry: Closeable = _
 
   private var converterName: PropertyDescriptor = _
 
@@ -80,26 +77,9 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
   override protected def getSecondaryProperties: Seq[PropertyDescriptor] = {
     converterName = ConvertInputProcessor.Properties.converterName(ConverterConfigLoader.listConverterNames)
     super.getSecondaryProperties ++
-        Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes, ConverterMetricsRegistry, ConverterMetricReporters)
+        Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes, ConverterMetricReporters)
   }
 
-  // noinspection ScalaUnusedSymbol
-  @OnScheduled
-  def registerMetrics(context: ProcessContext): Unit = {
-    val service = context.getProperty(ConverterMetricsRegistry).asControllerService(classOf[MetricsRegistryService])
-    if (service != null) {
-      metricsRegistry = service.register()
-    }
-  }
-
-  // noinspection ScalaUnusedSymbol
-  @OnStopped
-  def deregisterMetrics(context: ProcessContext): Unit = {
-    if (metricsRegistry != null) {
-      metricsRegistry.close()
-      metricsRegistry = null
-    }
-  }
 
   protected def convert(
       context: ProcessContext,
@@ -218,14 +198,6 @@ object ConvertInputProcessor {
           .allowableValues(ErrorMode.LogErrors.toString, ErrorMode.RaiseErrors.toString, /*deprecated*/ "skip-bad-records")
           .expressionLanguageSupported(EnvironmentOrRegistry)
           .build()
-
-    val ConverterMetricsRegistry: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-        .name("ConverterMetricsRegistry")
-        .required(false)
-        .description("Select a registry for publishing converter metrics")
-        .identifiesControllerService(classOf[MetricsRegistryService])
-        .build()
 
     @deprecated("Use ConverterMetricsRegistry")
     val ConverterMetricReporters: PropertyDescriptor =

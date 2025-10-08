@@ -445,7 +445,6 @@
           "ConvertFlowFileAttributes": "false",
           "SftUserData": "${geomesa.sft.user-data}",
           "schema-compatibility": "Existing",
-          "ConverterMetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762",
           "FeatureWriterCaching": "false",
           "DataStoreService": "",
           "FeatureNameOverride": "gdelt-nifi",
@@ -492,7 +491,7 @@
           "output-format": "avro",
           "ConvertFlowFileAttributes": "false",
           "SftUserData": "${geomesa.sft.user-data}",
-          "ConverterMetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762",
           "include-headers": "true"
         },
         "propertyDescriptors": {},
@@ -787,7 +786,8 @@
           "geomesa.security.auths.force-empty": "false",
           "accumulo.write.threads": "10",
           "geomesa.query.audit": "true",
-          "accumulo.zookeepers": "accumulo.local:2181"
+          "accumulo.zookeepers": "accumulo.local:2181",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -823,7 +823,8 @@
           "kafka.catalog.topic": "geomesa-catalog",
           "kafka.serialization.type": "kryo",
           "kafka.zk.path": "geomesa/ds/kafka",
-          "kafka.topic.partitions": "1"
+          "kafka.topic.partitions": "1",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -863,7 +864,8 @@
           "redis.connection.timeout": "2000 milliseconds",
           "geomesa.security.auths.force-empty": "false",
           "geomesa.query.audit": "true",
-          "redis.connection.pool.size": "16"
+          "redis.connection.pool.size": "16",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -929,7 +931,8 @@
           "kafka.schema.registry.url": "http://schema-registry.local:8081",
           "kafka.topic.replication": "1",
           "kafka.producer.clear": "false",
-          "kafka.topic.partitions": "1"
+          "kafka.topic.partitions": "1",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -970,7 +973,8 @@
           "geomesa.security.auths.force-empty": "false",
           "geomesa.query.audit": "true",
           "DataStoreService": "823a37c5-fda6-3e87-b250-c13d073baeeb",
-          "lambda.kafka.brokers": "kafka.local:9092"
+          "lambda.kafka.brokers": "kafka.local:9092",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -1046,7 +1050,8 @@
           "hbase.config.xml": "<configuration>\n  <property>\n    <name>hbase.cluster.distributed</name>\n    <value>true</value>\n  </property>\n  <property>\n    <name>hbase.zookeeper.quorum</name>\n    <value>hbase.local:2181</value>\n  </property>\n  <property>\n    <name>dfs.client.use.datanode.hostname</name>\n    <value>true</value>\n  </property>\n</configuration>",
           "geomesa.security.auths.force-empty": "false",
           "hbase.security.enabled": "false",
-          "geomesa.query.audit": "true"
+          "geomesa.query.audit": "true",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
@@ -1179,7 +1184,8 @@
           "fs.path": "hdfs://hadoop.local:8020/tmp/nifi",
           "fs.config.xml": "<configuration><property><name>dfs.client.use.datanode.hostname</name><value>true</value></property></configuration>",
           "fs.encoding": "parquet",
-          "fs.writer.partition.timeout": "1 minute"
+          "fs.writer.partition.timeout": "1 minute",
+          "MetricsRegistry": "2d5d6fb9-0198-1000-b090-2381746ef762"
         },
         "propertyDescriptors": {},
         "controllerServiceApis": [
