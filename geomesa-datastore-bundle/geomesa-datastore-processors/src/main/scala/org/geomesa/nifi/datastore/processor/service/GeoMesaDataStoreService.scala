@@ -13,10 +13,11 @@ import org.apache.nifi.annotation.lifecycle.{OnDisabled, OnEnabled}
 import org.apache.nifi.components.{PropertyDescriptor, ValidationContext, ValidationResult}
 import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.controller.{AbstractControllerService, ConfigurationContext}
-import org.geomesa.nifi.datastore.services.DataStoreService
+import org.geomesa.nifi.datastore.services.{DataStoreService, MetricsRegistryService}
 import org.geotools.api.data.{DataStore, DataStoreFactorySpi}
 import org.locationtech.geomesa.utils.io.CloseWithLogging
 
+import java.io.Closeable
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicLong
 import scala.reflect.ClassTag
@@ -35,7 +36,9 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   protected val params = new java.util.HashMap[String, AnyRef]()
   private val sensitive = descriptors.collect { case d if d.isSensitive => d.getName }.toSet
   private val validateAt = new AtomicLong(-1L)
+
   private var store: DataStore = _
+  private var metricsRegistry: Closeable = _
 
   override def loadDataStore: DataStore = synchronized {
     if (store == null) {
@@ -62,6 +65,10 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
     params.clear()
     getDataStoreParams(context).foreach { case (k, v) => params.put(k, v) }
     logParams("Enabled", params.asScala.toMap)
+    val service = context.getProperty(MetricsRegistry).asControllerService(classOf[MetricsRegistryService])
+    if (service != null) {
+      metricsRegistry = service.register()
+    }
   }
 
   @OnDisabled
@@ -70,6 +77,10 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
       CloseWithLogging(store)
       getLogger.debug(s"Disposed of managed datastore: $store")
       store = null
+    }
+    if (metricsRegistry != null) {
+      CloseWithLogging(metricsRegistry)
+      metricsRegistry = null
     }
   }
 
@@ -82,7 +93,8 @@ class GeoMesaDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: S
   override def onPropertyModified(descriptor: PropertyDescriptor, oldValue: String, newValue: String): Unit =
     validateAt.set(-1L)
 
-  override protected def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] = descriptors.asJava
+  override protected def getSupportedPropertyDescriptors: java.util.List[PropertyDescriptor] =
+    (descriptors :+ MetricsRegistry).asJava
 
   override protected def customValidate(context: ValidationContext): java.util.Collection[ValidationResult] = {
     val now = System.currentTimeMillis()

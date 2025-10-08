@@ -15,6 +15,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.processor.util.StandardValidators
 import org.geotools.api.data.DataAccessFactory.Param
 import org.geotools.api.data.Parameter
+import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory.GeoMesaDataStoreInfo
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
 
@@ -24,6 +25,10 @@ trait PropertyDescriptorUtils extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
+  // metrics registries are handled by a controller service instead
+  private val filteredParams =
+    Set(GeoMesaDataStoreFactory.MetricsRegistryParam, GeoMesaDataStoreFactory.MetricsRegistryConfigParam).map(_.key)
+
   /**
    * Create descriptors for a data store
    *
@@ -32,7 +37,7 @@ trait PropertyDescriptorUtils extends LazyLogging {
    */
   def createPropertyDescriptors(info: GeoMesaDataStoreInfo): List[PropertyDescriptor] = {
     info.ParameterInfo.toList.collect {
-      case p if p.readWrite.append || p.readWrite.update => createPropertyDescriptor(p)
+      case p if (p.readWrite.append || p.readWrite.update) && !filteredParams.contains(p.key) => createPropertyDescriptor(p)
     }
   }
 
