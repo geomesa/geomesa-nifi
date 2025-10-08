@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-accumulo20-nar_2.12</artifactId>
+    <name>GeoMesa Accumulo 2.0 NAR</name>
     <packaging>nar</packaging>
-
-    <description>GeoMesa Accumulo 2.0 nar</description>
 
     <dependencyManagement>
         <dependencies>

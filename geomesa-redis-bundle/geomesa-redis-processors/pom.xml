@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-redis-processors_2.12</artifactId>
+    <name>GeoMesa Redis Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa Redis processor implementations</description>
 
     <dependencies>
 

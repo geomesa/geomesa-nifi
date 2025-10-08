@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-datastore-services-api-nar_2.12</artifactId>
+    <name>GeoMesa DataStore Services API NAR</name>
     <packaging>nar</packaging>
-
-    <description>GeoMesa controller services API nar</description>
 
     <dependencies>
         <dependency>

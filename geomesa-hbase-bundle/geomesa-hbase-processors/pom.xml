@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-hbase-processors_2.12</artifactId>
+    <name>GeoMesa HBase Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa HBase processor implementations</description>
 
     <dependencies>
 

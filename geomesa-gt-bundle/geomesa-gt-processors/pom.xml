@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-gt-processors_2.12</artifactId>
+    <name>GeoMesa GeoTools Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa GeoTools processor implementations</description>
 
     <dependencies>
 

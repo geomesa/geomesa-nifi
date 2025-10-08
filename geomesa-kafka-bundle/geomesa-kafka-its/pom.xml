@@ -10,8 +10,8 @@
     </parent>
 
     <artifactId>geomesa-kafka-its_2.12</artifactId>
+    <name>GeoMesa Kafka Integration Tests</name>
     <packaging>pom</packaging>
-    <description>GeoMesa Kafka integration tests</description>
 
     <dependencies>
         <dependency>

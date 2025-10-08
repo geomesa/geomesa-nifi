@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>geomesa-datastore-bundle_2.12</artifactId>
+    <name>GeoMesa DataStore Bundle</name>
     <packaging>pom</packaging>
 
     <modules>

@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>geomesa-redis-bundle_2.12</artifactId>
+    <name>GeoMesa Redis Bundle</name>
     <packaging>pom</packaging>
 
     <modules>

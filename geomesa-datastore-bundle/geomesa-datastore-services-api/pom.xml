@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-datastore-services-api_2.12</artifactId>
+    <name>GeoMesa DataStore Services API</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa controller services API</description>
 
     <dependencies>
 

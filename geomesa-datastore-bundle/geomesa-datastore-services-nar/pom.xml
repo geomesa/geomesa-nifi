@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-datastore-services-nar_2.12</artifactId>
+    <name>GeoMesa DataStore Services NAR</name>
     <packaging>nar</packaging>
-
-    <description>GeoMesa data store nar</description>
 
     <dependencies>
         <!-- nars are allowed to depend on at most 1 nar, which will act as a 'parent' and share its

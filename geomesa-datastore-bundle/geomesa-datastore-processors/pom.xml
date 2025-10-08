@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-datastore-processors_2.12</artifactId>
+    <name>GeoMesa DataStore Processors</name>
     <packaging>jar</packaging>
-
-    <description>Core datastore processors</description>
 
     <dependencies>
 

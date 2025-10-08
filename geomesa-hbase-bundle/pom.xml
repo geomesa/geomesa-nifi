@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>geomesa-hbase-bundle_2.12</artifactId>
+    <name>GeoMesa HBase Bundle</name>
     <packaging>pom</packaging>
 
     <modules>

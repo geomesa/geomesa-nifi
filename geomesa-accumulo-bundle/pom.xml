@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>geomesa-accumulo-bundle_2.12</artifactId>
+    <name>GeoMesa Accumulo Bundle</name>
     <packaging>pom</packaging>
 
     <modules>

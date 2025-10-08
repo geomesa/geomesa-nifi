@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-lambda-processors_2.12</artifactId>
+    <name>GeoMesa Lambda Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa Lambda DataStore processor implementations</description>
 
     <dependencies>
 

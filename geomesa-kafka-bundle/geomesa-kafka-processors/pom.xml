@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-kafka-processors_2.12</artifactId>
+    <name>GeoMesa Kafka Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa Kafka processor implementations</description>
 
     <dependencies>
 

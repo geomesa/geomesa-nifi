@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-accumulo-processors_2.12</artifactId>
+    <name>GeoMesa Accumulo Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa Accumulo processors</description>
 
     <dependencies>
 

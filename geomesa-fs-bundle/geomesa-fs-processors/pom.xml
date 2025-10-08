@@ -10,9 +10,8 @@
     </parent>
 
     <artifactId>geomesa-fs-processors_2.12</artifactId>
+    <name>GeoMesa FileSystem Processors</name>
     <packaging>jar</packaging>
-
-    <description>GeoMesa File System processor implementation</description>
 
     <dependencies>
 
