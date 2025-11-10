@@ -35,6 +35,7 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
   withCreateContainerCmdModifier(cmd => cmd.withEntrypoint("/entrypoint.sh"))
 
   mountClasspathResource("docker/entrypoint.sh", "/entrypoint.sh", executable = true)
+  mountClasspathResource("docker/reference.conf", "/opt/nifi/nifi-current/conf/reference.conf")
   mountClasspathResource("docker/20180101000000.export.CSV", "/ingest/20180101000000.export.CSV")
 
   withNarByName("datastore-services-api")
@@ -52,7 +53,6 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
   def withDefaultIngestFlow(narName: String): NiFiContainer = {
     withNarByPath(findNar(narName))
     mountFile(getClass.getClassLoader.getResourceAsStream("docker/ingest-flow.json"), "/flow.json")
-    mountFile(getClass.getClassLoader.getResourceAsStream("docker/reference.conf"), "/opt/nifi/nifi-current/conf/reference.conf")
   }
 
   /**
