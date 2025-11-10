@@ -8,6 +8,7 @@
 
 package org.geomesa.nifi.processors.lambda
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.context.PropertyContext
@@ -27,7 +28,7 @@ import scala.util.{Failure, Success, Try}
 @Tags(Array("geomesa", "geotools", "geo", "kafka"))
 @CapabilityDescription("Service for connecting to GeoMesa Lambda stores")
 class LambdaDataStoreService
-    extends GeoMesaDataStoreService[LambdaDataStoreFactory](LambdaDataStoreService.Properties) {
+    extends GeoMesaDataStoreService[LambdaDataStoreFactory](LambdaDataStoreService.Properties) with LazyLogging {
 
   import LambdaDataStoreService.DataStoreService
 
@@ -55,11 +56,13 @@ class LambdaDataStoreService
       val catalog = {
         // unwrap the proxied datastore service returned by nifi
         // GeoMesaDataStore is not an interface, so the proxy won't expose its methods directly
-        val unproxied = persistence match {
-          case proxy: ControllerServiceProxyWrapper[DataStore] => proxy.getWrapped
-          case _ => persistence
+        val unproxied =
+          Some(persistence).collect { case p: ControllerServiceProxyWrapper[_] => p.getWrapped }.collect { case d: DataStore => d }
+        val ds = unproxied.getOrElse {
+          logger.warn(s"Failed to unwrap controller service proxy of type: ${persistence.getClass.getName}")
+          persistence
         }
-        unproxied match {
+        ds match {
           case gm: GeoMesaDataStore[_] => gm.config.catalog
           case _ => "nifi"
         }

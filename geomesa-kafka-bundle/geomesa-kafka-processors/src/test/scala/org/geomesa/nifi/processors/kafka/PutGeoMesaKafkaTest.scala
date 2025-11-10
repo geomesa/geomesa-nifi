@@ -13,27 +13,36 @@ import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataS
 import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
 import org.geotools.api.data.DataStoreFinder
 import org.geotools.api.feature.simple.SimpleFeature
-import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
-import org.specs2.runner.JUnitRunner
+import org.slf4j.LoggerFactory
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.BeforeAfterAll
+import org.testcontainers.containers.output.Slf4jLogConsumer
+import org.testcontainers.kafka.KafkaContainer
 
 import scala.concurrent.duration.DurationInt
 
-@RunWith(classOf[JUnitRunner])
-class PutGeoMesaKafkaTest extends KafkaContainerTest {
+class PutGeoMesaKafkaTest extends SpecificationWithJUnit with BeforeAfterAll {
 
   import scala.collection.JavaConverters._
 
   sequential
 
+  private val kafka =
+    new KafkaContainer(KafkaImage)
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka")))
+
   lazy val dsParams = Map(
-    "kafka.brokers" -> brokers // note: zk-less usage
+    "kafka.brokers" -> kafka.getBootstrapServers // note: zk-less usage
   )
 
   // we use class name to prevent spillage between unit tests
   lazy val root = getClass.getSimpleName
+
+  override def beforeAll(): Unit = kafka.start()
+
+  override def afterAll(): Unit = kafka.close()
 
   def configureKafkaService(runner: TestRunner, catalog: String): Unit = {
     val service = new KafkaDataStoreService()

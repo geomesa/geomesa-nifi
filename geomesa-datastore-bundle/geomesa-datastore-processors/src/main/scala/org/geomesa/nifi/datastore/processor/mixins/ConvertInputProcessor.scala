@@ -10,7 +10,7 @@ package org.geomesa.nifi.datastore.processor
 package mixins
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import org.apache.commons.pool2.impl.{DefaultPooledObject, GenericObjectPool, GenericObjectPoolConfig}
 import org.apache.commons.pool2.{BasePooledObjectFactory, ObjectPool, PooledObject}
 import org.apache.nifi.annotation.lifecycle._
@@ -20,7 +20,7 @@ import org.apache.nifi.processor._
 import org.apache.nifi.processor.io.InputStreamCallback
 import org.apache.nifi.processor.util.StandardValidators
 import org.geomesa.nifi.datastore.processor.mixins.ConvertInputProcessor.ConverterCacheKey
-import org.geomesa.nifi.datastore.processor.validators.{ConverterMetricsValidator, ConverterValidator}
+import org.geomesa.nifi.datastore.processor.validators.ConverterValidator
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.locationtech.geomesa.convert.Modes.ErrorMode
 import org.locationtech.geomesa.convert._
@@ -48,12 +48,9 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
       override def load(key: ConverterCacheKey): Either[Throwable, ConverterPool] = {
         ConverterConfigResolver.getArg(ConfArgs(key.config)).right.flatMap { base =>
           try {
-            val config = {
-              val error = key.errorMode.map(m => ConfigFactory.parseString(s"options.error-mode = $m"))
-              val reporters = key.reporters.map(ConvertInputProcessor.parseReporterOptions)
-              error.getOrElse(ConfigFactory.empty())
-                  .withFallback(reporters.getOrElse(ConfigFactory.empty()))
-                  .withFallback(base)
+            val config = key.errorMode match {
+              case None => base
+              case Some(m) => ConfigFactory.parseString(s"options.error-mode = $m").withFallback(base)
             }
             val factory = new BasePooledObjectFactory[SimpleFeatureConverter] {
               override def create(): SimpleFeatureConverter = SimpleFeatureConverter(key.sft, config)
@@ -77,7 +74,7 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
   override protected def getSecondaryProperties: Seq[PropertyDescriptor] = {
     converterName = ConvertInputProcessor.Properties.converterName(ConverterConfigLoader.listConverterNames)
     super.getSecondaryProperties ++
-        Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes, ConverterMetricReporters)
+        Seq(converterName, ConverterSpec, ConverterErrorMode, ConvertFlowFileAttributes)
   }
 
 
@@ -98,10 +95,9 @@ trait ConvertInputProcessor extends FeatureTypeProcessor {
           }
 
     val errorMode = Option(context.getProperty(ConverterErrorMode).evaluateAttributeExpressions().getValue)
-    val reporters = Option(context.getProperty(ConverterMetricReporters).getValue)
     val attributes = Option(context.getProperty(ConvertFlowFileAttributes).asBoolean()).exists(_.booleanValue())
 
-    val converters = converterCache.get(ConverterCacheKey(sft, config, errorMode, reporters)) match {
+    val converters = converterCache.get(ConverterCacheKey(sft, config, errorMode)) match {
       case Right(c) => c
       case Left(e) => throw e
     }
@@ -154,20 +150,6 @@ object ConvertInputProcessor {
       Attributes.ConverterAttribute
     )
 
-  def parseReporterOptions(reporters: String): Config = {
-    val i = reporters.indexWhere(c => !Character.isWhitespace(c))
-    val config = if (i == -1) {
-      reporters
-    } else {
-      reporters.charAt(i) match {
-        case '[' => s"options.reporters = $reporters"
-        case '{' => s"options.reporters = [\n$reporters\n]"
-        case _ => reporters
-      }
-    }
-    ConfigFactory.parseString(config).resolve()
-  }
-
   object Properties {
 
     val ConverterNameKey = "ConverterName"
@@ -195,19 +177,8 @@ object ConvertInputProcessor {
           .name("ConverterErrorMode")
           .required(false)
           .description("Override the converter error mode behavior")
-          .allowableValues(ErrorMode.LogErrors.toString, ErrorMode.RaiseErrors.toString, /*deprecated*/ "skip-bad-records")
+          .allowableValues(ErrorMode.LogErrors.toString, ErrorMode.RaiseErrors.toString)
           .expressionLanguageSupported(EnvironmentOrRegistry)
-          .build()
-
-    @deprecated("Use ConverterMetricsRegistry")
-    val ConverterMetricReporters: PropertyDescriptor =
-      new PropertyDescriptor.Builder()
-          .name("ConverterMetricReporters")
-          .displayName("ConverterMetricReporters (deprecated)")
-          .required(false)
-          .description("Override the converter metrics reporters. This property is deprecated - use ConverterMetricsRegistry instead")
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .addValidator(ConverterMetricsValidator)
           .build()
 
     val ConvertFlowFileAttributes: PropertyDescriptor =
@@ -238,6 +209,5 @@ object ConvertInputProcessor {
     def apply(features: Iterator[SimpleFeature]): Long
   }
 
-  private case class ConverterCacheKey(
-      sft: SimpleFeatureType, config: String, errorMode: Option[String], reporters: Option[String])
+  private case class ConverterCacheKey(sft: SimpleFeatureType, config: String, errorMode: Option[String])
 }

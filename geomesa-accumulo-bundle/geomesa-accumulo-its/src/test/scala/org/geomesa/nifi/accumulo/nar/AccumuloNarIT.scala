@@ -35,10 +35,6 @@ class AccumuloNarIT extends Specification {
   private var accumuloContainer: AccumuloContainer = _
   private var nifiContainer: NiFiContainer = _
 
-  lazy private val accumuloName =
-    DockerImageName.parse("ghcr.io/geomesa/accumulo-uno")
-        .withTag(sys.props.getOrElse("accumulo.docker.tag", "2.1.3"))
-
   lazy private val params = Map(
     AccumuloDataStoreParams.UserParam.key         -> accumuloContainer.getUsername,
     AccumuloDataStoreParams.PasswordParam.key     -> accumuloContainer.getPassword,
@@ -49,7 +45,7 @@ class AccumuloNarIT extends Specification {
 
   step {
     accumuloContainer =
-      new AccumuloContainer(accumuloName)
+      new AccumuloContainer()
           .withGeoMesaDistributedRuntime()
           .withNetwork(network)
     accumuloContainer.start()
