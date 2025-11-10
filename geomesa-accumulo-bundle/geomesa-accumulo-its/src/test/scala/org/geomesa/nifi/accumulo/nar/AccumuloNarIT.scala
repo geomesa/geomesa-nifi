@@ -18,7 +18,6 @@ import org.locationtech.geomesa.utils.io.WithClose
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.testcontainers.containers.{BindMode, Network}
-import org.testcontainers.utility.DockerImageName
 
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
@@ -32,7 +31,11 @@ class AccumuloNarIT extends Specification {
   private val network = Network.newNetwork()
   private val catalog = "geomesa" // note: matches value in default flow.json
 
-  private var accumuloContainer: AccumuloContainer = _
+  private val accumuloContainer =
+    new AccumuloContainer()
+      .withGeoMesaDistributedRuntime()
+      .withNetwork(network)
+
   private var nifiContainer: NiFiContainer = _
 
   lazy private val params = Map(
@@ -44,10 +47,6 @@ class AccumuloNarIT extends Specification {
   )
 
   step {
-    accumuloContainer =
-      new AccumuloContainer()
-          .withGeoMesaDistributedRuntime()
-          .withNetwork(network)
     accumuloContainer.start()
 
     // create the catalog table up front to avoid race conditions

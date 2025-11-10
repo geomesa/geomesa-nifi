@@ -52,6 +52,7 @@ class NiFiContainer(image: DockerImageName) extends GenericContainer[NiFiContain
   def withDefaultIngestFlow(narName: String): NiFiContainer = {
     withNarByPath(findNar(narName))
     mountFile(getClass.getClassLoader.getResourceAsStream("docker/ingest-flow.json"), "/flow.json")
+    mountFile(getClass.getClassLoader.getResourceAsStream("docker/reference.conf"), "/opt/nifi/nifi-current/conf/reference.conf")
   }
 
   /**
