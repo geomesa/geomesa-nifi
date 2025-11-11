@@ -10,48 +10,54 @@ package org.geomesa.nifi.kafka.nar
 
 import org.geomesa.nifi.datastore.processor.NiFiContainer
 import org.geotools.api.data.{DataStoreFinder, Query, Transaction}
-import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
-import org.locationtech.geomesa.utils.io.WithClose
-import org.specs2.runner.JUnitRunner
+import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
+import org.slf4j.LoggerFactory
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.BeforeAfterAll
+import org.testcontainers.containers.Network
+import org.testcontainers.containers.output.Slf4jLogConsumer
+import org.testcontainers.kafka.KafkaContainer
+import org.testcontainers.lifecycle.Startables
+import org.testcontainers.utility.DockerImageName
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Duration
 
-@RunWith(classOf[JUnitRunner])
-class KafkaNarIT extends KafkaContainerTest {
+class KafkaNarIT extends SpecificationWithJUnit with BeforeAfterAll {
 
   import scala.collection.JavaConverters._
 
-  private var nifiContainer: NiFiContainer = _
+  protected val network = Network.newNetwork()
+
+  // listener for other containers in the docker network
+  val dockerNetworkBrokers = "kafka:19092"
+
+  private val kafka =
+    new KafkaContainer(KafkaNarIT.KafkaImage)
+      .withNetwork(network)
+      .withNetworkAliases("kafka")
+      .withListener(dockerNetworkBrokers)
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka")))
+
+  private val nifi =
+    new NiFiContainer()
+      .withNarByName("kafka")
+      // this flow includes the default ingest flow, plus a GetGeoMesaKafkaRecord processor to read and re-ingest
+      .withFlowFromClasspath("kafka-flow.json")
+      .withNetwork(network)
+      .dependsOn(kafka)
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("nifi")))
 
   lazy private val params = Map(
-    KafkaDataStoreParams.Brokers.key -> brokers,
+    KafkaDataStoreParams.Brokers.key -> kafka.getBootstrapServers,
     KafkaDataStoreParams.ConsumerReadBack.key -> "Inf"
   )
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    nifiContainer =
-      new NiFiContainer()
-          .withNarByName("kafka")
-          // this flow includes the default ingest flow, plus a GetGeoMesaKafkaRecord processor to read and re-ingest
-          .withFlowFromClasspath("kafka-flow.json")
-          .withNetwork(network)
-    nifiContainer.start()
-  }
+  override def beforeAll(): Unit = Startables.deepStart(kafka, nifi).get()
 
-  override def afterAll(): Unit = {
-    try {
-      if (nifiContainer != null) {
-        nifiContainer.stop()
-      }
-    } finally {
-      super.afterAll()
-    }
-  }
+  override def afterAll(): Unit = CloseWithLogging(nifi, kafka)
 
   "Kafka NAR" should {
     "ingest data" in {
@@ -77,4 +83,10 @@ class KafkaNarIT extends KafkaContainerTest {
       }
     }
   }
+}
+
+object KafkaNarIT {
+  val KafkaImage =
+    DockerImageName.parse("apache/kafka-native")
+      .withTag(sys.props.getOrElse("kafka.docker.tag", "3.9.1"))
 }

@@ -396,7 +396,7 @@
           "record-min-batch-size": "1",
           "kafka.zk.path": "geomesa/ds/kafka",
           "type-name": "gdelt-nifi",
-          "kafka.brokers": "kafka:9092",
+          "kafka.brokers": "kafka:19092",
           "kafka-group-id": "nifi",
           "kafka.catalog.topic": "geomesa-catalog",
           "geometry-serialization": "WKT",
@@ -850,7 +850,7 @@
           "version": "5.1.0"
         },
         "properties": {
-          "kafka.brokers": "kafka:9092",
+          "kafka.brokers": "kafka:19092",
           "kafka.topic.replication": "1",
           "kafka.producer.clear": "false",
           "kafka.catalog.topic": "geomesa-catalog",
@@ -886,7 +886,7 @@
           "version": "5.1.0"
         },
         "properties": {
-          "kafka.brokers": "kafka:9092",
+          "kafka.brokers": "kafka:19092",
           "kafka.schema.registry.url": "http://schema-registry.local:8081",
           "kafka.topic.replication": "1",
           "kafka.producer.clear": "false",

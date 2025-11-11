@@ -14,7 +14,7 @@ import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataS
 import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
 import org.geotools.api.data.DataStoreFinder
 import org.junit.{Assert, Test}
-import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
+import org.locationtech.geomesa.fs.data.FileSystemDataStoreParams
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.io.{PathUtils, WithClose}
 

@@ -12,8 +12,7 @@ import org.apache.nifi.annotation.documentation.{CapabilityDescription, Tags}
 import org.apache.nifi.components.PropertyDescriptor
 import org.geomesa.nifi.datastore.processor.service.AwsDataStoreService
 import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
-import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory
-import org.locationtech.geomesa.fs.data.FileSystemDataStoreFactory.FileSystemDataStoreParams
+import org.locationtech.geomesa.fs.data.{FileSystemDataStoreFactory, FileSystemDataStoreParams}
 
 @Tags(Array("geomesa", "geotools", "geo", "hdfs", "s3"))
 @CapabilityDescription("Service for connecting to GeoMesa FileSystem stores")

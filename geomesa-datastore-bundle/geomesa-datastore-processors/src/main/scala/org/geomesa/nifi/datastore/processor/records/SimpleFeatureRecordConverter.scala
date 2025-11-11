@@ -25,6 +25,7 @@ import org.locationtech.geomesa.utils.geotools.ObjectType
 import org.locationtech.geomesa.utils.geotools.ObjectType.ObjectType
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.AttributeOptions
+import org.locationtech.geomesa.utils.geotools.sft.SimpleFeatureSpec.{ListAttributeSpec, MapAttributeSpec}
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.locationtech.jts.geom.Geometry
 
@@ -124,8 +125,6 @@ class SimpleFeatureRecordConverter(
 }
 
 object SimpleFeatureRecordConverter extends LazyLogging {
-
-  import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
 
   import scala.collection.JavaConverters._
 
@@ -472,10 +471,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       new RecordField(name, RecordFieldType.ARRAY.getArrayDataType(sub.field.getDataType))
 
     override val descriptor: AttributeDescriptor =
-      new AttributeTypeBuilder()
-          .binding(classOf[java.util.List[AnyRef]])
-          .buildDescriptor(name)
-          .setListType(sub.descriptor.getType.getBinding)
+      ListAttributeSpec(name, sub.descriptor.getType.getBinding, Map.empty).toDescriptor
 
     override def convertToRecord(value: java.util.List[AnyRef]): Array[AnyRef] =
       value.asScala.collect { case v if v != null => sub.convertToRecord(v) }.toArray
@@ -492,10 +488,7 @@ object SimpleFeatureRecordConverter extends LazyLogging {
       new RecordField(name, RecordFieldType.MAP.getMapDataType(valueConverter.field.getDataType))
 
     override val descriptor: AttributeDescriptor =
-      new AttributeTypeBuilder()
-          .binding(classOf[java.util.Map[AnyRef, AnyRef]])
-          .buildDescriptor(name)
-          .setMapTypes(classOf[String], valueConverter.descriptor.getType.getBinding)
+      MapAttributeSpec(name, classOf[String], valueConverter.descriptor.getType.getBinding, Map.empty).toDescriptor
 
     override def convertToRecord(value: java.util.Map[AnyRef, AnyRef]): java.util.Map[String, AnyRef] =
       value.asScala.collect { case (k, v) if v != null => k.toString -> valueConverter.convertToRecord(v) }.asJava

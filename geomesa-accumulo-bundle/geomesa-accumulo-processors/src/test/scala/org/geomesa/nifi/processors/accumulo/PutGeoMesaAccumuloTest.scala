@@ -9,6 +9,7 @@
 package org.geomesa.nifi.processors.accumulo
 
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.accumulo.core.security.Authorizations
 import org.apache.nifi.avro.AvroReader
 import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.schema.access.SchemaAccessUtils
@@ -17,9 +18,8 @@ import org.apache.nifi.util.{TestRunner, TestRunners}
 import org.geomesa.nifi.datastore.processor._
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreIngestProcessor, DataStoreProcessor, FeatureTypeProcessor}
 import org.geomesa.nifi.datastore.processor.records.Properties
+import org.geomesa.testcontainers.AccumuloContainer
 import org.geotools.api.data.{DataStoreFinder, Transaction}
-import org.junit.runner.RunWith
-import org.locationtech.geomesa.accumulo.AccumuloContainer
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
 import org.locationtech.geomesa.convert.ConverterConfigLoader
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
@@ -30,8 +30,8 @@ import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypeL
 import org.locationtech.geomesa.utils.io.WithClose
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.BeforeAll
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
@@ -39,22 +39,18 @@ import java.text.SimpleDateFormat
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.{Collections, Date}
 
-@RunWith(classOf[JUnitRunner])
-class PutGeoMesaAccumuloTest extends Specification with LazyLogging {
+class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with LazyLogging {
 
   import scala.collection.JavaConverters._
 
   private val catalogCounter = new AtomicInteger(0)
 
-  // we use class name to prevent spillage between unit tests
-  lazy val root = s"${AccumuloContainer.Namespace}.${getClass.getSimpleName}"
-
   // note the table needs to be different to prevent tests from conflicting with each other
   lazy val dsParams: Map[String, String] = Map(
-    AccumuloDataStoreParams.InstanceNameParam.key -> AccumuloContainer.instanceName,
-    AccumuloDataStoreParams.ZookeepersParam.key   -> AccumuloContainer.zookeepers,
-    AccumuloDataStoreParams.UserParam.key         -> AccumuloContainer.Users.root.name,
-    AccumuloDataStoreParams.PasswordParam.key     -> AccumuloContainer.Users.root.password
+    AccumuloDataStoreParams.InstanceNameParam.key -> AccumuloContainer.getInstance().getInstanceName,
+    AccumuloDataStoreParams.ZookeepersParam.key   -> AccumuloContainer.getInstance().getZookeepers,
+    AccumuloDataStoreParams.UserParam.key         -> AccumuloContainer.getInstance().getUsername,
+    AccumuloDataStoreParams.PasswordParam.key     -> AccumuloContainer.getInstance().getPassword
   )
 
   def configureAccumuloService(runner: TestRunner, catalog: String): AccumuloDataStoreService = {
@@ -68,8 +64,14 @@ class PutGeoMesaAccumuloTest extends Specification with LazyLogging {
   }
 
   // we use class name to prevent spillage between unit tests
-  def nextCatalog(): String =
-    s"${AccumuloContainer.Namespace}.${getClass.getSimpleName}${catalogCounter.getAndIncrement()}"
+  def nextCatalog(): String = s"gm.${getClass.getSimpleName}${catalogCounter.getAndIncrement()}"
+
+  override def beforeAll(): Unit = {
+    WithClose(AccumuloContainer.getInstance().client()) { client =>
+      val secOps = client.securityOperations()
+      secOps.changeUserAuthorizations("root", new Authorizations("admin", "user"))
+    }
+  }
 
   "PutGeoMesa" should {
     "ingest to Accumulo" in {
@@ -303,7 +305,7 @@ class PutGeoMesaAccumuloTest extends Specification with LazyLogging {
       }
     }
 
-    "AvroIngestWitNameOverride" in {
+    "AvroIngestWithNameOverride" in {
       val catalog = nextCatalog()
 
       // Let's make a new Avro file

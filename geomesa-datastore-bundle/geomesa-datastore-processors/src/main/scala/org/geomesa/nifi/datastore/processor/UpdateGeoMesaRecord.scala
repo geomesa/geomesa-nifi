@@ -29,7 +29,7 @@ import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.api.filter.Filter
 import org.geotools.data.DataUtilities
 import org.geotools.util.factory.Hints
-import org.locationtech.geomesa.filter.filterToString
+import org.locationtech.geomesa.filter.FilterHelper
 import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 
@@ -38,7 +38,6 @@ import java.util.concurrent.{LinkedBlockingQueue, ScheduledThreadPoolExecutor, T
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
-
 
 @Tags(Array("geomesa", "geo", "update", "records", "geotools"))
 @CapabilityDescription("Update existing features in GeoMesa")
@@ -167,7 +166,7 @@ class UpdateGeoMesaRecord extends DataStoreProcessor {
                   case Success(writer) =>
                     try {
                       if (!writer.hasNext) {
-                        logger.warn(s"Filter does not match any features, skipping update: ${filterToString(filter)}")
+                        logger.warn(s"Filter does not match any features, skipping update: ${FilterHelper.toString(filter)}")
                         failure += 1L
                       } else {
                         do {

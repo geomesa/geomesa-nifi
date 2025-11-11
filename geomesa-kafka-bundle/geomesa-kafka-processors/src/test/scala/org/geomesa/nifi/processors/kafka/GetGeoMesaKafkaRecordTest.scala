@@ -15,28 +15,32 @@ import org.geomesa.nifi.datastore.processor.Relationships
 import org.geomesa.nifi.datastore.processor.records.{GeoAvroRecordSetWriterFactory, Properties}
 import org.geotools.api.data.{DataStoreFinder, Transaction}
 import org.geotools.api.feature.simple.SimpleFeatureType
-import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.avro.io.AvroDataFileReader
-import org.locationtech.geomesa.kafka.KafkaContainerTest
 import org.locationtech.geomesa.security.SecureSimpleFeature
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
-import org.specs2.runner.JUnitRunner
+import org.slf4j.LoggerFactory
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.BeforeAfterAll
+import org.testcontainers.containers.output.Slf4jLogConsumer
+import org.testcontainers.kafka.KafkaContainer
 
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
-@RunWith(classOf[JUnitRunner])
-class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
+class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterAll {
 
   sequential
 
   import scala.collection.JavaConverters._
 
+  private val kafka =
+    new KafkaContainer(KafkaImage)
+      .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka")))
+
   lazy val dsParams = Map(
-    "kafka.brokers"    -> brokers,
-    "kafka.zookeepers" -> zookeepers
+    "kafka.brokers" -> kafka.getBootstrapServers,
   )
 
   val sftSpec: String = "string:String,int:Integer,double:Double,long:Long,float:Float," +
@@ -76,9 +80,8 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
     }
     sf
   }
-
   override def beforeAll(): Unit = {
-    super.beforeAll()
+    kafka.start()
     WithClose(DataStoreFinder.getDataStore(dsParams.asJava)) { ds =>
       ds must not(beNull)
       ds.createSchema(sft)
@@ -91,6 +94,8 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       }
     }
   }
+
+  override def afterAll(): Unit = kafka.close()
 
   "GetGeoMesaKafkaRecord" should {
     "get records in csv format" in {
