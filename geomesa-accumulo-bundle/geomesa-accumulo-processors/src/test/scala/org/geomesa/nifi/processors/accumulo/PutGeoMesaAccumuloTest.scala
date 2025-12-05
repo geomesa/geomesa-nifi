@@ -25,7 +25,7 @@ import org.locationtech.geomesa.convert.ConverterConfigLoader
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.avro.io.AvroDataFileWriter
-import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.geotools.{FeatureUtils, SimpleFeatureTypeLoader, SimpleFeatureTypes}
 import org.locationtech.geomesa.utils.io.WithClose
 import org.locationtech.geomesa.utils.text.WKTUtils
@@ -94,7 +94,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
       } finally {
@@ -125,7 +125,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
       } finally {
@@ -156,7 +156,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
         features.map(_.getID).sorted mustEqual Seq("foobar2", "foobar3", "foobar4")
@@ -186,7 +186,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
       } finally {
@@ -216,7 +216,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("renamed")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("renamed").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("renamed").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
       } finally {
@@ -250,7 +250,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
       } finally {
@@ -296,7 +296,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         val sft = ds.getSchema("example")
         sft must not(beNull)
         sft.getAttributeCount mustEqual 5
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         features must haveLength(1)
         logger.debug(features.mkString(";"))
         features.head.getAttributes.asScala mustEqual Seq(null, "Ray", null, date, pt)
@@ -353,7 +353,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         val ray = features.find(sf => sf.getAttribute("name") == "Ray")
         ray.map(!_.getUserData.isEmpty).get must beTrue
         logger.debug(features.mkString(";"))
@@ -395,7 +395,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
         val attributes = features.head.getFeatureType.getAttributeDescriptors.asScala.map(_.getLocalName)
@@ -436,7 +436,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         sft.getAttributeCount mustEqual 10
         sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual
             Seq("__version__", "Name", "Age", "LastSeen", "Friends", "Skills", "Lon", "Lat", "geom", "__userdata__")
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
         logger.debug(features.mkString(";"))
         features must haveLength(3)
         features.map(_.getID) mustEqual
@@ -495,7 +495,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         sft.getAttributeCount mustEqual 10
         sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual
             Seq("__version__", "Name", "Age", "LastSeen", "Friends", "Skills", "Lon", "Lat", "geom", "__userdata__")
-        val features = SelfClosingIterator(ds.getFeatureSource("attributes").getFeatures.features()).toList.sortBy(_.getID)
+        val features = CloseableIterator(ds.getFeatureSource("attributes").getFeatures.features()).toList.sortBy(_.getID)
         logger.debug(features.mkString(";"))
         features must haveLength(3)
         features.map(_.getID) mustEqual
@@ -548,7 +548,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         sft must not(beNull)
         sft.getAttributeCount mustEqual 3
         sft.getAttributeDescriptors.asScala.map(_.getLocalName) mustEqual Seq("fid", "name", "geom")
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
         logger.debug(features.mkString(";"))
         features must haveLength(1)
         features.head.getID mustEqual "23623"
@@ -569,7 +569,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         try {
           val sft = ds.getSchema("example")
           sft must not(beNull)
-          val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+          val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
           logger.debug(features.mkString(";"))
           features must haveLength(3)
           features.map(_.getID) mustEqual ids
@@ -634,7 +634,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         try {
           val sft = ds.getSchema("example")
           sft must not(beNull)
-          val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+          val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
           logger.debug(features.mkString(";"))
           features must haveLength(3)
           features.map(_.getID) mustEqual Seq("23623", "26236", "3233")
@@ -690,7 +690,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
         try {
           val sft = ds.getSchema("example")
           sft must not(beNull)
-          val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+          val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
           logger.debug(features.mkString(";"))
           features must haveLength(3)
           features.map(_.getID) mustEqual Seq("23623", "26236", "3233")
@@ -747,7 +747,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
           }
 
           def checkResults(ids: Seq[String], names: Seq[String], dates: Seq[Date], geoms: Seq[String]): MatchResult[Any] = {
-            val results = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
+            val results = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList.sortBy(_.getID)
             logger.debug(results.mkString(";"))
             results must haveLength(3)
             results.map(_.getID) mustEqual ids
@@ -840,7 +840,7 @@ class PutGeoMesaAccumuloTest extends SpecificationWithJUnit with BeforeAll with 
       try {
         val sft = ds.getSchema("example")
         sft must not(beNull)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         features must haveLength(3)
       } finally {

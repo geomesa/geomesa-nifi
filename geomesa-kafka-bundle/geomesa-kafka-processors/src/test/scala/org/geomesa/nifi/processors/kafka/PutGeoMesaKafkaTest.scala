@@ -14,7 +14,7 @@ import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
 import org.geotools.api.data.DataStoreFinder
 import org.geotools.api.feature.simple.SimpleFeature
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
-import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.slf4j.LoggerFactory
 import org.specs2.mutable.SpecificationWithJUnit
 import org.specs2.specification.BeforeAfterAll
@@ -82,7 +82,7 @@ class PutGeoMesaKafkaTest extends SpecificationWithJUnit with BeforeAfterAll {
         sft must not(beNull)
 
         def checkFeatures(): List[SimpleFeature] =
-          SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+          CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
 
         eventually(40, 100.millis)(checkFeatures() must haveLength(3))
       } finally {

@@ -13,7 +13,7 @@ import org.geomesa.testcontainers.AccumuloContainer
 import org.geotools.api.data.{DataStoreFinder, Query, Transaction}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreParams
-import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.io.WithClose
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -76,7 +76,7 @@ class AccumuloNarIT extends Specification {
         eventually(30, Duration(1, TimeUnit.SECONDS))(ds.getTypeNames.toSeq must containAllOf(typeNames))
         foreach(typeNames) { typeName =>
           eventually(10, Duration(1, TimeUnit.SECONDS)) {
-            val features = SelfClosingIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
+            val features = CloseableIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
             features.length mustEqual 2362
           }
         }

@@ -11,7 +11,7 @@ package org.geomesa.nifi.kafka.nar
 import org.geomesa.nifi.datastore.processor.NiFiContainer
 import org.geotools.api.data.{DataStoreFinder, Query, Transaction}
 import org.locationtech.geomesa.kafka.data.KafkaDataStoreParams
-import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 import org.slf4j.LoggerFactory
 import org.specs2.mutable.SpecificationWithJUnit
@@ -66,7 +66,7 @@ class KafkaNarIT extends SpecificationWithJUnit with BeforeAfterAll {
         eventually(30, Duration(1, TimeUnit.SECONDS))(ds.getTypeNames.toSeq must containAllOf(typeNames))
         foreach(typeNames) { typeName =>
           eventually(10, Duration(1, TimeUnit.SECONDS)) {
-            val features = SelfClosingIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
+            val features = CloseableIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
             features.length mustEqual 2362
           }
         }
@@ -77,7 +77,7 @@ class KafkaNarIT extends SpecificationWithJUnit with BeforeAfterAll {
       WithClose(DataStoreFinder.getDataStore(params.asJava)) { ds =>
         eventually(45, Duration(1, TimeUnit.SECONDS)) {
           ds.getTypeNames.toSeq must contain(typeName)
-          val features = SelfClosingIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
+          val features = CloseableIterator(ds.getFeatureReader(new Query(typeName), Transaction.AUTO_COMMIT)).toList
           features.length mustEqual 2362
         }
       }
