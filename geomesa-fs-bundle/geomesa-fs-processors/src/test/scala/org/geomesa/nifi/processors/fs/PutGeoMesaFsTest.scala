@@ -15,7 +15,7 @@ import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
 import org.geotools.api.data.DataStoreFinder
 import org.junit.{Assert, Test}
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreParams
-import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.io.{PathUtils, WithClose}
 
 import java.nio.file.{Files, Path}
@@ -49,7 +49,7 @@ class PutGeoMesaFsTest extends LazyLogging {
         Assert.assertNotNull(ds)
         val sft = ds.getSchema("example")
         Assert.assertNotNull(sft)
-        val features = SelfClosingIterator(ds.getFeatureSource("example").getFeatures.features()).toList
+        val features = CloseableIterator(ds.getFeatureSource("example").getFeatures.features()).toList
         logger.debug(features.mkString(";"))
         Assert.assertEquals(3, features.length)
       }
