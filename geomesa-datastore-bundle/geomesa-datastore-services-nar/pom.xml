@@ -164,6 +164,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <!-- replacement for kafka org.lz4:lz4-java -->
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.java.version}</version>
