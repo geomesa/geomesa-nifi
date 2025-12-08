@@ -43,7 +43,7 @@
         <guava.version>33.0.0-jre</guava.version>
 
         <!-- versions from geomesa -->
-        <gt.version>34.0</gt.version>
+        <gt.version>34.1</gt.version>
         <accumulo.version>2.1.4</accumulo.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <hadoop.version>3.4.2</hadoop.version>
