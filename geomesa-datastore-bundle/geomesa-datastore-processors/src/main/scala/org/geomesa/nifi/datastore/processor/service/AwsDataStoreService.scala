@@ -8,13 +8,13 @@
 
 package org.geomesa.nifi.datastore.processor.service
 
-import com.amazonaws.auth.AWSSessionCredentials
 import org.apache.hadoop.conf.Configuration
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.context.PropertyContext
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService
 import org.geotools.api.data.DataStoreFactorySpi
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials
 
 import java.io.{ByteArrayInputStream, StringWriter}
 import java.nio.charset.StandardCharsets
@@ -37,20 +37,20 @@ class AwsDataStoreService[T <: DataStoreFactorySpi: ClassTag](
     val base = super.getDataStoreParams(context)
     val prop = context.getProperty(AwsDataStoreService.Properties.CredentialsServiceProperty)
     val credentials = for {
-      service  <- Option(prop.asControllerService(classOf[AWSCredentialsProviderService]))
-      provider <- Option(service.getCredentialsProvider)
+      service  <- Option(prop.asControllerService(classOf[AwsCredentialsProviderService]))
+      provider <- Option(service.getAwsCredentialsProvider)
     } yield {
-      provider.getCredentials
+      provider.resolveCredentials()
     }
     credentials match {
       case None => base
       case Some(c) =>
         val config = new Configuration(false)
-        config.set("fs.s3a.access.key", c.getAWSAccessKeyId)
-        config.set("fs.s3a.secret.key", c.getAWSSecretKey)
+        config.set("fs.s3a.access.key", c.accessKeyId())
+        config.set("fs.s3a.secret.key", c.secretAccessKey())
         c match {
-          case s: AWSSessionCredentials =>
-            config.set("fs.s3a.session.token", s.getSessionToken)
+          case s: AwsSessionCredentials =>
+            config.set("fs.s3a.session.token", s.sessionToken())
             // TODO handle session renewal?
             config.set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider")
           case _ => // no-op
@@ -73,7 +73,7 @@ object AwsDataStoreService {
           .name("AWS Credentials Provider service")
           .description("The Controller Service that is used to obtain an AWS credentials provider")
           .required(false)
-          .identifiesControllerService(classOf[AWSCredentialsProviderService])
+          .identifiesControllerService(classOf[AwsCredentialsProviderService])
           .build()
   }
 }

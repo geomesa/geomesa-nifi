@@ -33,7 +33,7 @@
 
     <properties>
         <geomesa.version>6.0.0-SNAPSHOT</geomesa.version>
-        <nifi.version>2.6.0</nifi.version>
+        <nifi.version>2.7.2</nifi.version>
 
         <jdk.version>21</jdk.version>
         <scala.version>2.12.20</scala.version>
