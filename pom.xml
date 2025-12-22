@@ -121,7 +121,7 @@
         <maven.failsafe.plugin.version>3.5.4</maven.failsafe.plugin.version>
         <maven.install.plugin.version>3.1.4</maven.install.plugin.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
-        <maven-release-plugin.version>3.2.0</maven-release-plugin.version>
+        <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
         <maven-resources-plugin.version>3.4.0</maven-resources-plugin.version>
         <maven-shade-plugin.version>3.6.1</maven-shade-plugin.version>
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
