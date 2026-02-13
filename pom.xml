@@ -92,8 +92,8 @@
         <junit.version>4.13.2</junit.version>
         <junit.jupiter.version>5.13.3</junit.jupiter.version>
         <junit.platform.version>1.13.3</junit.platform.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
-        <testcontainers.accumulo.version>1.5.0</testcontainers.accumulo.version>
+        <testcontainers.version>2.0.3</testcontainers.version>
+        <testcontainers.accumulo.version>1.6.0</testcontainers.accumulo.version>
 
         <test.nifi.docker.tag>${nifi.version}</test.nifi.docker.tag>
         <test.accumulo.docker.tag>${accumulo.version}-jdk17</test.accumulo.docker.tag>
@@ -1248,13 +1248,13 @@
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>postgresql</artifactId>
+                <artifactId>testcontainers-postgresql</artifactId>
                 <version>${testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>kafka</artifactId>
+                <artifactId>testcontainers-kafka</artifactId>
                 <version>${testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
