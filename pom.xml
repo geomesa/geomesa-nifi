@@ -45,7 +45,7 @@
         <!-- versions from geomesa -->
         <gt.version>34.2</gt.version>
         <accumulo.version>2.1.4</accumulo.version>
-        <zookeeper.version>3.9.4</zookeeper.version>
+        <zookeeper.version>3.9.5</zookeeper.version>
         <hadoop.version>3.4.2</hadoop.version>
         <hbase.version>2.6.3-hadoop3</hbase.version>
         <kafka.version>3.9.1</kafka.version>
@@ -67,7 +67,7 @@
         <commons.text.version>1.11.0</commons.text.version>
         <commons.vfs2.version>2.10.0</commons.vfs2.version> <!-- managed to fix CVE-2025-27553 in accumulo 2.1-->
         <curator.version>5.6.0</curator.version>
-        <fasterxml.jackson.version>2.18.3</fasterxml.jackson.version>
+        <fasterxml.jackson.version>2.19.0</fasterxml.jackson.version>
         <fasterxml.woodstox.version>5.4.0</fasterxml.woodstox.version>
         <gson.version>2.10.1</gson.version>
         <jetty.version>9.4.57.v20241219</jetty.version>
