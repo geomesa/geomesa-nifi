@@ -9,6 +9,7 @@
 package org.geomesa.nifi.processors.kafka
 
 import org.apache.nifi.csv.{CSVRecordSetWriter, CSVUtils}
+import org.apache.nifi.xml.XMLRecordSetWriter
 import org.apache.nifi.serialization.DateTimeUtils
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.Relationships
@@ -55,7 +56,7 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       i % 2 == 0, // bool
       s"${i}d2e799c-0652-4777-80c6-e8d8dbbb348e", // uuid
       s"POINT ($i 10)", // point
-      s"2020-02-02T0$i:00:00.000Z", // date
+      f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ", // date with non-zero minutes, seconds, and milliseconds
       List(1, 2, i).asJava, // list
       Map(s"$i" -> i, s"2$i" -> (20 + i)).asJava, // map
       s"$i$i".getBytes(StandardCharsets.UTF_8) // byte array - csv outputs it with `new String(value)`
@@ -68,7 +69,7 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
   val sftWithVis = SimpleFeatureTypes.createType("get-records-vis", "name:String,dtg:Date,*geom:Point:srid=4326")
 
   val featuresWithVis: Seq[ScalaSimpleFeature] = Seq.tabulate(5) { i =>
-    val sf = ScalaSimpleFeature.create(sftWithVis, s"$i", s"name$i", s"2020-02-02T0$i:00:00.000Z", s"POINT ($i 10)")
+    val sf = ScalaSimpleFeature.create(sftWithVis, s"$i", s"name$i", f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ", s"POINT ($i 10)")
     sf.visibility = i % 3 match {
       case 0 => "user"
       case 1 => "admin"
@@ -98,7 +99,8 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       val result = try {
         val service = new CSVRecordSetWriter()
         runner.addControllerService("csv-record-set-writer", service)
-        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
+        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        runner.setProperty(service, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         runner.enableControllerService(service)
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
         runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
@@ -121,7 +123,8 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       lines.head mustEqual "id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes"
       foreach(Range(0, 5)) { i =>
         // split up checks to avoid inconsistent ordering in the map iteration
-        lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),2020-02-02T0$i:00:00Z,"[1, 2, $i]","{""")
+        val expectedTimestamp = f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ"
+        lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),$expectedTimestamp,"[1, 2, $i]","{""")
         foreach(Seq(s"$i=$i", s"2$i=2$i"))(entry => lines(i + 1) must contain(entry))
         lines(i + 1) must endWith(s"""}",$i$i""")
       }
@@ -132,7 +135,8 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       val result = try {
         val service = new CSVRecordSetWriter()
         runner.addControllerService("csv-record-set-writer", service)
-        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
+        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        runner.setProperty(service, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         runner.enableControllerService(service)
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
         runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
@@ -152,11 +156,11 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
 
       result mustEqual
           """id,name,dtg,geom,visibilities
-            |0,name0,2020-02-02T00:00:00Z,POINT (0 10),user
-            |1,name1,2020-02-02T01:00:00Z,POINT (1 10),admin
-            |2,name2,2020-02-02T02:00:00Z,POINT (2 10),user&admin
-            |3,name3,2020-02-02T03:00:00Z,POINT (3 10),user
-            |4,name4,2020-02-02T04:00:00Z,POINT (4 10),admin
+            |0,name0,2020-02-02T00:10:20.123Z,POINT (0 10),user
+            |1,name1,2020-02-02T01:11:21.234Z,POINT (1 10),admin
+            |2,name2,2020-02-02T02:12:22.345Z,POINT (2 10),user&admin
+            |3,name3,2020-02-02T03:13:23.456Z,POINT (3 10),user
+            |4,name4,2020-02-02T04:14:24.567Z,POINT (4 10),admin
             |""".stripMargin
     }
 
@@ -165,7 +169,8 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       val result = try {
         val service = new CSVRecordSetWriter()
         runner.addControllerService("csv-record-set-writer", service)
-        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ssX")
+        runner.setProperty(service, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        runner.setProperty(service, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         runner.setProperty(service, CSVUtils.QUOTE_CHAR, "'")
         runner.enableControllerService(service)
         runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "csv-record-set-writer")
@@ -190,9 +195,10 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       lines.head mustEqual "id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes,user-data"
       foreach(Range(0, 5)) { i =>
         // split up checks to avoid inconsistent ordering in the map iteration
-        lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),2020-02-02T0$i:00:00Z,'[1, 2, $i]','{""")
+        val expectedTimestamp = f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ"
+        lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),$expectedTimestamp,'[1, 2, $i]','{""")
         foreach(Seq(s"$i=$i", s"2$i=2$i"))(entry => lines(i + 1) must contain(entry))
-        lines(i + 1) must endWith(s"""}',$i$i,'{"bar":"2020-02-02T0$i:00:00.000Z","foo":${i % 3}}'""")
+        lines(i + 1) must endWith(s"""}',$i$i,'{"bar":"$expectedTimestamp","foo":${i % 3}}'""")
       }
     }
 
@@ -281,6 +287,47 @@ class GetGeoMesaKafkaRecordTest extends KafkaContainerTest {
       // verify feature id was replaced
       featuresRead.map(_.getID) must not(containAnyOf(featuresWithVis.map(_.getID)))
       featuresRead.map(_.getAttributes) mustEqual featuresWithVis.map(_.getAttributes)
+    }
+
+    "preserve full timestamp with XML record writer" in {
+      val runner = TestRunners.newTestRunner(new GetGeoMesaKafkaRecord())
+      val result = try {
+        val service = new XMLRecordSetWriter()
+        runner.addControllerService("xml-record-set-writer", service)
+        val rootTagProp = service.getPropertyDescriptors.asScala.find(_.getName == "root_tag_name")
+        val recordTagProp = service.getPropertyDescriptors.asScala.find(_.getName == "record_tag_name")
+        val timestampFormatProp = service.getPropertyDescriptors.asScala.find(_.getName == "Timestamp Format")
+        val timezoneProp = service.getPropertyDescriptors.asScala.find(p =>
+          p.getName.toLowerCase.contains("timezone") || p.getName.toLowerCase.contains("time zone")
+        )
+        rootTagProp.foreach(p => runner.setProperty(service, p, "features"))
+        recordTagProp.foreach(p => runner.setProperty(service, p, "feature"))
+        timestampFormatProp.foreach(p => runner.setProperty(service, p, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
+        timezoneProp.foreach(p => runner.setProperty(service, p, "UTC"))
+        runner.enableControllerService(service)
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordWriter, "xml-record-set-writer")
+        runner.setProperty(GetGeoMesaKafkaRecord.GroupId, java.util.UUID.randomUUID().toString)
+        runner.setProperty(GetGeoMesaKafkaRecord.InitialOffset, "earliest")
+        runner.setProperty(GetGeoMesaKafkaRecord.RecordMaxBatchSize, "1")
+        runner.setProperty(GetGeoMesaKafkaRecord.TypeName, sft.getTypeName)
+        runner.setProperty(GetGeoMesaKafkaRecord.ReplaceFeatureIds, "false")
+        runner.setProperty(GetGeoMesaKafkaRecord.IncludeVisibilities, "false")
+        dsParams.foreach { case (k, v) => runner.setProperty(k, v) }
+        runner.run(5)
+        val results = runner.getFlowFilesForRelationship(Relationships.SuccessRelationship)
+        results.size mustEqual 5
+        (0 until results.size()).map(i => runner.getContentAsByteArray(results.get(i))).reduce(_ ++ _)
+      } finally {
+        runner.shutdown()
+      }
+
+      val xmlContent = new String(result, StandardCharsets.UTF_8)
+      val timestampPattern = """<date>(.*?)</date>""".r
+      val timestamps = timestampPattern.findAllMatchIn(xmlContent).map(_.group(1)).toSeq
+      timestamps must haveSize(5)
+      foreach(Range(0, 5)) { i =>
+        timestamps(i) mustEqual f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ"
+      }
     }
   }
 }
