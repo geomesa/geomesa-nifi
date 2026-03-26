@@ -60,7 +60,7 @@ class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterA
       i % 2 == 0, // bool
       s"${i}d2e799c-0652-4777-80c6-e8d8dbbb348e", // uuid
       s"POINT ($i 10)", // point
-      f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.000Z", // date with non-zero minutes and seconds
+      f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ", // date with non-zero minutes, seconds, and milliseconds
       List(1, 2, i).asJava, // list
       Map(s"$i" -> i, s"2$i" -> (20 + i)).asJava, // map
       s"$i$i".getBytes(StandardCharsets.UTF_8) // byte array - csv outputs it with `new String(value)`
@@ -73,7 +73,7 @@ class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterA
   val sftWithVis = SimpleFeatureTypes.createType("get-records-vis", "name:String,dtg:Date,*geom:Point:srid=4326")
 
   val featuresWithVis: Seq[ScalaSimpleFeature] = Seq.tabulate(5) { i =>
-    val sf = ScalaSimpleFeature.create(sftWithVis, s"$i", s"name$i", f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.000Z", s"POINT ($i 10)")
+    val sf = ScalaSimpleFeature.create(sftWithVis, s"$i", s"name$i", f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ", s"POINT ($i 10)")
     sf.visibility = i % 3 match {
       case 0 => "user"
       case 1 => "admin"
@@ -128,7 +128,7 @@ class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterA
       lines.head mustEqual "id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes"
       foreach(Range(0, 5)) { i =>
         // split up checks to avoid inconsistent ordering in the map iteration
-        val expectedTimestamp = f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.000Z"
+        val expectedTimestamp = f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ"
         lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),$expectedTimestamp,"[1, 2, $i]","{""")
         foreach(Seq(s"$i=$i", s"2$i=2$i"))(entry => lines(i + 1) must contain(entry))
         lines(i + 1) must endWith(s"""}",$i$i""")
@@ -161,11 +161,11 @@ class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterA
 
       result mustEqual
           """id,name,dtg,geom,visibilities
-            |0,name0,2020-02-02T00:10:20.000Z,POINT (0 10),user
-            |1,name1,2020-02-02T01:11:21.000Z,POINT (1 10),admin
-            |2,name2,2020-02-02T02:12:22.000Z,POINT (2 10),user&admin
-            |3,name3,2020-02-02T03:13:23.000Z,POINT (3 10),user
-            |4,name4,2020-02-02T04:14:24.000Z,POINT (4 10),admin
+            |0,name0,2020-02-02T00:10:20.123Z,POINT (0 10),user
+            |1,name1,2020-02-02T01:11:21.234Z,POINT (1 10),admin
+            |2,name2,2020-02-02T02:12:22.345Z,POINT (2 10),user&admin
+            |3,name3,2020-02-02T03:13:23.456Z,POINT (3 10),user
+            |4,name4,2020-02-02T04:14:24.567Z,POINT (4 10),admin
             |""".stripMargin
     }
 
@@ -200,7 +200,7 @@ class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterA
       lines.head mustEqual "id,string,int,double,long,float,boolean,uuid,pt,date,list,map,bytes,user-data"
       foreach(Range(0, 5)) { i =>
         // split up checks to avoid inconsistent ordering in the map iteration
-        val expectedTimestamp = f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.000Z"
+        val expectedTimestamp = f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ"
         lines(i + 1) must startWith(s"""$i,string$i,$i,2.$i,$i,2.$i,${i % 2 == 0},${i}d2e799c-0652-4777-80c6-e8d8dbbb348e,POINT ($i 10),$expectedTimestamp,'[1, 2, $i]','{""")
         foreach(Seq(s"$i=$i", s"2$i=2$i"))(entry => lines(i + 1) must contain(entry))
         lines(i + 1) must endWith(s"""}',$i$i,'{"bar":"$expectedTimestamp","foo":${i % 3}}'""")
@@ -331,7 +331,7 @@ class GetGeoMesaKafkaRecordTest extends SpecificationWithJUnit with BeforeAfterA
       val timestamps = timestampPattern.findAllMatchIn(xmlContent).map(_.group(1)).toSeq
       timestamps must haveSize(5)
       foreach(Range(0, 5)) { i =>
-        timestamps(i) mustEqual f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.000Z"
+        timestamps(i) mustEqual f"2020-02-02T0$i%d:${10+i}%02d:${20+i}%02d.${123+111*i}%03dZ"
       }
     }
   }
