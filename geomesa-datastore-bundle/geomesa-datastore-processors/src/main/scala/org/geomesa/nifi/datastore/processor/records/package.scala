@@ -200,7 +200,7 @@ package object records {
     val FloatType   : DataType = RecordFieldType.FLOAT.getDataType
     val DoubleType  : DataType = RecordFieldType.DOUBLE.getDataType
     val BooleanType : DataType = RecordFieldType.BOOLEAN.getDataType
-    val DateType    : DataType = RecordFieldType.DATE.getDataType("yyyy-MM-dd'T'HH:mm:ssZ")
+    val DateType    : DataType = RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-dd'T'HH:mm:ssZ")
     val BytesType   : DataType = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType)
   }
 
