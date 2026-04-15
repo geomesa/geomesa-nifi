@@ -48,7 +48,7 @@
         <zookeeper.version>3.9.5</zookeeper.version>
         <hadoop.version>3.4.2</hadoop.version>
         <hbase.version>2.6.3-hadoop3</hbase.version>
-        <kafka.version>3.9.1</kafka.version>
+        <kafka.version>3.9.2</kafka.version>
         <confluent.version>7.7.1</confluent.version> <!-- corresponds to kafka 3.7 -->
         <postgres.version>42.7.7</postgres.version>
 
@@ -128,7 +128,7 @@
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
         <nifi-nar-maven-plugin.version>2.3.0</nifi-nar-maven-plugin.version>
-        <scala-maven-plugin.version>4.9.2</scala-maven-plugin.version>
+        <scala-maven-plugin.version>4.9.10</scala-maven-plugin.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

@@ -25,7 +25,6 @@ import org.geomesa.nifi.datastore.services.MetricsRegistryService
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.geotools.util.factory.Hints
 import org.locationtech.geomesa.features.SerializationOption
-import org.locationtech.geomesa.features.exporters.FileSystemExporter.{OrcFileSystemExporter, ParquetFileSystemExporter}
 import org.locationtech.geomesa.features.exporters._
 import org.locationtech.geomesa.index.conf.QueryHints
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, PathUtils}
@@ -33,7 +32,6 @@ import org.locationtech.geomesa.utils.io.{CloseWithLogging, PathUtils}
 import java.io.{Closeable, File, OutputStream}
 import java.nio.file.Files
 import java.util.UUID
-import java.util.zip.GZIPOutputStream
 import scala.util.control.NonFatal
 
 @Tags(Array("OGC", "geo", "convert", "converter", "simple feature", "geotools", "geomesa",
@@ -121,17 +119,12 @@ class ConvertToGeoFile extends ConvertInputProcessor {
         }
       }
 
-      if (format == "orc" || format == "parquet") {
+      if (format == "parquet") {
         val dir = Files.createTempDirectory("gm-nifi")
         try {
           val file = new File(dir.toFile, s"export.$format")
-          val exporter = format match {
-            case "orc"     => new OrcFileSystemExporter(file.getAbsolutePath)
-            case "parquet" => new ParquetFileSystemExporter(file.getAbsolutePath)
+          val exporter = new GeoParquetExporter(file.getAbsolutePath)
             // case ExportFormat.Shp     => new ShapefileExporter(file) // TODO zip up dir??
-            // shouldn't happen unless someone adds a new format and doesn't implement it here
-            case _ => throw new NotImplementedError(s"Export for '$format' is not implemented")
-          }
           export(exporter)
           output = session.importFrom(file.toPath, false, output)
         } finally {
@@ -141,14 +134,11 @@ class ConvertToGeoFile extends ConvertInputProcessor {
         output = session.write(output, new OutputStreamCallback() {
           override def process(out: OutputStream): Unit = {
             // note: avro handles compression internally
-            lazy val stream = gzip match {
-              case None    => out
-              case Some(c) => new GZIPOutputStream(out) { `def`.setLevel(c) } // hack to access the protected deflate level
-            }
+            lazy val stream = new ExportStream(out, gzip.filter(_ => !format.startsWith("avro")))
             val exporter = format match {
               case "arrow"       => new ArrowExporter(stream, ConvertToGeoFile.getArrowHints(sft))
-              case "avro"        => new AvroExporter(out, gzip)
-              case "avro-native" => new AvroExporter(out, gzip, Set(SerializationOption.NativeCollections))
+              case "avro"        => new AvroExporter(stream, gzip)
+              case "avro-native" => new AvroExporter(stream, gzip, Set(SerializationOption.NativeCollections))
               case "bin"         => new BinExporter(stream, new Hints())
               case "csv"         => DelimitedExporter.csv(stream, headers)
               case "gml"         => GmlExporter(stream)
@@ -215,7 +205,6 @@ object ConvertToGeoFile {
       "gml",
       "json",
       "leaflet",
-      "orc",
       "parquet",
       // TODO ExportFormat.Shp,
       "tsv",

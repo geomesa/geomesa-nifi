@@ -19,19 +19,23 @@ import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.io.{PathUtils, WithClose}
 
 import java.nio.file.{Files, Path}
-import java.util.Collections
 
 class PutGeoMesaFsTest extends LazyLogging {
+
+  import scala.collection.JavaConverters._
 
   @Test
   def testIngest(): Unit = {
     withDir { dir =>
       val path = dir.toFile.getAbsolutePath
+      val params = Map(FileSystemDataStoreParams.PathParam.key -> path, FileSystemDataStoreParams.MetadataTypeParam.key -> "file")
       val runner = TestRunners.newTestRunner(new PutGeoMesa())
       try {
         val service = new FileSystemDataStoreService()
         runner.addControllerService("fs-datastore", service)
-        runner.setProperty(service, FileSystemDataStoreParams.PathParam.key, path)
+        params.foreach { case (k, v) =>
+          runner.setProperty(service, k, v)
+        }
         runner.enableControllerService(service)
 
         runner.setProperty(DataStoreProcessor.Properties.DataStoreService, "fs-datastore")
@@ -45,7 +49,7 @@ class PutGeoMesaFsTest extends LazyLogging {
       } finally {
         runner.shutdown()
       }
-      WithClose(DataStoreFinder.getDataStore(Collections.singletonMap(FileSystemDataStoreParams.PathParam.key, path))) { ds =>
+      WithClose(DataStoreFinder.getDataStore(params.asJava)) { ds =>
         Assert.assertNotNull(ds)
         val sft = ds.getSchema("example")
         Assert.assertNotNull(sft)

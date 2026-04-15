@@ -30,7 +30,6 @@ import org.geomesa.nifi.datastore.processor.utils.PropertyDescriptorUtils
 import org.geomesa.nifi.datastore.services.MetricsRegistryService
 import org.geotools.api.feature.`type`.GeometryDescriptor
 import org.geotools.api.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.locationtech.geomesa.features.exporters.DelimitedExporter
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult
 import org.locationtech.geomesa.kafka.consumer.BatchConsumer.BatchResult.BatchResult
 import org.locationtech.geomesa.kafka.data.{KafkaDataStore, KafkaDataStoreFactory, KafkaDataStoreParams}
@@ -40,7 +39,8 @@ import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeDescript
 import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 
-import java.io.{ByteArrayOutputStream, Closeable}
+import java.io.Closeable
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.{SynchronousQueue, TimeUnit}
 import java.util.{Collections, Properties}
 import scala.util.Try
@@ -457,18 +457,18 @@ object GetGeoMesaKafkaRecord extends PropertyDescriptorUtils {
    */
   private class IdGenerator(sft: SimpleFeatureType) {
 
-    private val stream = new ByteArrayOutputStream()
-
-    // assertion - we don't need to close this as it just closes the underlying stream, which is a byte array
-    private val exporter = DelimitedExporter.csv(stream, withHeader = false, includeIds = true)
-    exporter.start(sft)
-
+    private val attributes = new StringBuilder()
     private val buf = Array.ofDim[Byte](16)
 
     def id(feature: SimpleFeature): String = {
-      stream.reset()
-      exporter.export(Iterator.single(feature))
-      val Array(lo, hi) = MurmurHash3.hash128(stream.toByteArray)
+      attributes.clear()
+      attributes.append(feature.getID)
+      var i = 0
+      while (i < sft.getAttributeCount) {
+        attributes.append(':').append(feature.getAttribute(i))
+        i += 1
+      }
+      val Array(lo, hi) = MurmurHash3.hash128(attributes.toString().getBytes(StandardCharsets.UTF_8))
       ByteArrays.writeLong(lo, buf)
       ByteArrays.writeLong(hi, buf, 8)
       ByteArrays.toHex(buf, 0, 16)
