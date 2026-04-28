@@ -14,7 +14,7 @@ import org.apache.nifi.context.PropertyContext
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService
 import org.geotools.api.data.DataStoreFactorySpi
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam
-import software.amazon.awssdk.auth.credentials.AwsSessionCredentials
+import software.amazon.awssdk.auth.credentials.{AwsCredentials, AwsSessionCredentials}
 
 import java.io.{ByteArrayInputStream, StringWriter}
 import java.nio.charset.StandardCharsets
@@ -24,44 +24,16 @@ import scala.reflect.ClassTag
  * Aws data store integration
  *
  * @param descriptors data store descriptors
- * @param configParam parameter for embedding hadoop &lt;configuration&gt; xml, used to pass the AWS credentials
  */
-class AwsDataStoreService[T <: DataStoreFactorySpi: ClassTag](
-    descriptors: Seq[PropertyDescriptor],
-    configParam: GeoMesaParam[String]
-  ) extends GeoMesaDataStoreService(descriptors ++ Seq(AwsDataStoreService.Properties.CredentialsServiceProperty)) {
-
-  import scala.collection.JavaConverters._
-
-  override protected def getDataStoreParams(context: PropertyContext): Map[String, _ <: AnyRef] = {
-    val base = super.getDataStoreParams(context)
+class AwsDataStoreService[T <: DataStoreFactorySpi: ClassTag](descriptors: Seq[PropertyDescriptor])
+    extends GeoMesaDataStoreService(descriptors ++ Seq(AwsDataStoreService.Properties.CredentialsServiceProperty)) {
+  protected def getCredentials(context: PropertyContext): Option[AwsCredentials] = {
     val prop = context.getProperty(AwsDataStoreService.Properties.CredentialsServiceProperty)
-    val credentials = for {
+    for {
       service  <- Option(prop.asControllerService(classOf[AwsCredentialsProviderService]))
       provider <- Option(service.getAwsCredentialsProvider)
     } yield {
       provider.resolveCredentials()
-    }
-    credentials match {
-      case None => base
-      case Some(c) =>
-        val config = new Configuration(false)
-        config.set("fs.s3a.access.key", c.accessKeyId())
-        config.set("fs.s3a.secret.key", c.secretAccessKey())
-        c match {
-          case s: AwsSessionCredentials =>
-            config.set("fs.s3a.session.token", s.sessionToken())
-            // TODO handle session renewal?
-            config.set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider")
-          case _ => // no-op
-        }
-        // add any config that was populated by the user so it's not lost
-        configParam.lookupOpt(base.asJava).foreach { c =>
-          config.addResource(new ByteArrayInputStream(c.getBytes(StandardCharsets.UTF_8)))
-        }
-        val out = new StringWriter()
-        config.writeXml(out)
-        base ++ Map(configParam.key -> out.toString)
     }
   }
 }
