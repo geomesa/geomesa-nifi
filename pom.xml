@@ -50,7 +50,7 @@
         <hbase.version>2.6.3-hadoop3</hbase.version>
         <kafka.version>3.9.2</kafka.version>
         <confluent.version>7.7.1</confluent.version> <!-- corresponds to kafka 3.7 -->
-        <postgres.version>42.7.7</postgres.version>
+        <postgres.version>42.7.11</postgres.version>
 
         <aircompressor.version>0.27</aircompressor.version>
         <aws.crt.version>0.33.2</aws.crt.version>
