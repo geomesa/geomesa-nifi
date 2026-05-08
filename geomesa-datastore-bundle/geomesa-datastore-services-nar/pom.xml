@@ -94,6 +94,22 @@
                     <groupId>com.google.errorprone</groupId>
                     <artifactId>error_prone_annotations</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents.client5</groupId>
+                    <artifactId>httpclient5</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jspecify</groupId>
+                    <artifactId>jspecify</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.luben</groupId>
+                    <artifactId>zstd-jni</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
