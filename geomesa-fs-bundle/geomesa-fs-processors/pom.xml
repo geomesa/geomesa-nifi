@@ -107,6 +107,10 @@
                     <artifactId>pureconfig_${scala.binary.version}</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.scala-lang</groupId>
                     <artifactId>scala-library</artifactId>
                 </exclusion>
@@ -135,6 +139,10 @@
                 <exclusion>
                     <groupId>org.parboiled</groupId>
                     <artifactId>parboiled-scala_${scala.binary.version}</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.scala-lang</groupId>
