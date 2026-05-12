@@ -31,7 +31,7 @@ jobs:
             unzip -d "nars/$(basename $nar)" "$nar"
           done
       - name: Trivy rootfs scan
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         with:
           scan-type: 'rootfs'
           vuln-type: 'library'
@@ -39,7 +39,7 @@ jobs:
           output: 'trivy-scan.sarif'
           scan-ref: './nars/'
       - name: Upload results
-        uses: github/codeql-action/upload-sarif@b1bff81932f5cdfc8695c7752dcee935dcd061c8 # v4.33.0
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           sarif_file: 'trivy-scan.sarif'
       - name: Remove GeoMesa artifacts from Maven cache
