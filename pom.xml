@@ -97,7 +97,9 @@
 
         <test.nifi.docker.tag>${nifi.version}</test.nifi.docker.tag>
         <test.accumulo.docker.tag>${accumulo.version}-jdk17</test.accumulo.docker.tag>
+        <test.iceberg.rest.docker.tag>1.10.1</test.iceberg.rest.docker.tag>
         <test.kafka.docker.tag>${kafka.version}</test.kafka.docker.tag>
+        <test.minio.docker.tag>RELEASE.2024-10-29T16-01-48Z</test.minio.docker.tag>
         <test.redis.docker.tag>7-alpine</test.redis.docker.tag>
         <test.postgres.docker.tag>15.1</test.postgres.docker.tag>
         <test.postgis.docker.tag>15-3.4</test.postgis.docker.tag>
@@ -351,35 +353,10 @@
             <!-- geomesa -->
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
+                <artifactId>geomesa-bom_${scala.binary.version}</artifactId>
                 <version>${geomesa.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <!-- provided by nifi standard nars -->
-                        <groupId>com.github.luben</groupId>
-                        <artifactId>zstd-jni</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-convert-avro-schema-registry_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-index-api_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-utils_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-process-vector_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
@@ -395,78 +372,6 @@
                         <!-- provided by nifi standard nars -->
                         <groupId>io.netty</groupId>
                         <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-metrics-graphite_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-accumulo-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-accumulo-distributed-runtime_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-hbase-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-kafka-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-kafka-confluent_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-lambda-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-redis-datastore_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-gt-partitioning_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-fs-storage-orc_${scala.binary.version}</artifactId>
-                <version>${geomesa.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <!-- provided by nifi standard nars -->
-                        <groupId>org.jetbrains</groupId>
-                        <artifactId>annotations</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -1180,6 +1085,12 @@
                 <version>${fasterxml.jackson.annotations.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>com.github.luben</groupId>
+                <artifactId>zstd-jni</artifactId>
+                <version>1.5.7-7</version>
+                <scope>provided</scope>
+            </dependency>
 
             <!-- test dependencies -->
             <dependency>
@@ -1377,6 +1288,8 @@
                             <geomesa.hbase.test.region.servers>1</geomesa.hbase.test.region.servers>
                             <nifi.it.version>${nifi.version}</nifi.it.version>
                             <accumulo.docker.tag>${test.accumulo.docker.tag}</accumulo.docker.tag>
+                            <iceberg.rest.docker.tag>${test.iceberg.rest.docker.tag}</iceberg.rest.docker.tag>
+                            <minio.docker.tag>${test.minio.docker.tag}</minio.docker.tag>
                             <postgis.docker.tag>${test.postgis.docker.tag}</postgis.docker.tag>
                             <postgres.docker.tag>${test.postgres.docker.tag}</postgres.docker.tag>
                             <redis.docker.tag>${test.redis.docker.tag}</redis.docker.tag>
@@ -1405,6 +1318,8 @@
                         <systemPropertyVariables>
                             <nifi.it.version>${test.nifi.docker.tag}</nifi.it.version>
                             <accumulo.docker.tag>${test.accumulo.docker.tag}</accumulo.docker.tag>
+                            <iceberg.rest.docker.tag>${test.iceberg.rest.docker.tag}</iceberg.rest.docker.tag>
+                            <minio.docker.tag>${test.minio.docker.tag}</minio.docker.tag>
                             <postgis.docker.tag>${test.postgis.docker.tag}</postgis.docker.tag>
                             <postgres.docker.tag>${test.postgres.docker.tag}</postgres.docker.tag>
                             <redis.docker.tag>${test.redis.docker.tag}</redis.docker.tag>

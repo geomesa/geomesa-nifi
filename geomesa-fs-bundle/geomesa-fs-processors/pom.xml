@@ -64,7 +64,7 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
+                    <artifactId>geomesa-fs-storage_${scala.binary.version}</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.locationtech.geomesa</groupId>
@@ -118,19 +118,11 @@
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-fs-storage-parquet_${scala.binary.version}</artifactId>
+            <artifactId>geomesa-fs-storage_${scala.binary.version}</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.locationtech.geomesa</groupId>
                     <artifactId>geomesa-index-api_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-parquet-io_${scala.binary.version}</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.locationtech.geomesa</groupId>
-                    <artifactId>geomesa-fs-storage-api_${scala.binary.version}</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.apache.parquet</groupId>
@@ -192,9 +184,28 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>kms</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- test -->
 
+        <dependency>
+            <groupId>org.specs2</groupId>
+            <artifactId>specs2-junit_${scala.binary.version}</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
@@ -216,6 +227,14 @@
             <artifactId>mockito-core</artifactId>
             <version>2.8.47</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-minio</artifactId>
         </dependency>
 
     </dependencies>
