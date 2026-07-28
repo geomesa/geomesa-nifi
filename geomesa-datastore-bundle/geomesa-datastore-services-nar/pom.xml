@@ -110,6 +110,10 @@
                     <groupId>software.amazon.awssdk</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents.core5</groupId>
+                    <artifactId>httpcore5</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
