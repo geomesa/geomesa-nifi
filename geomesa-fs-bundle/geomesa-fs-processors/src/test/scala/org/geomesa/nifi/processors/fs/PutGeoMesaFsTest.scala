@@ -59,18 +59,20 @@ class PutGeoMesaFsTest extends SpecificationWithJUnit with BeforeAfterAll with L
 
   "PutGeoMesaFs" should {
     "ingest" in {
-      val params = Map(
-        FileSystemDataStoreParams.ConfigParam.key ->
-          s"""type=rest
-             |uri=http://${iceberg.getHost}:${iceberg.getFirstMappedPort}/
-             |iceberg.namespace=geomesa
-             |fs.s3.region=us-east-1
-             |fs.s3.endpoint=${minio.getS3URL}
-             |fs.s3.access-key-id=${minio.getUserName}
-             |fs.s3.secret-access-key=${minio.getPassword}
-             |fs.s3.force-path-style=true
-             |""".stripMargin,
-      )
+      val params =
+        Map(
+          FileSystemDataStoreParams.PathParam.key -> "s3://geomesa/fs/",
+          FileSystemDataStoreParams.ConfigParam.key ->
+            s"""type=rest
+               |uri=http://${iceberg.getHost}:${iceberg.getFirstMappedPort}/
+               |iceberg.namespace=geomesa
+               |fs.s3.region=us-east-1
+               |fs.s3.endpoint=${minio.getS3URL}
+               |fs.s3.access-key-id=${minio.getUserName}
+               |fs.s3.secret-access-key=${minio.getPassword}
+               |fs.s3.force-path-style=true
+               |""".stripMargin,
+        )
       val runner = TestRunners.newTestRunner(new PutGeoMesa())
       try {
         val service = new FileSystemDataStoreService()
