@@ -113,8 +113,8 @@
 
         <!-- Maven plugin versions, latest as of 2023-12-27 -->
         <build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
-        <central.publishing.maven.plugin.version>0.10.0</central.publishing.maven.plugin.version>
-        <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
+        <central.publishing.maven.plugin.version>0.11.0</central.publishing.maven.plugin.version>
+        <license-maven-plugin.version>5.1.1</license-maven-plugin.version>
         <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
@@ -122,7 +122,7 @@
         <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
         <maven.failsafe.plugin.version>3.5.6</maven.failsafe.plugin.version>
         <maven.install.plugin.version>3.1.4</maven.install.plugin.version>
-        <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-release-plugin.version>3.2.0</maven-release-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
