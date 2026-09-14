@@ -12,14 +12,15 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.nifi.util.TestRunners
 import org.geomesa.nifi.datastore.processor.mixins.{ConvertInputProcessor, DataStoreProcessor, FeatureTypeProcessor, UserDataProcessor}
 import org.geomesa.nifi.datastore.processor.{PutGeoMesa, Relationships}
-import org.geomesa.nifi.processors.fs.PutGeoMesaFsTest.IcebergRestContainer
+import org.geomesa.nifi.processors.fs.PutGeoMesaFsTest.{IcebergRestContainer, SeaweedFsContainer}
 import org.geotools.api.data.DataStoreFinder
 import org.locationtech.geomesa.fs.data.FileSystemDataStoreParams
 import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.io.WithClose
 import org.specs2.mutable.SpecificationWithJUnit
 import org.specs2.specification.BeforeAfterAll
-import org.testcontainers.containers.{GenericContainer, MinIOContainer, Network}
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.containers.{GenericContainer, Network}
 import org.testcontainers.utility.DockerImageName
 
 class PutGeoMesaFsTest extends SpecificationWithJUnit with BeforeAfterAll with LazyLogging {
@@ -28,33 +29,18 @@ class PutGeoMesaFsTest extends SpecificationWithJUnit with BeforeAfterAll with L
 
   private val network = Network.newNetwork()
 
-  private val minio =
-    new MinIOContainer(DockerImageName.parse("minio/minio").withTag(sys.props("minio.docker.tag")))
-      .withNetwork(network)
-      .withNetworkAliases("minio")
+  private val s3 = new SeaweedFsContainer().withNetwork(network)
 
-  private val iceberg =
-    new IcebergRestContainer()
-      .withNetwork(network)
-      .withNetworkAliases("rest-catalog")
-      .withEnv("CATALOG_WAREHOUSE", "s3://geomesa/iceberg")
-      .withEnv("CATALOG_IO__IMPL", "org.apache.iceberg.aws.s3.S3FileIO")
-      .withEnv("CATALOG_S3_ENDPOINT", "http://minio:9000")
-      .withEnv("CATALOG_S3_PATH__STYLE__ACCESS", "true")
-      .withEnv("AWS_REGION", "us-east-1")
-      .withEnv("AWS_ACCESS_KEY_ID", "minioadmin")
-      .withEnv("AWS_SECRET_ACCESS_KEY", "minioadmin")
+  private val iceberg = new IcebergRestContainer().withNetwork(network)
 
   override def beforeAll(): Unit = {
-    minio.start()
-    minio.execInContainer("mc", "alias", "set", "localhost", "http://localhost:9000", minio.getUserName, minio.getPassword)
-    minio.execInContainer("mc", "mb", "localhost/geomesa")
+    s3.start()
     iceberg.start()
   }
 
   override def afterAll(): Unit = {
     iceberg.stop()
-    minio.stop()
+    s3.stop()
   }
 
   "PutGeoMesaFs" should {
@@ -65,9 +51,9 @@ class PutGeoMesaFsTest extends SpecificationWithJUnit with BeforeAfterAll with L
              |uri=http://${iceberg.getHost}:${iceberg.getFirstMappedPort}/
              |iceberg.namespace=geomesa
              |fs.s3.region=us-east-1
-             |fs.s3.endpoint=${minio.getS3URL}
-             |fs.s3.access-key-id=${minio.getUserName}
-             |fs.s3.secret-access-key=${minio.getPassword}
+             |fs.s3.endpoint=${s3.getS3URL}
+             |fs.s3.access-key-id=admin
+             |fs.s3.secret-access-key=admin
              |fs.s3.force-path-style=true
              |""".stripMargin,
       )
@@ -109,5 +95,27 @@ object PutGeoMesaFsTest {
 
   class IcebergRestContainer extends GenericContainer[IcebergRestContainer](IcebergRestImage) {
     withExposedPorts(8181)
+    withEnv("CATALOG_WAREHOUSE", "s3://geomesa/iceberg")
+    withEnv("CATALOG_IO__IMPL", "org.apache.iceberg.aws.s3.S3FileIO")
+    withEnv("CATALOG_S3_ENDPOINT", "http://seaweed:8333")
+    withEnv("CATALOG_S3_PATH__STYLE__ACCESS", "true")
+    withEnv("AWS_REGION", "us-east-1")
+    withEnv("AWS_ACCESS_KEY_ID", "admin")
+    withEnv("AWS_SECRET_ACCESS_KEY", "admin")
+    withNetworkAliases("rest-catalog")
+  }
+
+  val SeaweedFsImage = DockerImageName.parse("chrislusf/seaweedfs").withTag(sys.props("seaweed.docker.tag"))
+
+  class SeaweedFsContainer extends GenericContainer[SeaweedFsContainer](SeaweedFsImage) {
+    withExposedPorts(8333)
+    withCommand("mini", "-dir=/tmp/data")
+    withEnv("AWS_ACCESS_KEY_ID", "admin")
+    withEnv("AWS_SECRET_ACCESS_KEY", "admin")
+    withEnv("S3_BUCKET", "geomesa")
+    waitingFor(Wait.forHttp("/status").forPort(8333).forStatusCode(200))
+    withNetworkAliases("seaweed")
+
+    def getS3URL: String = s"http://$getHost:$getFirstMappedPort/"
   }
 }
